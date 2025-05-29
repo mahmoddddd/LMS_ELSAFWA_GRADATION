@@ -19,6 +19,7 @@
 
 // app.use(cors());
 // app.use(clerkMiddleware())
+
 // app.use((req, res, next) => {
 //   console.log(req.originalUrl);
 //   if (req.originalUrl === '/stripe') {
@@ -37,6 +38,7 @@
 // // Root Route
 // app.get("/", (req, res) => {
 //   res.send("🎉v1 MERN Backend is Running...");
+
 // });
 
 // app.post('/clerk',express.json(), clerkWebHooks)
@@ -45,8 +47,12 @@
 // app.use('/api/user',express.json(), userRouter)
 // app.post('/stripe',express.raw({type:'application/json'}), stripewebhooks)
 
+
+
+
+
 // // port
-// const PORT = process.env.PORT || 4000;
+// const PORT = process.env.PORT || 3000;
 // app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
 import express from "express";
