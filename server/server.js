@@ -70,7 +70,7 @@ app.use((req, res, next) => {
   console.log(req.originalUrl);
   next();
 });
-
+//
 // Connect to database and cloudinary
 await connectDB();
 await connectCloudinary();
