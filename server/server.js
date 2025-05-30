@@ -105,12 +105,14 @@ app.use((req, res, next) => {
 await connectDB();
 await connectCloudinary();
 
+app.post('/clerk', express.raw({ type: 'application/json' }), clerkWebHooks);
+app.use(express.json());
 // ✅ المسارات (routes)
 app.get("/", (req, res) => {
   res.send("🎉 v1 MERN Backend is Running...");
 });
 
-app.post('/clerk', express.json(), clerkWebHooks);
+// app.post('/clerk', express.json(), clerkWebHooks);
 app.use('/api/educator', express.json(), educateRouter);
 app.use('/api/course', express.json(), courseRouter);
 app.use('/api/user', express.json(), userRouter);

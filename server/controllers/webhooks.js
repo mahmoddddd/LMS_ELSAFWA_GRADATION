@@ -5,52 +5,57 @@ import { Purchase } from "../models/Purchase.js";
 import Course from "../models/Course.js";
 
 //API controller function to manage clerk user with datab
+
 export const clerkWebHooks = async (req, res) => {
   try {
-    const whook = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
+    console.log("➡️ Clerk Webhook hit");
 
-    // لازم نمرر body كـ buffer أو string
-    const payload = req.body; // raw body من express.raw
+    // log headers
+    console.log("🔐 Headers received:");
+    console.log("svix-id:", req.headers["svix-id"]);
+    console.log("svix-timestamp:", req.headers["svix-timestamp"]);
+    console.log("svix-signature:", req.headers["svix-signature"]);
+
+    // log raw body (important)
+    console.log("📦 Raw payload (should be a Buffer):", req.body);
+
+    const payload = req.body;
     const headers = {
       "svix-id": req.headers["svix-id"],
       "svix-timestamp": req.headers["svix-timestamp"],
       "svix-signature": req.headers["svix-signature"],
     };
 
-    // التحقق من صحة ال webhook
-    const evt = whook.verify(payload, headers);
+    const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
+    const evt = wh.verify(payload, headers); // ⚠️ payload لازم يكون raw Buffer
+
+    console.log("✅ Webhook verified successfully");
 
     const { data, type } = evt;
 
-    switch (type) {
-      case "user.created":
-        await User.create({
-          _id: data.id,
-          email: data.email_addresses[0].email_address,
-          name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
-          imageUrl: data.image_url,
-        });
-        break;
+    console.log("📨 Clerk event type:", type);
+    console.log("📊 Event data:", JSON.stringify(data, null, 2));
 
-      case "user.updated":
-        await User.findByIdAndUpdate(data.id, {
-          email: data.email_addresses[0].email_address,
-          name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
-          imageUrl: data.image_url,
-        });
-        break;
+    if (type === "user.created") {
+      const userToCreate = {
+        _id: data.id,
+        email: data.email_addresses[0].email_address,
+        name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
+        imageUrl: data.image_url,
+      };
 
-      case "user.deleted":
-        await User.findByIdAndDelete(data.id);
-        break;
+      console.log("📝 Creating user:", userToCreate);
 
-      default:
-        console.log("Unhandled event", type);
+      await User.create(userToCreate);
+
+      console.log("✅ User created successfully");
+    } else {
+      console.log("⚠️ Event type not handled:", type);
     }
 
-    res.status(200).json({ received: true });
+    res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Webhook error", error);
+    console.error("❌ Webhook error:", error.message);
     res.status(400).json({ success: false, message: error.message });
   }
 };
