@@ -12,9 +12,6 @@ import userRouter from "./routes/userRoutes.js";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import fs from "fs";
-import { Webhook } from "svix";
-import { WebhookEvent } from "@clerk/clerk-sdk-node";
-import { protect } from "./middlewares/authMiddleWare.js";
 
 // إنشاء تطبيق Express
 const app = express();
@@ -53,17 +50,16 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-app.post("/clerk", express.raw({ type: "application/json" }), clerkWebHooks);
-app.use(express.json());
 // ✅ المسارات (routes)
 app.get("/", (req, res) => {
   res.send("🎉 v1 MERN Backend is Running...");
 });
 
-// app.post('/clerk', express.json(), clerkWebHooks);
-app.use("/api/educator", express.json(), educateRouter);
-app.use("/api/course", express.json(), courseRouter);
-app.use("/api/user", express.json(), userRouter);
+app.post("/clerk", express.raw({ type: "application/json" }), clerkWebHooks);
+app.use(express.json());
+app.use("/api/educator", educateRouter);
+app.use("/api/course", courseRouter);
+app.use("/api/user", userRouter);
 
 // Stripe Webhook requires raw body
 app.post("/stripe", express.raw({ type: "application/json" }), stripewebhooks);
