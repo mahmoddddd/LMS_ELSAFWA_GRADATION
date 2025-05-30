@@ -5,12 +5,15 @@ import { assets } from "../../assets/assets";
 import { AppContext } from "../../context/AppContext";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { useUser, useAuth } from "@clerk/clerk-react";
 
 const AddCourse = () => {
   const quillRef = useRef(null);
   const editorRef = useRef(null);
 
-  const { backendUrl, getToken, user } = useContext(AppContext);
+  const { backendUrl } = useContext(AppContext);
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { getToken, isLoaded: isAuthLoaded } = useAuth();
 
   const [courseTitle, setCourseTitle] = useState("");
   const [coursePrice, setCoursePrice] = useState(0);
@@ -20,6 +23,7 @@ const AddCourse = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [currentChapterId, setCurrentChapterId] = useState(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [lectureDetails, setLectureDetails] = useState({
     lectureTitle: "",
@@ -27,6 +31,17 @@ const AddCourse = () => {
     lectureVideo: null,
     isPreviewFree: false,
   });
+
+  useEffect(() => {
+    if (!isUserLoaded || !isAuthLoaded) {
+      return;
+    }
+
+    if (!user) {
+      toast.error("Please sign in to add a course");
+      return;
+    }
+  }, [isUserLoaded, isAuthLoaded, user]);
 
   useEffect(() => {
     // initiate quill only once
@@ -142,30 +157,58 @@ const AddCourse = () => {
         toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error("Error uploading video:", error);
+      toast.error(error.message || "Failed to upload video");
     } finally {
       setUploadingVideo(false);
     }
   };
 
   const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!isUserLoaded || !isAuthLoaded) {
+      toast.error("Please wait while we load your account information");
+      return;
+    }
+
+    if (!user) {
+      toast.error("Please sign in to add a course");
+      return;
+    }
+
+    if (!image) {
+      toast.error("Please select a course thumbnail");
+      return;
+    }
+
+    if (!courseTitle.trim()) {
+      toast.error("Please enter a course title");
+      return;
+    }
+
+    if (chapters.length === 0) {
+      toast.error("Please add at least one chapter");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      e.preventDefault();
-      if (!image) {
-        toast.error("thumbnail not selected");
-        return;
+      const token = await getToken();
+      if (!token) {
+        throw new Error("Authentication token not available");
       }
 
-      const token = await getToken();
-
       const courseData = {
-        courseTitle,
+        courseTitle: courseTitle.trim(),
         courseDescription: quillRef.current.root.innerHTML,
         coursePrice: Number(coursePrice),
         discount: Number(discount),
         courseContent: chapters,
         educator: user.id,
       };
+
+      console.log("Submitting course data:", courseData); // Debug log
 
       const formData = new FormData();
       formData.append("courseData", JSON.stringify(courseData));
@@ -174,11 +217,17 @@ const AddCourse = () => {
       const { data } = await axios.post(
         `${backendUrl}/api/educator/add-course`,
         formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
       if (data.success) {
         toast.success(data.message);
+        // Reset form
         setCourseTitle("");
         setCoursePrice(0);
         setDiscount(0);
@@ -186,10 +235,15 @@ const AddCourse = () => {
         setChapters([]);
         quillRef.current.root.innerHTML = "";
       } else {
-        toast.error(data.message);
+        throw new Error(data.message || "Failed to create course");
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error("Error creating course:", error);
+      toast.error(
+        error.message || "Failed to create course. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -467,8 +521,11 @@ const AddCourse = () => {
           )}
 
           {/* Submit Button */}
-          <button className="bg-black text-white w-max py-2.5 px-8 rounded my-4">
-            ADD
+          <button
+            className="bg-black text-white w-max py-2.5 px-8 rounded my-4 disabled:bg-gray-400"
+            disabled={isSubmitting || !user || !isUserLoaded || !isAuthLoaded}
+          >
+            {isSubmitting ? "Creating Course..." : "ADD"}
           </button>
         </form>
       </div>

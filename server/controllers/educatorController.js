@@ -29,15 +29,24 @@ export const addCourse = async (req, res) => {
     if (!imagefile) {
       return res.json({ success: false, message: "thumbnail not attached" });
     }
+
+    // Convert buffer to base64
+    const b64 = Buffer.from(imagefile.buffer).toString("base64");
+    const dataURI = `data:${imagefile.mimetype};base64,${b64}`;
+
+    // Upload to Cloudinary
+    const imageUpload = await cloudinary.uploader.upload(dataURI, {
+      resource_type: "auto",
+    });
+
     const parseCoursedata = JSON.parse(courseData);
     parseCoursedata.educator = educatorId;
-    const newCourse = await Course.create(parseCoursedata);
-    const imageUpload = await cloudinary.uploader.upload(imagefile.path);
-    newCourse.courseThumbnail = imageUpload.secure_url;
-    await newCourse.save();
+    parseCoursedata.courseThumbnail = imageUpload.secure_url;
 
+    const newCourse = await Course.create(parseCoursedata);
     res.json({ success: true, message: "course added" });
   } catch (error) {
+    console.error("Error adding course:", error);
     res.json({ success: false, message: error.message });
   }
 };
