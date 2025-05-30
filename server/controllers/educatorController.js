@@ -135,8 +135,12 @@ export const uploadLectureVideo = async (req, res) => {
       return res.json({ success: false, message: "No video file attached" });
     }
 
-    // Upload to Cloudinary as video
-    const uploadResult = await cloudinary.uploader.upload(videoFile.path, {
+    // Convert buffer to base64
+    const b64 = Buffer.from(videoFile.buffer).toString("base64");
+    const dataURI = `data:${videoFile.mimetype};base64,${b64}`;
+
+    // Upload to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(dataURI, {
       resource_type: "video",
       chunk_size: 6000000, // 6MB chunks for better upload
       eager: [{ format: "mp4", quality: "auto" }],

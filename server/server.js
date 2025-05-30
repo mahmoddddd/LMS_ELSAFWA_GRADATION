@@ -9,9 +9,6 @@ import { clerkMiddleware } from "@clerk/express";
 import connectCloudinary from "./configs/cloudinary.js";
 import courseRouter from "./routes/courseRoute.js";
 import userRouter from "./routes/userRoutes.js";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-import fs from "fs";
 
 // إنشاء تطبيق Express
 const app = express();
@@ -40,15 +37,6 @@ app.use((req, res, next) => {
 // ✅ اتصال بقاعدة البيانات و Cloudinary
 await connectDB();
 await connectCloudinary();
-
-// Create uploads directory if it doesn't exist
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const uploadsDir = join(__dirname, "uploads");
-
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
 
 // ✅ المسارات (routes)
 app.get("/", (req, res) => {
