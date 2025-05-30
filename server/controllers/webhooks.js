@@ -59,6 +59,7 @@ export const clerkWebHooks = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
 const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
 export const stripewebhooks = async (request, response) => {
   console.log("stripewebhooks");
