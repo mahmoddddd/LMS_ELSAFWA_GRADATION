@@ -2,7 +2,7 @@ import { clerkClient } from "@clerk/express";
 import Course from "../models/Course.js";
 import User from "../models/User.js";
 import { Purchase } from "../models/Purchase.js";
-import { v2 as cloudinary } from 'cloudinary';
+import { v2 as cloudinary } from "cloudinary";
 
 export const updateRoleToEducator = async (req, res) => {
   try {
@@ -81,10 +81,10 @@ export const educatorDashboardData = async (req, res) => {
         },
         "name imageUrl"
       );
-      students.forEach(student => {
+      students.forEach((student) => {
         enrolledStudentsData.push({
           courseTitle: course.courseTitle,
-          student
+          student,
         });
       });
     }
@@ -111,16 +111,48 @@ export const getEnrolledStudentsData = async (req, res) => {
     const purchases = await Purchase.find({
       courseId: { $in: courseIds },
       status: "completed",
-    }).populate("userId", "name imageUrl").populate("courseId", "courseTitle");
+    })
+      .populate("userId", "name imageUrl")
+      .populate("courseId", "courseTitle");
 
-    const enrolledStudents = purchases.map(purchase => ({
+    const enrolledStudents = purchases.map((purchase) => ({
       student: purchase.userId,
       courseTitle: purchase.courseId.courseTitle,
-      purchaseDate: purchase.createdAt
+      purchaseDate: purchase.createdAt,
     }));
 
     res.json({ success: true, enrolledStudents });
   } catch (error) {
     res.json({ success: false, message: error.message });
+  }
+};
+
+// Upload lecture video
+export const uploadLectureVideo = async (req, res) => {
+  try {
+    const videoFile = req.file;
+    if (!videoFile) {
+      return res.json({ success: false, message: "No video file attached" });
+    }
+
+    // Upload to Cloudinary as video
+    const uploadResult = await cloudinary.uploader.upload(videoFile.path, {
+      resource_type: "video",
+      chunk_size: 6000000, // 6MB chunks for better upload
+      eager: [{ format: "mp4", quality: "auto" }],
+      eager_async: true,
+    });
+
+    res.json({
+      success: true,
+      videoUrl: uploadResult.secure_url,
+      message: "Video uploaded successfully",
+    });
+  } catch (error) {
+    console.error("Video upload error:", error);
+    res.json({
+      success: false,
+      message: error.message || "Error uploading video",
+    });
   }
 };
