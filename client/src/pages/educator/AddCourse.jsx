@@ -10,7 +10,7 @@ const AddCourse = () => {
   const quillRef = useRef(null);
   const editorRef = useRef(null);
 
-  const { backendUrl, getToken } = useContext(AppContext);
+  const { backendUrl, getToken, user } = useContext(AppContext);
 
   const [courseTitle, setCourseTitle] = useState("");
   const [coursePrice, setCoursePrice] = useState(0);
@@ -88,6 +88,11 @@ const AddCourse = () => {
       return;
     }
 
+    if (!lectureDetails.lectureTitle || !lectureDetails.lectureDuration) {
+      toast.error("Please fill in all lecture details");
+      return;
+    }
+
     setUploadingVideo(true);
     try {
       const formData = new FormData();
@@ -110,8 +115,10 @@ const AddCourse = () => {
           chapters.map((chapter) => {
             if (chapter.chapterId === currentChapterId) {
               const newLecture = {
-                ...lectureDetails,
-                lectureVideoUrl: data.videoUrl,
+                lectureTitle: lectureDetails.lectureTitle,
+                lectureDuration: Number(lectureDetails.lectureDuration),
+                lectureUrl: data.videoUrl,
+                isPreviewFree: lectureDetails.isPreviewFree,
                 lectureOrder:
                   chapter.chapterContent.length > 0
                     ? chapter.chapterContent.slice(-1)[0].lectureOrder + 1
@@ -149,18 +156,21 @@ const AddCourse = () => {
         return;
       }
 
+      const token = await getToken();
+
       const courseData = {
         courseTitle,
         courseDescription: quillRef.current.root.innerHTML,
         coursePrice: Number(coursePrice),
         discount: Number(discount),
         courseContent: chapters,
+        educator: user.id,
       };
+
       const formData = new FormData();
       formData.append("courseData", JSON.stringify(courseData));
       formData.append("image", image);
 
-      const token = await getToken();
       const { data } = await axios.post(
         `${backendUrl}/api/educator/add-course`,
         formData,
@@ -320,7 +330,7 @@ const AddCourse = () => {
                             rel="noopener noreferrer"
                             className="text-blue-600"
                           >
-                            Link
+                            Video
                           </a>{" "}
                           - {lecture.isPreviewFree ? "Free preview" : "Paid"}
                         </span>

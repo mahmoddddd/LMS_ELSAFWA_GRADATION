@@ -40,7 +40,7 @@ await connectCloudinary();
 
 // ✅ المسارات (routes)
 app.get("/", (req, res) => {
-  res.send("🎉 v1 MERN Backend is Running...");
+  res.send("YOu API Is WOrk ");
 });
 
 app.post("/clerk", express.raw({ type: "application/json" }), clerkWebHooks);
