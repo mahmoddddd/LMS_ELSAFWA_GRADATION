@@ -3,20 +3,43 @@ import { Purchase } from "../models/Purchase.js";
 import Stripe from "stripe";
 import { CourseProgress } from "../models/courseProgress.js";
 import Course from "../models/Course.js";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 //get all data
 export const getUserData = async (req, res) => {
   try {
-
     const userId = req.auth.userId;
-    console.log("user loggon")
+    console.log("🔍 Getting user data for ID:", userId);
+
+    // Get user from database
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ success: false, message: "User Not Found" });
+      return res.status(404).json({
+        success: false,
+        message: "User Not Found",
+      });
     }
-    res.json({ success: true, user });
+
+    // Get user from Clerk to check metadata
+    const clerkUser = await clerkClient.users.getUser(userId);
+    const clerkRole = clerkUser.publicMetadata?.role;
+
+    // If roles don't match, update database role to match Clerk
+    if (clerkRole && clerkRole !== user.role) {
+      user.role = clerkRole;
+      await user.save();
+    }
+
+    res.json({
+      success: true,
+      user,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error in getUserData:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -24,22 +47,23 @@ export const getUserData = async (req, res) => {
 export const userEnrolledCourses = async (req, res) => {
   try {
     const userId = req.auth.userId;
-    const userData = await User.findById(userId)
-      .populate({
-        path: "enrolledCourses",
-        populate: {
-          path: "educator", // Populate educator details from User model
-          select: "name email imageUrl", // Select specific fields for educator
-        },
-      });
-    
+    const userData = await User.findById(userId).populate({
+      path: "enrolledCourses",
+      populate: {
+        path: "educator", // Populate educator details from User model
+        select: "name email imageUrl", // Select specific fields for educator
+      },
+    });
+
     if (!userData) {
-      return res.status(404).json({ success: false, message: "User Not Found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User Not Found" });
     }
 
     // Ensure enrolledCourses is populated
     const enrolledCourses = await Course.find({
-      _id: { $in: userData.enrolledCourses }
+      _id: { $in: userData.enrolledCourses },
     }).populate("educator", "name email imageUrl");
 
     res.json({ success: true, enrolledCourses });
@@ -58,7 +82,9 @@ export const purchaseCourse = async (req, res) => {
     const courseData = await Course.findById(courseId);
 
     if (!userData || !courseData) {
-      return res.status(404).json({ success: false, message: "Data Not Found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Data Not Found" });
     }
 
     const purchaseData = {
@@ -66,8 +92,8 @@ export const purchaseCourse = async (req, res) => {
       userId,
       amount: (
         courseData.coursePrice -
-        courseData.discount * courseData.coursePrice / 100)
-      .toFixed(2),
+        (courseData.discount * courseData.coursePrice) / 100
+      ).toFixed(2),
     };
     const newPurchase = await Purchase.create(purchaseData);
 
@@ -97,7 +123,7 @@ export const purchaseCourse = async (req, res) => {
       success_url: `${origin}/loading/my-enrollments`,
       cancel_url: `${origin}/`,
       line_items: line_items,
-      mode: 'payment',
+      mode: "payment",
       metadata: {
         purchaseId: newPurchase._id.toString(),
       },
@@ -118,7 +144,10 @@ export const updateUserCourseProgress = async (req, res) => {
 
     if (progressData) {
       if (progressData.lectureCompleted.includes(lectureId)) {
-        return res.json({ success: true, message: 'Lecture Already Completed' });
+        return res.json({
+          success: true,
+          message: "Lecture Already Completed",
+        });
       }
       progressData.lectureCompleted.push(lectureId);
       await progressData.save();
@@ -126,13 +155,12 @@ export const updateUserCourseProgress = async (req, res) => {
       await CourseProgress.create({
         userId,
         courseId,
-        completed:true,
+        completed: true,
         lectureCompleted: [lectureId],
       });
     }
-  
 
-    res.json({ success: true, message: 'Progress Updated' });
+    res.json({ success: true, message: "Progress Updated" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -155,28 +183,33 @@ export const addUserRating = async (req, res) => {
   const userId = req.auth.userId;
   const { courseId, rating } = req.body;
   if (!courseId || !userId || !rating || rating < 1 || rating > 5) {
-    return res.json({ success: false, message: 'Invalid Details' });
+    return res.json({ success: false, message: "Invalid Details" });
   }
   try {
     const course = await Course.findById(courseId);
     if (!course) {
-      return res.json({ success: false, message: 'Course not found.' });
+      return res.json({ success: false, message: "Course not found." });
     }
 
     const user = await User.findById(userId);
     if (!user || !user.enrolledCourses.includes(courseId)) {
-      return res.json({ success: false, message: 'User has not purchased this course.' });
+      return res.json({
+        success: false,
+        message: "User has not purchased this course.",
+      });
     }
 
-    const existingRatingIndex = course.courseRatings.findIndex(r => r.userId === userId);
+    const existingRatingIndex = course.courseRatings.findIndex(
+      (r) => r.userId === userId
+    );
     if (existingRatingIndex > -1) {
       course.courseRatings[existingRatingIndex].rating = rating;
     } else {
       course.courseRatings.push({ userId, rating });
     }
-   
+
     await course.save();
-    res.json({ success: true, message: 'Rating added successfully' });
+    res.json({ success: true, message: "Rating added successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

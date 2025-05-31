@@ -166,7 +166,9 @@ export const clerkWebHooks = async (req, res) => {
       const existingUser = await User.findById(data.id);
       if (existingUser) {
         console.log("⚠️ User already exists:", existingUser._id);
-        return res.status(200).json({ success: true, message: "User already exists" });
+        return res
+          .status(200)
+          .json({ success: true, message: "User already exists" });
       }
 
       const userToCreate = {
@@ -174,6 +176,7 @@ export const clerkWebHooks = async (req, res) => {
         email: data.email_addresses[0].email_address,
         name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
         imageUrl: data.image_url,
+        role: "student",
       };
 
       console.log("📝 Creating user:", userToCreate);
@@ -223,13 +226,17 @@ export const stripewebhooks = async (req, res) => {
       });
 
       if (!session.data.length) {
-        return res.status(400).json({ message: "❌ No session found for paymentIntent" });
+        return res
+          .status(400)
+          .json({ message: "❌ No session found for paymentIntent" });
       }
 
       const { purchaseId } = session.data[0].metadata;
       const purchaseData = await Purchase.findById(purchaseId);
       const userData = await User.findById(purchaseData.userId);
-      const courseData = await Course.findById(purchaseData.courseId.toString());
+      const courseData = await Course.findById(
+        purchaseData.courseId.toString()
+      );
 
       // Add user to course and course to user
       courseData.enrolledStudents.push(userData);
@@ -254,7 +261,9 @@ export const stripewebhooks = async (req, res) => {
       });
 
       if (!session.data.length) {
-        return res.status(400).json({ message: "❌ No session found for paymentIntent" });
+        return res
+          .status(400)
+          .json({ message: "❌ No session found for paymentIntent" });
       }
 
       const { purchaseId } = session.data[0].metadata;

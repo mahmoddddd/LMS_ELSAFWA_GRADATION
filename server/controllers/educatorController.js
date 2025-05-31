@@ -8,14 +8,38 @@ export const updateRoleToEducator = async (req, res) => {
   try {
     const userId = req.auth.userId;
 
+    // Update role in Clerk
     await clerkClient.users.updateUserMetadata(userId, {
       publicMetadata: {
         role: "educator",
       },
     });
-    res.json({ success: true, message: "You can publish a course now" });
+
+    // Update role in our database
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { role: "educator" },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found in database",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "You can publish a course now",
+      user,
+    });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    console.error("Error updating role:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
