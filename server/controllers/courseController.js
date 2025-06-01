@@ -12,7 +12,7 @@ export const getAllCourse = async (req, res) => {
   }
 };
 //// 
-// Get Course by Idd
+// Get Course by Iddd 
 export const getCourseId = async (req, res) => {
   const { id } = req.params;
   try {
