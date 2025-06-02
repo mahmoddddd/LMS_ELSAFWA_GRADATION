@@ -33,24 +33,29 @@ app.use((req, res, next) => {
 await connectDB();
 await connectCloudinary();
 
-// لازم express.json() قبل باقي الروترات
+
+// Stripe webhook (raw body)
+app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhooks);
+
+// Clerk webhook (raw body) - 👈 لازم يجي قبل express.json()
+app.post('/clerk', express.raw({ type: 'application/json' }), clerkWebHooks);
+
+// 👇 JSON parser ييجي بعد الراوتات اللي محتاجة raw
 app.use(express.json());
 
-// مسارات api
+// باقي الروترات
 app.use("/api/educator", educateRouter);
 app.use("/api/course", courseRouter);
 app.use("/api/user", userRouter);
+
+
+
 
 // نقطة الدخول الرئيسية
 app.get("/", (req, res) => {
   res.send("Your API Is Working");
 });
 
-// Stripe webhook (raw body)
-app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhooks);
-
-// Clerk webhook (json)
-app.post('/clerk', express.raw({ type: 'application/json' }), clerkWebHooks);
 
 // لا تستخدم app.listen في Vercel
 export default app;
