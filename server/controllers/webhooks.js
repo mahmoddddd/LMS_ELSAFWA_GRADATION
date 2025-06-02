@@ -134,13 +134,10 @@
 //   }
 //   response.json({ received: true });
 // };
+
 import { Webhook } from "svix";
 import User from "../models/User.js";
-import Stripe from "stripe";
-import { Purchase } from "../models/Purchase.js";
-import Course from "../models/Course.js";
 
-// Clerk Webhook
 export const clerkWebHooks = async (req, res) => {
   try {
     console.log("➡️ Clerk Webhook hit");
@@ -153,7 +150,7 @@ export const clerkWebHooks = async (req, res) => {
     };
 
     const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
-    const evt = wh.verify(payload, headers); // payload لازم يكون raw Buffer
+    const evt = wh.verify(payload, headers);
 
     console.log("✅ Webhook verified successfully");
 
@@ -163,25 +160,31 @@ export const clerkWebHooks = async (req, res) => {
     console.log("📊 Event data:", JSON.stringify(data, null, 2));
 
     if (type === "user.created") {
+      // تحقق من وجود id و ايميل
+      if (!data.id || !data.email_addresses?.length) {
+        console.log("❌ Invalid user data received:", data);
+        return res.status(400).json({ success: false, message: "Missing user id or email" });
+      }
+
+      // تحقق اذا المستخدم موجود
       const existingUser = await User.findById(data.id);
       if (existingUser) {
         console.log("⚠️ User already exists:", existingUser._id);
         return res.status(200).json({ success: true, message: "User already exists" });
       }
 
+      // جهز بيانات المستخدم الجديد
       const userToCreate = {
         _id: data.id,
         email: data.email_addresses[0].email_address,
         name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
-        imageUrl: data.image_url,
+        imageUrl: data.image_url || "",  // لو مش موجود الصورة، خليها string فاضية
       };
 
       console.log("📝 Creating user:", userToCreate);
 
       const newUser = await User.create(userToCreate);
       console.log("📦 Saved user to DB:", newUser);
-
-      console.log("✅ User created successfully");
     } else {
       console.log("⚠️ Event type not handled:", type);
     }
@@ -191,84 +194,4 @@ export const clerkWebHooks = async (req, res) => {
     console.error("❌ Webhook error:", error.message);
     res.status(400).json({ success: false, message: error.message });
   }
-};
-
-const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-export const stripewebhooks = async (req, res) => {
-  console.log("📩 Stripe Webhook hit");
-  const sig = req.headers["stripe-signature"];
-
-  let event;
-
-  try {
-    event = Stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    console.error("❌ Stripe Webhook verification failed:", err.message);
-    res.status(460).send(`Webhook Error: ${err.message}`);
-    return;
-  }
-
-  switch (event.type) {
-    case "payment_intent.succeeded": {
-      const paymentIntent = event.data.object;
-      const paymentIntentId = paymentIntent.id;
-
-      const session = await stripeInstance.checkout.sessions.list({
-        payment_intent: paymentIntentId,
-      });
-
-      if (!session.data.length) {
-        return res.status(400).json({ message: "❌ No session found for paymentIntent" });
-      }
-
-      const { purchaseId } = session.data[0].metadata;
-      const purchaseData = await Purchase.findById(purchaseId);
-      const userData = await User.findById(purchaseData.userId);
-      const courseData = await Course.findById(purchaseData.courseId.toString());
-
-      // Add user to course and course to user
-      courseData.enrolledStudents.push(userData);
-      await courseData.save();
-
-      userData.enrolledCourses.push(courseData._id);
-      await userData.save();
-
-      purchaseData.status = "completed";
-      await purchaseData.save();
-
-      console.log("✅ Purchase completed and user enrolled");
-      break;
-    }
-
-    case "payment_intent.payment_failed": {
-      const paymentIntent = event.data.object;
-      const paymentIntentId = paymentIntent.id;
-
-      const session = await stripeInstance.checkout.sessions.list({
-        payment_intent: paymentIntentId,
-      });
-
-      if (!session.data.length) {
-        return res.status(400).json({ message: "❌ No session found for paymentIntent" });
-      }
-
-      const { purchaseId } = session.data[0].metadata;
-      const purchaseData = await Purchase.findById(purchaseId);
-      purchaseData.status = "failed";
-      await purchaseData.save();
-
-      console.log("⚠️ Payment failed, status updated");
-      break;
-    }
-
-    default:
-      console.log(`⚠️ Unhandled event type ${event.type}`);
-  }
-
-  res.json({ received: true });
 };
