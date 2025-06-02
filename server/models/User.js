@@ -10,7 +10,11 @@ const userSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Course'
     }
-  ],
+  ], role: {
+    type: String,
+    enum: ['student', 'educator'],
+    default: 'student'
+  }
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);
