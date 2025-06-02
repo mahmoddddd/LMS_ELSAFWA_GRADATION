@@ -1,4 +1,6 @@
 import express from "express";
+import { protectEducator } from "../middlewares/authMiddleWare.js";
+
 import {
   addCourse,
   educatorDashboardData,
@@ -13,6 +15,7 @@ import { protectEducator } from "../middlewares/authMiddleWare.js";
 const educateRouter = express.Router();
 
 //add educator role
+educateRouter.use(protectEducator) 
 educateRouter.get("/update-role", updateRoleToEducator);
 educateRouter.get("/courses", getEducatorCourses);
 educateRouter.get("/dashboard", educatorDashboardData);

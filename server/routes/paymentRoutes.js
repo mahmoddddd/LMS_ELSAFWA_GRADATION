@@ -1,5 +1,5 @@
 import express from "express";
-import { authenticate } from "../middleware/auth.js";
+import { requireAuth } from "../middlewares/authMiddleWare.js";
 import {
   createPaymentSession,
   handleStripeWebhook,
@@ -7,10 +7,10 @@ import {
 
 const router = express.Router();
 
-// إنشاء جلسة دفع
-router.post("/create-session", authenticate, createPaymentSession);
+// الجلسة لازم مستخدم يكون مسجل دخول
+router.post("/create-session", requireAuth, createPaymentSession);
 
-// معالجة webhook من Stripe
+// Webhook متساب مفتوح عشان Stripe يقدر يتواصل معاه
 router.post(
   "/webhook",
   express.raw({ type: "application/json" }),
