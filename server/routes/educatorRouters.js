@@ -14,12 +14,11 @@ import { protectEducator } from "../middlewares/authMiddleWare.js";
 const educateRouter = express.Router();
 
 //add educator role
-educateRouter.use(protectEducator) 
 educateRouter.get("/update-role", updateRoleToEducator);
-educateRouter.get("/courses", getEducatorCourses);
-educateRouter.get("/dashboard", educatorDashboardData);
-educateRouter.get("/enrolled-students", getEnrolledStudentsData);
-educateRouter.post("/add-course", upload.single("image"), addCourse);
+educateRouter.get("/courses",protectEducator, getEducatorCourses);
+educateRouter.get("/dashboard", protectEducator,educatorDashboardData);
+educateRouter.get("/enrolled-students",protectEducator, getEnrolledStudentsData);
+educateRouter.post("/add-course", protectEducator,upload.single("image"), addCourse);
 educateRouter.post(
   "/upload-lecture-video",
   protectEducator,
