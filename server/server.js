@@ -44,7 +44,12 @@ app.get("/", (req, res) => {
   res.send("YOu API Is WOrk ");
 });
 
-app.post("/clerk", express.raw({ type: "application/json" }), clerkWebHooks);
+// app.post("/clerk", express.raw({ type: "application/json" }), clerkWebHooks);
+
+
+router.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
+router.post('/clerk', express.json(), clerkWebHooks);
+
 app.use(express.json());
 app.use("/api/educator", educateRouter);
 app.use("/api/course", courseRouter);
