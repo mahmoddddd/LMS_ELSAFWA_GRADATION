@@ -1,6 +1,6 @@
 import express from 'express'
 import { addUserRating, getUserCourseProgress, getUserData, purchaseCourse, updateUserCourseProgress, userEnrolledCourses } from '../controllers/userController.js'
-import { requireAuth } from "./middlewares/authMiddleWare.js";
+import { requireAuth } from "../middlewares/authMiddleWare.js"
 
 
 const userRouter =express.Router()
