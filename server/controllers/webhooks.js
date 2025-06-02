@@ -174,6 +174,7 @@ export const clerkWebHooks = async (req, res) => {
       }
 
       const userToCreate = {
+          clerkId: clerkUser.id, // لازم تجيب الـ clerkId الصحيح من Clerk
         _id: data.id,
         email: data.email_addresses[0].email_address,
         name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
