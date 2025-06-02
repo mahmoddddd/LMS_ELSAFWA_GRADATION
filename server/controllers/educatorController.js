@@ -1,21 +1,47 @@
 import { clerkClient } from "@clerk/express";
+ 
 import Course from "../models/Course.js";
 import User from "../models/User.js";
 import { Purchase } from "../models/Purchase.js";
 import { v2 as cloudinary } from "cloudinary";
-
+ 
+// Update user role to educator (Clerk + MongoDB)
 export const updateRoleToEducator = async (req, res) => {
   try {
     const userId = req.auth.userId;
 
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    // Update Clerk public metadata
     await clerkClient.users.updateUserMetadata(userId, {
       publicMetadata: {
         role: "educator",
       },
     });
-    res.json({ success: true, message: "You can publish a course now" });
+
+    // Update MongoDB user role
+    const updatedUser = await User.findOneAndUpdate(
+      { clerkId: userId },
+      { role: "educator" },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found in database" });
+    }
+
+    res.json({
+      success: true,
+      message: "You can publish a course now",
+      user: updatedUser,
+    });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    console.error("Role update error:", error.message);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

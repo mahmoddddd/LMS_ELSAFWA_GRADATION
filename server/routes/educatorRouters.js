@@ -1,11 +1,11 @@
 import express from "express";
 
 import {
+  updateRoleToEducator,
   addCourse,
   educatorDashboardData,
   getEducatorCourses,
   getEnrolledStudentsData,
-  updateRoleToEducator,
   uploadLectureVideo,
 } from "../controllers/educatorController.js";
 import upload from "../configs/multer.js";
