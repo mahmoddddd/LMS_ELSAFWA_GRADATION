@@ -136,9 +136,10 @@
 // };
 import Stripe from 'stripe';
 import { Purchase } from '../models/Purchase.js';
-import { Course } from '../models/Course.js';
-import { User } from '../models/User.js';
+import Course from '../models/Course.js';
+import User from '../models/User.js';
 import { Webhook } from 'svix';
+
 
 const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
 
