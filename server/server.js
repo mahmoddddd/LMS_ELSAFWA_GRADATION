@@ -1,23 +1,18 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import "dotenv/config"; // لتحميل متغيرات البيئة من .env
+import "dotenv/config";
 import connectDB from "./configs/mongodb.js";
-import { clerkWebHooks, stripewebhooks } from "./controllers/webhooks.js";
+import { clerkWebHooks, stripeWebhooks } from "./controllers/webhooks.js";
 import educateRouter from "./routes/educatorRouters.js";
 import { clerkMiddleware } from "@clerk/express";
 import connectCloudinary from "./configs/cloudinary.js";
 import courseRouter from "./routes/courseRoute.js";
 import userRouter from "./routes/userRoutes.js";
 
-// إنشاء تطبيق Express
 const app = express();
 
-// ✅ طباعة المفتاح للتأكد من وجوده (احذفها في الإنتاج)
-// console.log("CLERK_PUBLISHABLE_KEY:", process.env.CLERK_PUBLISHABLE_KEY);
-// console.log("CLERK_SECRET_KEY:", process.env.CLERK_SECRET_KEY);
-
-// ✅ Middleware: Clerk
+// Clerk middleware
 app.use(
   clerkMiddleware({
     publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
@@ -25,39 +20,36 @@ app.use(
   })
 );
 
-// CORS
-pp.use(cors({
-  origin: '*', // السماح للدومين ده فقط أو استخدم '*' لو انت متأكد
-}));
-// تسجيل كل الطلبات للديباج
+app.use(cors({ origin: "*" }));
+
+// تسجيل الطلبات للدباج
 app.use((req, res, next) => {
   console.log("Request to:", req.originalUrl);
   next();
 });
 
-// ✅ اتصال بقاعدة البيانات و Cloudinary
+// اتصال بالداتا بيز وCloudinary
 await connectDB();
 await connectCloudinary();
 
-// ✅ المسارات (routes)
-app.get("/", (req, res) => {
-  res.send("YOu API Is WOrk ");
-});
-
-// app.post("/clerk", express.raw({ type: "application/json" }), clerkWebHooks);
-
-
-router.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
-router.post('/clerk', express.json(), clerkWebHooks);
-
+// لازم express.json() قبل باقي الروترات
 app.use(express.json());
+
+// مسارات api
 app.use("/api/educator", educateRouter);
 app.use("/api/course", courseRouter);
 app.use("/api/user", userRouter);
 
-// Stripe Webhook requires raw body
-app.post("/stripe", express.raw({ type: "application/json" }), stripewebhooks);
+// نقطة الدخول الرئيسية
+app.get("/", (req, res) => {
+  res.send("Your API Is Working");
+});
 
-// ✅ لا تستخدم app.listen() مع Vercel
-// ❗ مهم: صدّر `app` بدلًا من تشغيل السيرفر
+// Stripe webhook (raw body)
+app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhooks);
+
+// Clerk webhook (json)
+app.post("/clerk", express.json(), clerkWebHooks);
+
+// لا تستخدم app.listen في Vercel
 export default app;
