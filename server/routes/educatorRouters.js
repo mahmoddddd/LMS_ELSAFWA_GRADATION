@@ -14,7 +14,11 @@ import { protectEducator } from "../middlewares/authMiddleWare.js";
 const educateRouter = express.Router();
 
 //add educator role
-educateRouter.get("/update-role", updateRoleToEducator);
+educateRouter.get("/update-role", (req, res, next) => {
+  console.log("Got a request on /update-role");
+  next();
+}, updateRoleToEducator);
+
 educateRouter.get("/courses",protectEducator, getEducatorCourses);
 educateRouter.get("/dashboard", protectEducator,educatorDashboardData);
 educateRouter.get("/enrolled-students",protectEducator, getEnrolledStudentsData);
