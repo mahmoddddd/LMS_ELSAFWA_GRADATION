@@ -26,8 +26,9 @@ app.use(
 );
 
 // CORS
-app.use(cors());
-
+pp.use(cors({
+  origin: '*', // السماح للدومين ده فقط أو استخدم '*' لو انت متأكد
+}));
 // تسجيل كل الطلبات للديباج
 app.use((req, res, next) => {
   console.log("Request to:", req.originalUrl);
