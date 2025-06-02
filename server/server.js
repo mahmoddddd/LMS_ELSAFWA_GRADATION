@@ -49,7 +49,7 @@ app.get("/", (req, res) => {
 app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhooks);
 
 // Clerk webhook (json)
-app.post("/clerk", express.json(), clerkWebHooks);
+app.post('/clerk', express.raw({ type: 'application/json' }), clerkWebHooks);
 
 // لا تستخدم app.listen في Vercel
 export default app;
