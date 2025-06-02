@@ -1,5 +1,4 @@
 import express from "express";
-import { protectEducator } from "../middlewares/authMiddleWare.js";
 
 import {
   addCourse,
