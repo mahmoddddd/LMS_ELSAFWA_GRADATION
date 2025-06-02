@@ -141,9 +141,8 @@ import { Purchase } from '../models/Purchase.js';
 import Course from '../models/Course.js';
 import User from '../models/User.js';
 import { Webhook } from 'svix';
+import { clerkClient } from "@clerk/clerk-sdk-node"; // تأكد إنك منصبه
 
-
-const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
 
 export const clerkWebHooks = async (req, res) => {
   try {
@@ -163,22 +162,27 @@ export const clerkWebHooks = async (req, res) => {
     console.log("📨 Clerk event type:", type);
 
     if (type === "user.created") {
-      if (!data.id || !data.email_addresses?.length) {
-        return res.status(400).json({ success: false, message: "Missing data" });
+      if (!data.id) {
+        return res.status(400).json({ success: false, message: "Missing Clerk user ID" });
       }
 
-      const existingUser = await User.findById(data.id);
+      // 👇 تأكد إن المستخدم مش موجود بالفعل
+      const existingUser = await User.findOne({ clerkId: data.id });
       if (existingUser) {
         console.log("⚠️ User already exists:", existingUser._id);
         return res.status(200).json({ success: true });
       }
 
+      // ✅ استدعاء بيانات المستخدم من Clerk
+      const clerkUser = await clerkClient.users.getUser(data.id);
+
+      // 👇 إنشاء المستخدم في قاعدة البيانات
       const userToCreate = {
-          clerkId: clerkUser.id, // لازم تجيب الـ clerkId الصحيح من Clerk
-        _id: data.id,
-        email: data.email_addresses[0].email_address,
-        name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
-        imageUrl: data.image_url || "",
+        clerkId: clerkUser.id,
+        _id: clerkUser.id, // أو أي ID حسب تصميمك
+        email: clerkUser.emailAddresses[0].emailAddress,
+        name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim(),
+        imageUrl: clerkUser.imageUrl || "",
       };
 
       const newUser = await User.create(userToCreate);
@@ -191,6 +195,7 @@ export const clerkWebHooks = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
 
 // ===== Stripe webhook handler =====
 export const stripeWebhooks = async (req, res) => {
