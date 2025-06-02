@@ -172,6 +172,7 @@ export const clerkWebHooks = async (req, res) => {
         console.log("⚠️ User already exists:", existingUser._id);
         return res.status(200).json({ success: true });
       }
+console.log("🆔 Clerk user ID from webhook:", data.id);
 
       // ✅ استدعاء بيانات المستخدم من Clerk
       const clerkUser = await clerkClient.users.getUser(data.id);
@@ -184,7 +185,7 @@ export const clerkWebHooks = async (req, res) => {
         name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim(),
         imageUrl: clerkUser.imageUrl || "",
       };
-
+ 
       const newUser = await User.create(userToCreate);
       console.log("✅ User created:", newUser._id);
     }
