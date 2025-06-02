@@ -134,6 +134,8 @@
 //   }
 //   response.json({ received: true });
 // };
+
+
 import Stripe from 'stripe';
 import { Purchase } from '../models/Purchase.js';
 import Course from '../models/Course.js';
@@ -143,12 +145,10 @@ import { Webhook } from 'svix';
 
 const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
 
-// ===== Clerk webhook handler =====
 export const clerkWebHooks = async (req, res) => {
   try {
     console.log("➡️ Clerk Webhook hit");
 
-    const payload = req.body;
     const headers = {
       "svix-id": req.headers["svix-id"],
       "svix-timestamp": req.headers["svix-timestamp"],
@@ -156,25 +156,21 @@ export const clerkWebHooks = async (req, res) => {
     };
 
     const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
-    const evt = wh.verify(payload, headers);
-
-    console.log("✅ Webhook verified successfully");
+    const evt = wh.verify(req.body, headers);
 
     const { data, type } = evt;
 
     console.log("📨 Clerk event type:", type);
-    console.log("📊 Event data:", JSON.stringify(data, null, 2));
 
     if (type === "user.created") {
       if (!data.id || !data.email_addresses?.length) {
-        console.log("❌ Invalid user data received:", data);
-        return res.status(400).json({ success: false, message: "Missing user id or email" });
+        return res.status(400).json({ success: false, message: "Missing data" });
       }
 
       const existingUser = await User.findById(data.id);
       if (existingUser) {
         console.log("⚠️ User already exists:", existingUser._id);
-        return res.status(200).json({ success: true, message: "User already exists" });
+        return res.status(200).json({ success: true });
       }
 
       const userToCreate = {
@@ -184,17 +180,13 @@ export const clerkWebHooks = async (req, res) => {
         imageUrl: data.image_url || "",
       };
 
-      console.log("📝 Creating user:", userToCreate);
-
       const newUser = await User.create(userToCreate);
-      console.log("📦 Saved user to DB:", newUser);
-    } else {
-      console.log("⚠️ Event type not handled:", type);
+      console.log("✅ User created:", newUser._id);
     }
 
     res.status(200).json({ success: true });
   } catch (error) {
-    console.error("❌ Webhook error:", error.message);
+    console.error("❌ Clerk Webhook error:", error.message);
     res.status(400).json({ success: false, message: error.message });
   }
 };
