@@ -6,7 +6,7 @@ import { requireAuth } from "../middlewares/authMiddleWare.js"
 const userRouter =express.Router()
 
 userRouter.get('/data', requireAuth, getUserData)
-router.post('/sync-role', requireAuth, syncUserRole); // ✅ Route جديد
+userRouter.post('/sync-role', requireAuth, syncUserRole); // ✅ Route جديد
 
 userRouter.get('/enrolled-courses', requireAuth, userEnrolledCourses)
 userRouter.post('/purchase', requireAuth, purchaseCourse)
