@@ -58,7 +58,7 @@ export const updateRoleToEducator = async (req, res) => {
     console.error("❌ Role update error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
-
+}
 //add new course
 export const addCourse = async (req, res) => {
   try {
