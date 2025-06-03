@@ -6,7 +6,7 @@ import {
   educatorDashboardData,
   getEducatorCourses,
   getEnrolledStudentsData,
-  uploadLectureVideo,
+  uploadLectureVideo, 
 } from "../controllers/educatorController.js";
 import upload from "../configs/multer.js";
 import { protectEducator } from "../middlewares/authMiddleWare.js";

@@ -6,6 +6,7 @@ import { Purchase } from "../models/Purchase.js";
 import { v2 as cloudinary } from "cloudinary";
  
 // Update user role to educator (Clerk + MongoDB)
+
 export const updateRoleToEducator = async (req, res) => {
   try {
     const userId = req.auth.userId;
@@ -14,12 +15,24 @@ export const updateRoleToEducator = async (req, res) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
+    // ✅ تحقق لو المستخدم educator بالفعل
+    const existingUser = await User.findOne({ clerkId: userId });
+    if (existingUser && existingUser.role === "educator") {
+      return res.json({
+        success: true,
+        message: "You are already an educator",
+        user: existingUser,
+      });
+    }
+
     // Update Clerk public metadata
     await clerkClient.users.updateUserMetadata(userId, {
       publicMetadata: {
         role: "educator",
       },
     });
+
+    console.log("✅ Updated Clerk metadata for user:", userId);
 
     // Update MongoDB user role
     const updatedUser = await User.findOneAndUpdate(
@@ -34,16 +47,17 @@ export const updateRoleToEducator = async (req, res) => {
         .json({ success: false, message: "User not found in database" });
     }
 
+    console.log("✅ Updated database role for user:", userId);
+
     res.json({
       success: true,
       message: "You can publish a course now",
       user: updatedUser,
     });
   } catch (error) {
-    console.error("Role update error:", error.message);
+    console.error("❌ Role update error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
-};
 
 //add new course
 export const addCourse = async (req, res) => {

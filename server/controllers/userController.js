@@ -3,19 +3,81 @@ import { Purchase } from "../models/Purchase.js";
 import Stripe from "stripe";
 import { CourseProgress } from "../models/courseProgress.js";
 import Course from "../models/Course.js";
-
+ 
 //get all data
+
+import { clerkClient } from "@clerk/clerk-sdk-node";
+
+// ✅ Function to sync Clerk metadata with database role
+export const syncUserRole = async (req, res) => {
+  try {
+    const userId = req.auth.userId;
+    const { role } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (!role || !["student", "educator"].includes(role)) {
+      return res.status(400).json({ success: false, message: "Invalid role" });
+    }
+
+    // Update Clerk public metadata
+    await clerkClient.users.updateUserMetadata(userId, {
+      publicMetadata: {
+        role: role,
+      },
+    });
+
+    console.log(`✅ Synced Clerk metadata for user ${userId} with role: ${role}`);
+
+    res.json({
+      success: true,
+      message: "Role synchronized successfully",
+    });
+  } catch (error) {
+    console.error("❌ Error syncing role:", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ✅ محسن getUserData function
 export const getUserData = async (req, res) => {
   try {
-
     const userId = req.auth.userId;
-    console.log("user loggon")
-    const user = await User.findById(userId);
+    console.log("🔍 Getting user data for:", userId);
+    
+    const user = await User.findOne({ clerkId: userId });
     if (!user) {
       return res.status(404).json({ success: false, message: "User Not Found" });
     }
+
+    // ✅ تأكد من مزامنة الرول مع Clerk
+    try {
+      const clerkUser = await clerkClient.users.getUser(userId);
+      const clerkRole = clerkUser.publicMetadata?.role;
+      const dbRole = user.role;
+
+      console.log("🔍 Clerk role:", clerkRole, "| DB role:", dbRole);
+
+      // لو الأدوار مختلفة، حدث Clerk
+      if (clerkRole !== dbRole) {
+        console.log("🔄 Syncing Clerk metadata with database role");
+        await clerkClient.users.updateUserMetadata(userId, {
+          publicMetadata: {
+            role: dbRole,
+          },
+        });
+        console.log("✅ Clerk metadata updated successfully");
+      }
+    } catch (clerkError) {
+      console.error("⚠️ Warning: Could not sync Clerk role:", clerkError.message);
+      // لا توقف العملية لو حصل خطأ في Clerk
+    }
+
     res.json({ success: true, user });
   } catch (error) {
+    console.error("❌ Error getting user data:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
