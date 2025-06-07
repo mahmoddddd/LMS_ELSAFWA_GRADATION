@@ -57,5 +57,9 @@ app.get("/", (req, res) => {
 });
 
 
+const port = 4000
+app.listen(4000, () => {
+  console.log(`Example app listening on port ${port}`);
+})
 // لا تستخدم app.listen في Vercel
-export default app;
+// export default app;

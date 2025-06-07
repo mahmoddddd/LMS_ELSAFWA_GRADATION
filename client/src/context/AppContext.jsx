@@ -344,6 +344,7 @@ export const AppContextProvider = ({ children }) => {
     
     try {
       const token = await getToken();
+      console.log(token);
       const { data } = await axios.get(
         `${backendUrl}/api/user/enrolled-courses`,
         {

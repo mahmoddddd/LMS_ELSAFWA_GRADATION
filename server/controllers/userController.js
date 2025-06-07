@@ -3,10 +3,8 @@ import { Purchase } from "../models/Purchase.js";
 import Stripe from "stripe";
 import { CourseProgress } from "../models/courseProgress.js";
 import Course from "../models/Course.js";
- 
-//get all data
-
 import { clerkClient } from "@clerk/clerk-sdk-node";
+import { extractClerkUserId } from "../utils/verifyClerkToken.js";
 
 // ✅ Function to sync Clerk metadata with database role
 export const syncUserRole = async (req, res) => {
@@ -14,65 +12,63 @@ export const syncUserRole = async (req, res) => {
     const userId = req.auth.userId;
     const { role } = req.body;
 
-    if (!userId) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
-
+    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
     if (!role || !["student", "educator"].includes(role)) {
       return res.status(400).json({ success: false, message: "Invalid role" });
     }
 
-    // Update Clerk public metadata
     await clerkClient.users.updateUserMetadata(userId, {
-      publicMetadata: {
-        role: role,
-      },
+      publicMetadata: { role },
     });
 
     console.log(`✅ Synced Clerk metadata for user ${userId} with role: ${role}`);
-
-    res.json({
-      success: true,
-      message: "Role synchronized successfully",
-    });
+    res.json({ success: true, message: "Role synchronized successfully" });
   } catch (error) {
     console.error("❌ Error syncing role:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ✅ محسن getUserData function
+export const getUserFullData = async (req, res) => {
+  try {
+    const clerkId = extractClerkUserId(req.headers.authorization);
+    const userId = req.auth;
+    console.log("auth userId", userId);
+
+    if (!clerkId) return res.status(401).json({ success: false, message: "Unauthorized: Clerk ID not found" });
+
+    const user = await User.findOne({ clerkId }).populate("enrolledCourses").lean();
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error("Error in getUserFullData:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getUserData = async (req, res) => {
   try {
-    const userId = req.auth.userId;
-    console.log("🔍 Getting user data for:", userId);
-    
-    const user = await User.findOne({ clerkId: userId });
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User Not Found" });
-    }
+    const userId = req.auth?.userId;
+    extractClerkUserId(req.headers.authorization);
+    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
 
-    // ✅ تأكد من مزامنة الرول مع Clerk
+    console.log("🔍 Getting user data for:", userId);
+    const user = await User.findOne({ clerkId: userId });
+    if (!user) return res.status(404).json({ success: false, message: "User Not Found in db" });
+
     try {
       const clerkUser = await clerkClient.users.getUser(userId);
       const clerkRole = clerkUser.publicMetadata?.role;
       const dbRole = user.role;
 
-      console.log("🔍 Clerk role:", clerkRole, "| DB role:", dbRole);
-
-      // لو الأدوار مختلفة، حدث Clerk
       if (clerkRole !== dbRole) {
-        console.log("🔄 Syncing Clerk metadata with database role");
         await clerkClient.users.updateUserMetadata(userId, {
-          publicMetadata: {
-            role: dbRole,
-          },
+          publicMetadata: { role: dbRole },
         });
-        console.log("✅ Clerk metadata updated successfully");
       }
     } catch (clerkError) {
       console.error("⚠️ Warning: Could not sync Clerk role:", clerkError.message);
-      // لا توقف العملية لو حصل خطأ في Clerk
     }
 
     res.json({ success: true, user });
@@ -82,26 +78,18 @@ export const getUserData = async (req, res) => {
   }
 };
 
-// users enrolled courses with lecture links
 export const userEnrolledCourses = async (req, res) => {
   try {
-    const userId = req.auth.userId;
-    const userData = await User.findById(userId)
-      .populate({
-        path: "enrolledCourses",
-        populate: {
-          path: "educator", // Populate educator details from User model
-          select: "name email imageUrl", // Select specific fields for educator
-        },
-      });
-    
-    if (!userData) {
-      return res.status(404).json({ success: false, message: "User Not Found" });
-    }
+    const userId = req.auth?.userId;
+    extractClerkUserId(req.headers.authorization);
+   const userData = await User.findOne({ clerkId: userId }).populate({
+      path: "enrolledCourses",
+      populate: { path: "educator", select: "name email imageUrl" },
+    });
+    if (!userData) return res.status(404).json({ success: false, message: "User Not Found" });
 
-    // Ensure enrolledCourses is populated
     const enrolledCourses = await Course.find({
-      _id: { $in: userData.enrolledCourses }
+      _id: { $in: userData.enrolledCourses },
     }).populate("educator", "name email imageUrl");
 
     res.json({ success: true, enrolledCourses });
@@ -110,7 +98,6 @@ export const userEnrolledCourses = async (req, res) => {
   }
 };
 
-// PURCHASE course
 export const purchaseCourse = async (req, res) => {
   try {
     const { courseId } = req.body;
@@ -123,46 +110,30 @@ export const purchaseCourse = async (req, res) => {
       return res.status(404).json({ success: false, message: "Data Not Found" });
     }
 
-    const purchaseData = {
-      courseId: courseData._id,
-      userId,
-      amount: (
-        courseData.coursePrice -
-        courseData.discount * courseData.coursePrice / 100)
-      .toFixed(2),
-    };
-    const newPurchase = await Purchase.create(purchaseData);
+    const amount = (courseData.coursePrice - courseData.discount * courseData.coursePrice / 100).toFixed(2);
+    const newPurchase = await Purchase.create({ courseId: courseData._id, userId, amount });
 
-    // Add course to user's enrolled courses
     userData.enrolledCourses.push(courseData._id);
     await userData.save();
 
-    //stripe gateway initialize
     const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
     const currency = process.env.CURRENCY.toLowerCase();
-
-    // Creating line items for Stripe
-    const line_items = [
-      {
-        price_data: {
-          currency,
-          product_data: {
-            name: courseData.courseTitle,
-          },
-          unit_amount: Math.floor(newPurchase.amount * 100),
-        },
-        quantity: 1,
-      },
-    ];
 
     const session = await stripeInstance.checkout.sessions.create({
       success_url: `${origin}/loading/my-enrollments`,
       cancel_url: `${origin}/`,
-      line_items: line_items,
+      line_items: [
+        {
+          price_data: {
+            currency,
+            product_data: { name: courseData.courseTitle },
+            unit_amount: Math.floor(newPurchase.amount * 100),
+          },
+          quantity: 1,
+        },
+      ],
       mode: 'payment',
-      metadata: {
-        purchaseId: newPurchase._id.toString(),
-      },
+      metadata: { purchaseId: newPurchase._id.toString() },
     });
 
     res.json({ success: true, session_url: session.url });
@@ -171,7 +142,6 @@ export const purchaseCourse = async (req, res) => {
   }
 };
 
-// Update User Course Progress
 export const updateUserCourseProgress = async (req, res) => {
   try {
     const userId = req.auth.userId;
@@ -188,11 +158,10 @@ export const updateUserCourseProgress = async (req, res) => {
       await CourseProgress.create({
         userId,
         courseId,
-        completed:true,
+        completed: true,
         lectureCompleted: [lectureId],
       });
     }
-  
 
     res.json({ success: true, message: 'Progress Updated' });
   } catch (error) {
@@ -200,7 +169,6 @@ export const updateUserCourseProgress = async (req, res) => {
   }
 };
 
-// get User Course Progress
 export const getUserCourseProgress = async (req, res) => {
   try {
     const userId = req.auth.userId;
@@ -212,18 +180,17 @@ export const getUserCourseProgress = async (req, res) => {
   }
 };
 
-// Add User Ratings to Course
 export const addUserRating = async (req, res) => {
   const userId = req.auth.userId;
   const { courseId, rating } = req.body;
+
   if (!courseId || !userId || !rating || rating < 1 || rating > 5) {
     return res.json({ success: false, message: 'Invalid Details' });
   }
+
   try {
     const course = await Course.findById(courseId);
-    if (!course) {
-      return res.json({ success: false, message: 'Course not found.' });
-    }
+    if (!course) return res.json({ success: false, message: 'Course not found.' });
 
     const user = await User.findById(userId);
     if (!user || !user.enrolledCourses.includes(courseId)) {
@@ -236,7 +203,7 @@ export const addUserRating = async (req, res) => {
     } else {
       course.courseRatings.push({ userId, rating });
     }
-   
+
     await course.save();
     res.json({ success: true, message: 'Rating added successfully' });
   } catch (error) {

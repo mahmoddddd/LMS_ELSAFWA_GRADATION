@@ -19,8 +19,8 @@ educateRouter.get("/update-role", (req, res, next) => {
   next();
 }, updateRoleToEducator);
 
-educateRouter.get("/courses",protectEducator, getEducatorCourses);
-educateRouter.get("/dashboard", protectEducator,educatorDashboardData);
+educateRouter.get("/courses", getEducatorCourses);
+educateRouter.get("/dashboard",educatorDashboardData);
 educateRouter.get("/enrolled-students",protectEducator, getEnrolledStudentsData);
 educateRouter.post("/add-course", protectEducator,upload.single("image"), addCourse);
 educateRouter.post(

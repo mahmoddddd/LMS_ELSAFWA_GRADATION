@@ -1,170 +1,126 @@
-import { clerkClient } from "@clerk/express";
- 
+// Updated Educator Controller with Clerk Token Extraction
+import { clerkClient } from "@clerk/clerk-sdk-node";
 import Course from "../models/Course.js";
 import User from "../models/User.js";
 import { Purchase } from "../models/Purchase.js";
+import { CourseProgress } from "../models/courseProgress.js";
 import { v2 as cloudinary } from "cloudinary";
- 
-// Update user role to educator (Clerk + MongoDB)
+import Stripe from "stripe";
+import { extractClerkUserId } from "../utils/verifyClerkToken.js";
 
+// Update user role to educator
 export const updateRoleToEducator = async (req, res) => {
   try {
-    const userId = req.auth.userId;
+    const userId = extractClerkUserId(req.headers.authorization);
+    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
 
-    if (!userId) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
-
-    // ✅ تحقق لو المستخدم educator بالفعل
     const existingUser = await User.findOne({ clerkId: userId });
-    if (existingUser && existingUser.role === "educator") {
-      return res.json({
-        success: true,
-        message: "You are already an educator",
-        user: existingUser,
-      });
+    if (existingUser?.role === "educator") {
+      return res.json({ success: true, message: "You are already an educator", user: existingUser });
     }
 
-    // Update Clerk public metadata
-    await clerkClient.users.updateUserMetadata(userId, {
-      publicMetadata: {
-        role: "educator",
-      },
-    });
+    await clerkClient.users.updateUserMetadata(userId, { publicMetadata: { role: "educator" } });
 
-    console.log("✅ Updated Clerk metadata for user:", userId);
-
-    // Update MongoDB user role
     const updatedUser = await User.findOneAndUpdate(
       { clerkId: userId },
       { role: "educator" },
       { new: true }
     );
 
-    if (!updatedUser) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found in database" });
-    }
+    if (!updatedUser) return res.status(404).json({ success: false, message: "User not found" });
 
-    console.log("✅ Updated database role for user:", userId);
-
-    res.json({
-      success: true,
-      message: "You can publish a course now",
-      user: updatedUser,
-    });
+    res.json({ success: true, message: "You can publish a course now", user: updatedUser });
   } catch (error) {
-    console.error("❌ Role update error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
-}
-//add new course
+};
+
 export const addCourse = async (req, res) => {
   try {
+    const educatorId = extractClerkUserId(req.headers.authorization);
     const { courseData } = req.body;
     const imagefile = req.file;
-    const educatorId = req.auth.userId;
 
-    if (!imagefile) {
-      return res.json({ success: false, message: "thumbnail not attached" });
-    }
+    if (!educatorId) return res.status(401).json({ success: false, message: "Unauthorized" });
+    if (!imagefile) return res.json({ success: false, message: "Thumbnail not attached" });
 
-    // Convert buffer to base64
     const b64 = Buffer.from(imagefile.buffer).toString("base64");
     const dataURI = `data:${imagefile.mimetype};base64,${b64}`;
+    const imageUpload = await cloudinary.uploader.upload(dataURI, { resource_type: "auto" });
 
-    // Upload to Cloudinary
-    const imageUpload = await cloudinary.uploader.upload(dataURI, {
-      resource_type: "auto",
-    });
+    const parsedCourseData = JSON.parse(courseData);
+    parsedCourseData.educator = educatorId;
+    parsedCourseData.courseThumbnail = imageUpload.secure_url;
 
-    const parseCoursedata = JSON.parse(courseData);
-    parseCoursedata.educator = educatorId;
-    parseCoursedata.courseThumbnail = imageUpload.secure_url;
-
-    const newCourse = await Course.create(parseCoursedata);
-    res.json({ success: true, message: "course added" });
+    await Course.create(parsedCourseData);
+    res.json({ success: true, message: "Course added" });
   } catch (error) {
-    console.error("Error adding course:", error);
     res.json({ success: false, message: error.message });
   }
 };
 
-//get educator courses
 export const getEducatorCourses = async (req, res) => {
   try {
-    const educator = req.auth.userId;
-    const courses = await Course.find({ educator });
+    const clerkId = extractClerkUserId(req.headers.authorization);
+    if (!clerkId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    // ⛏️ نجيب بيانات المدرّس من اليوزر
+    const educator = await User.findOne({ clerkId });
+    if (!educator) return res.status(404).json({ success: false, message: "Educator not found" });
+
+    // ✅ استخدم _id بتاع المدرّس
+    const courses = await Course.find({ educator: educator._id });
+
     res.json({ success: true, courses });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
 };
 
-//educator dashboard
 export const educatorDashboardData = async (req, res) => {
   try {
-    const educator = req.auth.userId;
+    const educator = extractClerkUserId(req.headers.authorization);
+    if (!educator) return res.status(401).json({ success: false, message: "Unauthorized" });
+
     const courses = await Course.find({ educator });
     const totalcourses = courses.length;
     const courseIds = courses.map((course) => course._id);
 
-    //calculate total earnings from purchases
-    const purchases = await Purchase.find({
-      courseId: { $in: courseIds },
-      status: "completed",
-    });
+    const purchases = await Purchase.find({ courseId: { $in: courseIds }, status: "completed" });
+    const totalEarnings = purchases.reduce((sum, p) => sum + p.amount, 0);
 
-    const totalEarnings = purchases.reduce(
-      (sum, purchase) => sum + purchase.amount,
-      0
-    );
-
-    // Collect unique enrolled student IDs with their course titles
     const enrolledStudentsData = [];
     for (const course of courses) {
-      const students = await User.find(
-        {
-          _id: { $in: course.enrolledStudents },
-        },
-        "name imageUrl"
-      );
+      const students = await User.find({ _id: { $in: course.enrolledStudents } }, "name imageUrl");
       students.forEach((student) => {
-        enrolledStudentsData.push({
-          courseTitle: course.courseTitle,
-          student,
-        });
+        enrolledStudentsData.push({ courseTitle: course.courseTitle, student });
       });
     }
 
     res.json({
       success: true,
-      dashboardData: {
-        totalEarnings,
-        enrolledStudentsData,
-        totalcourses,
-      },
+      dashboardData: { totalEarnings, enrolledStudentsData, totalcourses },
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
 };
-
-//get enrolled students data with purchase data
+ 
 export const getEnrolledStudentsData = async (req, res) => {
   try {
-    const educator = req.auth.userId;
-    const courses = await Course.find({ educator });
-    const courseIds = courses.map((course) => course._id);
-    const purchases = await Purchase.find({
-      courseId: { $in: courseIds },
-      status: "completed",
-    })
-      .populate("userId", "name imageUrl")
+    const educatorId = req.auth.userId;  // هنا ناخذ الـ ObjectId مباشرة من الـ auth middleware
+    if (!educatorId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    // جلب كورسات المعلم
+    const courses = await Course.find({ educator: educatorId });
+    const courseIds = courses.map(course => course._id);
+
+    // جلب عمليات الشراء المكتملة
+    const purchases = await Purchase.find({ courseId: { $in: courseIds }, status: "completed" })
+      .populate("userId", "name imageUrl")  // userId هنا ObjectId، لذلك populate يعمل بشكل صحيح
       .populate("courseId", "courseTitle");
 
-    const enrolledStudents = purchases.map((purchase) => ({
+    const enrolledStudents = purchases.map(purchase => ({
       student: purchase.userId,
       courseTitle: purchase.courseId.courseTitle,
       purchaseDate: purchase.createdAt,
@@ -176,22 +132,17 @@ export const getEnrolledStudentsData = async (req, res) => {
   }
 };
 
-// Upload lecture video
+
 export const uploadLectureVideo = async (req, res) => {
   try {
     const videoFile = req.file;
-    if (!videoFile) {
-      return res.json({ success: false, message: "No video file attached" });
-    }
+    if (!videoFile) return res.json({ success: false, message: "No video file attached" });
 
-    // Convert buffer to base64
     const b64 = Buffer.from(videoFile.buffer).toString("base64");
     const dataURI = `data:${videoFile.mimetype};base64,${b64}`;
-
-    // Upload to Cloudinary
     const uploadResult = await cloudinary.uploader.upload(dataURI, {
       resource_type: "video",
-      chunk_size: 6000000, // 6MB chunks for better upload
+      chunk_size: 6000000,
       eager: [{ format: "mp4", quality: "auto" }],
       eager_async: true,
     });
@@ -202,10 +153,6 @@ export const uploadLectureVideo = async (req, res) => {
       message: "Video uploaded successfully",
     });
   } catch (error) {
-    console.error("Video upload error:", error);
-    res.json({
-      success: false,
-      message: error.message || "Error uploading video",
-    });
+    res.json({ success: false, message: error.message });
   }
 };
