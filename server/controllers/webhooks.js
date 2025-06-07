@@ -196,6 +196,8 @@ console.log("🆔 Clerk user ID from webhook:", data.id);
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+// Stripe 
 const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
 
 // ===== Stripe webhook handler =====
@@ -219,20 +221,44 @@ export const stripeWebhooks = async (req, res) => {
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object;
         const paymentIntentId = paymentIntent.id;
-        const session = await stripeInstance.checkout.sessions.list({
+        const sessions = await stripeInstance.checkout.sessions.list({
           payment_intent: paymentIntentId,
         });
-        const { purchaseId } = session.data[0].metadata;
+        if (!sessions.data.length) {
+          console.error("No sessions found for payment intent:", paymentIntentId);
+          return res.status(400).send("No session found");
+        }
+        const { purchaseId } = sessions.data[0].metadata;
 
         const purchaseData = await Purchase.findById(purchaseId);
+        if (!purchaseData) {
+          console.error("Purchase not found:", purchaseId);
+          return res.status(404).send("Purchase not found");
+        }
+        if (purchaseData.status === "completed") {
+          // الدفع تم تسجيله سابقا فلا نفعل شيئاً
+          return res.json({ received: true });
+        }
+
         const userData = await User.findById(purchaseData.userId);
         const courseData = await Course.findById(purchaseData.courseId);
 
-        courseData.enrolledStudents.push(userData._id);
-        await courseData.save();
+        if (!userData || !courseData) {
+          console.error("User or course not found");
+          return res.status(404).send("User or course not found");
+        }
 
-        userData.enrolledCourses.push(courseData._id);
-        await userData.save();
+        // أضف المستخدم للقائمة فقط إذا لم يكن موجوداً
+        if (!courseData.enrolledStudents.includes(userData._id)) {
+          courseData.enrolledStudents.push(userData._id);
+          await courseData.save();
+        }
+
+        // أضف الكورس للمستخدم إذا لم يكن موجوداً
+        if (!userData.enrolledCourses.includes(courseData._id)) {
+          userData.enrolledCourses.push(courseData._id);
+          await userData.save();
+        }
 
         purchaseData.status = "completed";
         await purchaseData.save();
@@ -242,14 +268,19 @@ export const stripeWebhooks = async (req, res) => {
       case "payment_intent.payment_failed": {
         const paymentIntent = event.data.object;
         const paymentIntentId = paymentIntent.id;
-        const session = await stripeInstance.checkout.sessions.list({
+        const sessions = await stripeInstance.checkout.sessions.list({
           payment_intent: paymentIntentId,
         });
-        const { purchaseId } = session.data[0].metadata;
+        if (!sessions.data.length) {
+          console.error("No sessions found for failed payment intent:", paymentIntentId);
+          return res.status(400).send("No session found");
+        }
+        const { purchaseId } = sessions.data[0].metadata;
         const purchaseData = await Purchase.findById(purchaseId);
-        purchaseData.status = "failed";
-        await purchaseData.save();
-
+        if (purchaseData) {
+          purchaseData.status = "failed";
+          await purchaseData.save();
+        }
         break;
       }
       default:
