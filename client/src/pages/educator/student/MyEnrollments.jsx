@@ -4,6 +4,7 @@ import { Line } from "rc-progress";
 import Footer from "../../../components/student/Footer";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { useSearchParams } from "react-router-dom";
 
 const MyEnrollments = () => {
   const {
@@ -18,6 +19,9 @@ const MyEnrollments = () => {
   } = useContext(AppContext);
 
   const [progressArray, setProgressArray] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+  const shouldRefresh = searchParams.get("refresh") === "true";
 
   const getCourseProgress = async () => {
     try {
@@ -60,6 +64,35 @@ const MyEnrollments = () => {
     // }
   }, [enrolledCourses]);
 
+  useEffect(() => {
+    const fetchEnrolledCourses = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("/api/user/enrolled-courses");
+        if (response.data.success) {
+          if (shouldRefresh) {
+            toast.success("Your enrollments have been updated!");
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching enrolled courses:", error);
+        toast.error("Failed to load enrolled courses");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEnrolledCourses();
+  }, [shouldRefresh]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="md:px-36 px-6 pt-10">
@@ -99,11 +132,9 @@ const MyEnrollments = () => {
                           className="h-full bg-blue-600 rounded-full transition-all"
                           style={{
                             width: progressArray[index]
-                              ? `${
-                                  (progressArray[index].lectureCompleted *
-                                    100) /
-                                  progressArray[index].totalLectures
-                                }%`
+                              ? `${(progressArray[index].lectureCompleted *
+                                  100) /
+                                  progressArray[index].totalLectures}%`
                               : "0%",
                           }}
                         ></div>

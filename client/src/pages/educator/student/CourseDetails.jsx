@@ -29,7 +29,7 @@ const CourseDetails = () => {
     userData,
     getToken,
     fetchUserEnrolledCourses,
-    enrolledCourses
+    enrolledCourses,
   } = useContext(AppContext);
 
   const fetchCourseData = async () => {
@@ -45,140 +45,150 @@ const CourseDetails = () => {
     }
   };
 
+  const checkEnrollmentStatus = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
 
-/* */
-const checkEnrollmentStatus = async () => {
-  try {
-    const token = await getToken();
-    if (!token) return;
+      console.log("🔍 Checking enrollment status for course:", id);
+      const { data } = await axios.get(
+        `${backendUrl}/api/user/enrollment-status/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    const { data } = await axios.get(
-      `${backendUrl}/api/user/enrollment-status/${id}`,
-      { 
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        } 
+      console.log("📝 Enrollment status response:", data);
+      if (data.success) {
+        setIsAlreadyEnrolled(data.isEnrolled);
+        // Refresh user data if enrollment status changed
+        if (data.isEnrolled && !isAlreadyEnrolled) {
+          console.log("🔄 Enrollment status changed, refreshing user data");
+          await fetchUserEnrolledCourses();
+        }
       }
-    );
+    } catch (error) {
+      console.error("❌ Error checking enrollment status:", error);
+    }
+  };
 
-    if (data.success) {
-      setIsAlreadyEnrolled(data.isEnrolled);
-      // Refresh user data if enrollment status changed
-      if (data.isEnrolled && !isAlreadyEnrolled) {
-        fetchUserEnrolledCourses();
+  // Add useEffect to check enrollment status when component mounts or after payment
+  useEffect(() => {
+    // Check if coming back from payment
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentSuccess = urlParams.get("payment_success");
+
+    if (paymentSuccess === "true") {
+      console.log("💰 Payment successful, checking enrollment status");
+      // Wait a bit for webhook to process, then check enrollment
+      setTimeout(() => {
+        checkEnrollmentStatus();
+      }, 3000); // Increased delay to ensure webhook has time to process
+    }
+  }, []);
+
+  // Modified enrollment check useEffect
+  useEffect(() => {
+    if (userData && courseData) {
+      console.log("🔄 Checking enrollment status:", {
+        courseId: courseData._id,
+        userEnrolledCourses: userData.enrolledCourses,
+        contextEnrolledCourses: enrolledCourses.map((c) => c._id),
+      });
+
+      // Check if user is enrolled in this specific course
+      const isEnrolled =
+        userData.enrolledCourses?.some((courseId) => {
+          // Handle both ObjectId and string comparisons
+          const enrolledCourseId =
+            typeof courseId === "object" ? courseId.toString() : courseId;
+          return enrolledCourseId === courseData._id.toString();
+        }) ||
+        enrolledCourses.some(
+          (course) => course._id.toString() === courseData._id.toString()
+        );
+
+      console.log("📝 Enrollment check result:", isEnrolled);
+      setIsAlreadyEnrolled(isEnrolled);
+    }
+  }, [userData, courseData, enrolledCourses]);
+
+  // Modified enroll function with better error handling
+  const enrollCourse = async () => {
+    try {
+      setIsLoading(true);
+
+      // Check if user is logged in
+      if (!userData) {
+        toast.warn("Please login to enroll in this course");
+        return;
       }
-    }
-  } catch (error) {
-    console.error("Error checking enrollment status:", error);
-  }
-};
 
-// Add useEffect to check enrollment status when component mounts or after payment
-useEffect(() => {
-  // Check if coming back from payment
-  const urlParams = new URLSearchParams(window.location.search);
-  const paymentSuccess = urlParams.get('payment_success');
-  
-  if (paymentSuccess === 'true') {
-    // Wait a bit for webhook to process, then check enrollment
-    setTimeout(() => {
-      checkEnrollmentStatus();
-    }, 2000);
-  }
-}, []);
-
-// Modified enrollment check useEffect
-useEffect(() => {
-  if (userData && courseData) {
-    // Check if user is enrolled in this specific course
-    const isEnrolled = userData.enrolledCourses?.some(courseId => {
-      // Handle both ObjectId and string comparisons
-      const enrolledCourseId = typeof courseId === 'object' ? courseId.toString() : courseId;
-      return enrolledCourseId === courseData._id.toString();
-    }) || enrolledCourses.some(course => 
-      course._id.toString() === courseData._id.toString()
-    );
-    
-    setIsAlreadyEnrolled(isEnrolled);
-    
-    // Debug logging
-    console.log('Enrollment check:', {
-      courseId: courseData._id,
-      userEnrolledCourses: userData.enrolledCourses,
-      contextEnrolledCourses: enrolledCourses.map(c => c._id),
-      isEnrolled
-    });
-  }
-}, [userData, courseData, enrolledCourses]);
-
-
-
-// Modified enroll function with better error handling
-const enrollCourse = async () => {
-  try {
-    setIsLoading(true);
-    
-    // Check if user is logged in
-    if (!userData) {
-      toast.warn("Please login to enroll in this course");
-      return;
-    }
-
-    // Check if already enrolled
-    if (isAlreadyEnrolled) {
-      toast.warn("You are already enrolled in this course");
-      return;
-    }
-
-    // Get authentication token
-    const token = await getToken();
-    if (!token) {
-      toast.warn("Authentication failed. Please login again.");
-      return;
-    }
-
-    // Make purchase request
-    const { data } = await axios.post(
-      `${backendUrl}/api/user/purchase`,
-      { courseId: courseData._id },
-      { 
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        } 
+      // Check if already enrolled
+      if (isAlreadyEnrolled) {
+        toast.warn("You are already enrolled in this course");
+        return;
       }
-    );
 
-    if (data.success) {
-      const { session_url } = data;
-      if (session_url) {
-        // Add payment success parameter to success URL
-        const successUrl = new URL(session_url);
-        // Store current course ID in localStorage for checking after payment
-        localStorage.setItem('pendingEnrollmentCourseId', courseData._id);
-        
-        // Redirect to Stripe checkout
-        window.location.replace(session_url);
+      // Get authentication token
+      const token = await getToken();
+      if (!token) {
+        toast.warn("Authentication failed. Please login again.");
+        return;
+      }
+
+      console.log("🔄 Initiating course enrollment for:", courseData._id);
+      // Make purchase request
+      const { data } = await axios.post(
+        `${backendUrl}/api/user/purchase`,
+        { courseId: courseData._id },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (data.success) {
+        const { session_url } = data;
+        if (session_url) {
+          console.log("✅ Purchase session created, redirecting to payment");
+          // Add payment success parameter to success URL
+          const successUrl = new URL(session_url);
+          // Store current course ID in localStorage for checking after payment
+          localStorage.setItem("pendingEnrollmentCourseId", courseData._id);
+
+          // Redirect to Stripe checkout
+          window.location.replace(session_url);
+        } else {
+          toast.error("Payment session could not be created");
+        }
       } else {
-        toast.error("Payment session could not be created");
+        toast.error(data.message || "Failed to initiate enrollment");
       }
-    } else {
-      toast.error(data.message || "Failed to initiate enrollment");
+    } catch (error) {
+      console.error("❌ Enrollment error:", error);
+      if (error.response?.status === 401) {
+        toast.error("Authentication failed. Please login again.");
+      } else if (error.response?.status === 400) {
+        toast.error(
+          error.response.data.message ||
+            "You are already enrolled in this course"
+        );
+      } else {
+        toast.error(
+          error.response?.data?.message || "Failed to enroll. Please try again."
+        );
+      }
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Enrollment error:", error);
-    if (error.response?.status === 401) {
-      toast.error("Authentication failed. Please login again.");
-    } else if (error.response?.status === 400) {
-      toast.error(error.response.data.message || "You are already enrolled in this course");
-    } else {
-      toast.error(error.response?.data?.message || "Failed to enroll. Please try again.");
-    }
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
+
   // Fetch course data on component mount
   useEffect(() => {
     if (id) {
@@ -197,8 +207,9 @@ const enrollCourse = async () => {
   useEffect(() => {
     if (userData && courseData) {
       // Check if user is enrolled in this specific course
-      const isEnrolled = userData.enrolledCourses?.includes(courseData._id) || 
-                        enrolledCourses.some(course => course._id === courseData._id);
+      const isEnrolled =
+        userData.enrolledCourses?.includes(courseData._id) ||
+        enrolledCourses.some((course) => course._id === courseData._id);
       setIsAlreadyEnrolled(isEnrolled);
     }
   }, [userData, courseData, enrolledCourses]);
@@ -224,7 +235,9 @@ const enrollCourse = async () => {
           </h1>
           <p
             className="text-base md:text-lg text-gray-600"
-            dangerouslySetInnerHTML={{ __html: courseData.courseDescription.slice(0, 200) }}
+            dangerouslySetInnerHTML={{
+              __html: courseData.courseDescription.slice(0, 200),
+            }}
           />
 
           {/* Ratings & Reviews */}
@@ -234,19 +247,29 @@ const enrollCourse = async () => {
               {[...Array(5)].map((_, i) => (
                 <img
                   key={i}
-                  src={i < Math.floor(calculateRating(courseData)) ? assets.star : assets.star_blank}
+                  src={
+                    i < Math.floor(calculateRating(courseData))
+                      ? assets.star
+                      : assets.star_blank
+                  }
                   alt="star"
                   className="w-4 h-4"
                 />
               ))}
             </div>
-            <p className="text-blue-500">{courseData.courseRatings.length} ratings</p>
-            <p className="text-blue-500">{courseData.courseRatings.length} students</p>
+            <p className="text-blue-500">
+              {courseData.courseRatings.length} ratings
+            </p>
+            <p className="text-blue-500">
+              {courseData.courseRatings.length} students
+            </p>
           </div>
 
           <p className="text-sm">
             Course By{" "}
-            <span className="text-blue-600 underline">{courseData.educator.name}</span>
+            <span className="text-blue-600 underline">
+              {courseData.educator.name}
+            </span>
           </p>
 
           {/* Course Structure */}
@@ -254,7 +277,10 @@ const enrollCourse = async () => {
             <h2 className="text-3xl font-semibold">Course Structure</h2>
             <div className="pt-6 space-y-5">
               {courseData.courseContent?.map((chapter, index) => (
-                <div key={index} className="border border-gray-300 bg-white rounded-lg overflow-hidden shadow-md">
+                <div
+                  key={index}
+                  className="border border-gray-300 bg-white rounded-lg overflow-hidden shadow-md"
+                >
                   {/* Chapter Header */}
                   <div
                     className="flex items-center justify-between p-6 cursor-pointer select-none hover:bg-gray-100 transition"
@@ -268,35 +294,58 @@ const enrollCourse = async () => {
                         src={assets.down_arrow_icon}
                         alt="arrow_icon"
                       />
-                      <p className="font-medium text-lg md:text-xl">{chapter.chapterTitle}</p>
+                      <p className="font-medium text-lg md:text-xl">
+                        {chapter.chapterTitle}
+                      </p>
                     </div>
                     <p className="text-md md:text-lg text-gray-600">
-                      {chapter.chapterContent.length} lectures • {calculateChapterTime(chapter)}
+                      {chapter.chapterContent.length} lectures •{" "}
+                      {calculateChapterTime(chapter)}
                     </p>
                   </div>
 
                   {/* Chapter Content (Collapsible) */}
-                  <div className={`overflow-hidden transition-all duration-500 ${openSection[index] ? "max-h-[700px]" : "max-h-0"}`}>
+                  <div
+                    className={`overflow-hidden transition-all duration-500 ${
+                      openSection[index] ? "max-h-[700px]" : "max-h-0"
+                    }`}
+                  >
                     <ul className="list-none border-t border-gray-300 bg-gray-50">
                       {chapter.chapterContent.map((lecture, i) => (
-                        <li key={i} className="flex items-center justify-between px-8 py-5 border-b border-gray-200 hover:bg-gray-100 transition">
+                        <li
+                          key={i}
+                          className="flex items-center justify-between px-8 py-5 border-b border-gray-200 hover:bg-gray-100 transition"
+                        >
                           {/* Play Icon & Lecture Title */}
                           <div className="flex items-center gap-5">
-                            <img src={assets.play_icon} alt="play_icon" className="w-7 h-7" />
+                            <img
+                              src={assets.play_icon}
+                              alt="play_icon"
+                              className="w-7 h-7"
+                            />
                             <p className="text-lg">{lecture.lectureTitle}</p>
                           </div>
                           {/* Preview & Duration */}
                           <div className="text-md text-gray-600 flex gap-6">
                             {lecture.isPreviewFree && lecture.lectureUrl && (
                               <p
-                                onClick={() => setPlayerData({ videoId: lecture.lectureUrl.split("/").pop() })}
+                                onClick={() =>
+                                  setPlayerData({
+                                    videoId: lecture.lectureUrl
+                                      .split("/")
+                                      .pop(),
+                                  })
+                                }
                                 className="text-blue-500 cursor-pointer font-medium"
                               >
                                 Preview
                               </p>
                             )}
                             <p>
-                              {humanizeDuration(lecture.lectureDuration * 60 * 1000, { units: ["h", "m"] })}
+                              {humanizeDuration(
+                                lecture.lectureDuration * 60 * 1000,
+                                { units: ["h", "m"] }
+                              )}
                             </p>
                           </div>
                         </li>
@@ -310,8 +359,13 @@ const enrollCourse = async () => {
 
           {/* Full Course Description */}
           <div className="py-20 text-sm md:text-base">
-            <h3 className="text-xl font-semibold text-gray-800">Course Description</h3>
-            <p className="pt-3" dangerouslySetInnerHTML={{ __html: courseData.courseDescription }}></p>
+            <h3 className="text-xl font-semibold text-gray-800">
+              Course Description
+            </h3>
+            <p
+              className="pt-3"
+              dangerouslySetInnerHTML={{ __html: courseData.courseDescription }}
+            ></p>
           </div>
         </div>
 
@@ -325,16 +379,25 @@ const enrollCourse = async () => {
               iframeClassName="w-full aspect-video"
             />
           ) : (
-            <img src={courseData.courseThumbnail} alt="course_thumbnail" className="w-full h-60 object-cover" />
+            <img
+              src={courseData.courseThumbnail}
+              alt="course_thumbnail"
+              className="w-full h-60 object-cover"
+            />
           )}
 
           {/* Course Details */}
           <div className="p-6">
             {/* Limited Time Offer */}
             <div className="flex items-center gap-2 text-red-500 text-sm">
-              <img src={assets.time_left_clock_icon} alt="time_left_clock_icon" className="w-5" />
+              <img
+                src={assets.time_left_clock_icon}
+                alt="time_left_clock_icon"
+                className="w-5"
+              />
               <p>
-                <span className="font-semibold">5</span> days left at this price!
+                <span className="font-semibold">5</span> days left at this
+                price!
               </p>
             </div>
 
@@ -350,7 +413,9 @@ const enrollCourse = async () => {
               <p className="md:text-lg text-gray-500 line-through">
                 {currency} {courseData.coursePrice}
               </p>
-              <p className="md:text-lg text-green-500 font-medium">{courseData.discount}% off</p>
+              <p className="md:text-lg text-green-500 font-medium">
+                {courseData.discount}% off
+              </p>
             </div>
 
             {/* Enroll Button */}
@@ -365,13 +430,17 @@ const enrollCourse = async () => {
                   : "bg-blue-600 hover:bg-blue-700 text-white"
               }`}
             >
-              {isLoading ? "Processing..." : isAlreadyEnrolled ? "Already Enrolled" : "Enroll Now"}
+              {isLoading
+                ? "Processing..."
+                : isAlreadyEnrolled
+                ? "Already Enrolled"
+                : "Enroll Now"}
             </button>
 
             {/* Debug Info (remove in production) */}
-            {process.env.NODE_ENV === 'development' && (
+            {process.env.NODE_ENV === "development" && (
               <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
-                <p>User ID: {userData?._id || 'Not logged in'}</p>
+                <p>User ID: {userData?._id || "Not logged in"}</p>
                 <p>Course ID: {courseData._id}</p>
                 <p>Is Enrolled: {isAlreadyEnrolled.toString()}</p>
                 <p>Enrolled Courses Count: {enrolledCourses.length}</p>
