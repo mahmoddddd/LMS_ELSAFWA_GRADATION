@@ -11,7 +11,8 @@ import connectCloudinary from "./configs/cloudinary.js";
 import courseRouter from "./routes/courseRoute.js";
 import userRouter from "./routes/userRoutes.js";
 import chatbotRouter from "./routes/chatbotRoute.js";
-
+import subscribeRoutes from "./routes/subscribeRoutes.js";
+import contactUs from "./routes/subscribeRoutes.js";
 const app = express();
 
 // Clerk middleware
@@ -49,7 +50,8 @@ app.use("/api/educator", educateRouter);
 app.use("/api/course", courseRouter);
 app.use("/api/user", userRouter);
 app.use("/api/chatbot", chatbotRouter);
-
+app.use("/api/subscribe", subscribeRoutes);
+app.use("/api/cont", contactUs);
 
 
 
