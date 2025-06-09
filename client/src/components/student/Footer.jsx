@@ -50,7 +50,7 @@ const Footer = () => {
   
     {/* Copyright Section */}
     <p className="py-4 text-center text-xs md:text-sm text-white/80">
-      Copyright 2025 © PLA academy. All Rights Reserved.
+      Copyright 2025 © ELSAFWA TEAM  All Rights Reserved.
     </p>
   </footer>
   

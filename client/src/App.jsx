@@ -19,6 +19,7 @@ import AboutUs from "./components/student/AboutUs";
 import ContactUs from "./components/student/ContactUs";
 import PolicyPrivacy from "./components/student/PolicyPrivacy";
 import LoadingMyEnrollments from "./pages/loading/MyEnrollments";
+import AboutLMS from "./pages/AboutLMS";
 
 const App = () => {
   const isEducatorRoute = useMatch("/educator/*");
@@ -50,6 +51,7 @@ const App = () => {
         <Route path="/about" element={<AboutUs />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/policy" element={<PolicyPrivacy />} />
+        <Route path="/about-lms" element={<AboutLMS />} />
       </Routes>
     </div>
   );

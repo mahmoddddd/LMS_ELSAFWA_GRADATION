@@ -4,9 +4,9 @@ import React from 'react';
 function AboutUs() {
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-6 md:px-20">
-      <h1 className="text-3xl font-bold text-gray-800 text-center">About PLA Academy</h1>
+      <h1 className="text-3xl font-bold text-gray-800 text-center">ELSAFWA TEAM WE CAN AND WE WILL</h1>
       <p className="mt-4 text-gray-600 text-center max-w-3xl mx-auto">
-        PLA Academy is a leading learning management system that helps students
+        ELSAFWA TEAM is a leading learning management system that helps students
         and educators connect in a digital environment. Our goal is to provide
         high-quality education through an intuitive and interactive platform.
       </p>

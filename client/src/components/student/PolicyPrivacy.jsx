@@ -6,7 +6,7 @@ const PolicyPrivacy = () => {
       <h1 className="text-3xl font-bold text-gray-800 text-center">Privacy Policy</h1>
       <div className="max-w-3xl mx-auto mt-6 bg-white p-6 shadow-lg rounded-lg">
         <p className="text-gray-600">
-          At PLA Academy, we value your privacy and strive to protect your personal data.
+          At ELSAFWA TEAM , we value your privacy and strive to protect your personal data.
           This Privacy Policy outlines how we collect, use, and safeguard your information.
         </p>
         <h2 className="text-xl font-semibold mt-4">Information Collection</h2>
