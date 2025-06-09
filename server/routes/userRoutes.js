@@ -27,6 +27,6 @@ userRouter.post("/get-course-progress", getUserCourseProgress);
 userRouter.post("/add-rating", addUserRating);
 userRouter.get("/enrollment-status/:courseId", checkEnrollmentStatus);
 userRouter.get("/handle-successful-payment", handleSuccessfulPayment);
-userRouter.get("/complete-purchase/:purchaseId", completePurchase);
+userRouter.get("/complete-purchase/:purchaseId", completePurchase); // manual
 userRouter.put("/update-purchase-clerk/:purchaseId", updatePurchaseClerkId);
 export default userRouter;

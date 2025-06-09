@@ -204,27 +204,28 @@ const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 // ===== Stripe webhook handler =====
-export const stripeWebhooks = async (req, res) => {
-  console.log("🔄 Stripe webhook received");
-  console.log("📝 Request body:", JSON.stringify(req.body, null, 2));
-  console.log("🔐 Headers:", req.headers);
-
+   export const stripeWebhooks = async (req, res) => {
   const sig = req.headers["stripe-signature"];
-  let event;
+  
+  if (!sig) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Missing stripe signature" 
+    });
+  }
 
+  let event;
   try {
-    console.log("🔐 Verifying webhook signature");
     event = stripeInstance.webhooks.constructEvent(
       req.body,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
-    console.log("✅ Webhook signature verified");
-    console.log("📝 Event type:", event.type);
-    console.log("📝 Event data:", JSON.stringify(event.data.object, null, 2));
   } catch (err) {
-    console.error("❌ Webhook signature verification failed:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    return res.status(400).json({ 
+      success: false, 
+      message: `Webhook Error: ${err.message}` 
+    });
   }
 
   try {

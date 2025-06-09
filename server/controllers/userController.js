@@ -126,33 +126,38 @@ export const purchaseCourse = async (req, res) => {
     const { courseId } = req.body;
     const { origin } = req.headers;
 
-    // Extract Clerk user ID from token
-    const clerkUserId = extractClerkUserId(req.headers.authorization);
-    if (!clerkUserId) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Unauthorized: Invalid token" });
+    if (!courseId) {
+      return res.status(400).json({
+        success: false,
+        message: "Course ID is required",
+      });
     }
 
-    console.log("📝 Starting purchase process:", { courseId, clerkUserId });
+    const clerkUserId = extractClerkUserId(req.headers.authorization);
+    if (!clerkUserId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: Invalid token",
+      });
+    }
 
-    // Find user by clerkId
-    const userData = await User.findOne({ clerkId: clerkUserId });
-    const courseData = await Course.findById(courseId);
+    // تحقق متزامن من المستخدم والدورة
+    const [userData, courseData] = await Promise.all([
+      User.findOne({ clerkId: clerkUserId }),
+      Course.findById(courseId),
+    ]);
 
     if (!userData || !courseData) {
-      console.error("❌ User or course not found:", {
+      return res.status(404).json({
+        success: false,
+        message: "User or Course not found",
         userFound: !!userData,
         courseFound: !!courseData,
       });
-      return res
-        .status(404)
-        .json({ success: false, message: "User or Course not found" });
     }
 
-    // Check if user is already enrolled
+    // التحقق من التسجيل المسبق
     if (userData.enrolledCourses.includes(courseData._id)) {
-      console.log("ℹ️ User already enrolled in course");
       return res.status(400).json({
         success: false,
         message: "You are already enrolled in this course",
@@ -240,27 +245,39 @@ export const purchaseCourse = async (req, res) => {
 export const handleSuccessfulPayment = async (req, res) => {
   try {
     const { session_id } = req.query;
-    console.log("🔄 Processing successful payment for session:", session_id);
+
+    if (!session_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Session ID is required",
+      });
+    }
 
     const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripeInstance.checkout.sessions.retrieve(session_id);
 
     if (!session) {
-      console.error("❌ Session not found:", session_id);
-      return res
-        .status(404)
-        .json({ success: false, message: "Session not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Session not found",
+      });
     }
 
     const { purchaseId, clerkUserId } = session.metadata;
-    console.log("📝 Processing purchase:", { purchaseId, clerkUserId });
 
+    if (!purchaseId || !clerkUserId) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid session metadata",
+      });
+    }
     const purchaseData = await Purchase.findById(purchaseId);
+
     if (!purchaseData) {
-      console.error("❌ Purchase not found:", purchaseId);
-      return res
-        .status(404)
-        .json({ success: false, message: "Purchase not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Purchase not found",
+      });
     }
 
     if (purchaseData.status === "completed") {
