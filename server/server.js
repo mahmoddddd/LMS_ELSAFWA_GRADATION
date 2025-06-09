@@ -10,6 +10,7 @@ import { clerkMiddleware } from "@clerk/express";
 import connectCloudinary from "./configs/cloudinary.js";
 import courseRouter from "./routes/courseRoute.js";
 import userRouter from "./routes/userRoutes.js";
+import chatbotRouter from "./routes/chatbotRoute.js";
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use(express.json());
 app.use("/api/educator", educateRouter);
 app.use("/api/course", courseRouter);
 app.use("/api/user", userRouter);
+app.use("/api/chatbot", chatbotRouter);
 
 
 
