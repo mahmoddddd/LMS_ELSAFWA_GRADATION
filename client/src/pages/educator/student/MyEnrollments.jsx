@@ -1,6 +1,5 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../../../context/AppContext";
-import { Line } from "rc-progress";
 import Footer from "../../../components/student/Footer";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -19,7 +18,6 @@ const MyEnrollments = () => {
   } = useContext(AppContext);
 
   const [progressArray, setProgressArray] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
   const shouldRefresh = searchParams.get("refresh") === "true";
 
@@ -58,34 +56,19 @@ const MyEnrollments = () => {
   }, [userData]);
 
   useEffect(() => {
-    // if (enrolledCourses.length > 0) {
-    getCourseProgress();
-
-    // }
+    if (enrolledCourses.length > 0) {
+      getCourseProgress();
+    }
   }, [enrolledCourses]);
 
   useEffect(() => {
-    const fetchEnrolledCourses = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get("/api/user/enrolled-courses");
-        if (response.data.success) {
-          if (shouldRefresh) {
-            toast.success("Your enrollments have been updated!");
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching enrolled courses:", error);
-        toast.error("Failed to load enrolled courses");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEnrolledCourses();
+    if (shouldRefresh) {
+      fetchUserEnrolledCourses();
+      toast.success("Your enrollments have been updated!");
+    }
   }, [shouldRefresh]);
 
-  if (loading) {
+  if (!enrolledCourses) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
