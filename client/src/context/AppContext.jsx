@@ -202,14 +202,14 @@ export const AppContextProvider = ({ children }) => {
         if (data.success && data.user) {
           const dbRole = data.user.role;
           console.log("🗄️ Database role:", dbRole);
-          
+
           // لو الرول في الداتابيز educator بس مش في Clerk، نحدث Clerk
           if (dbRole === "educator" && clerkRole !== "educator") {
             console.log("🔄 Syncing Clerk metadata with database...");
             // هنا ممكن نعمل API call لتحديث Clerk metadata
             await syncClerkRole(dbRole);
           }
-          
+
           return dbRole === "educator";
         }
       }
@@ -225,8 +225,9 @@ export const AppContextProvider = ({ children }) => {
   const syncClerkRole = async (role) => {
     try {
       const token = await getToken();
-      await axios.post(`${backendUrl}/api/user/sync-role`, 
-        { role }, 
+      await axios.post(
+        `${backendUrl}/api/user/sync-role`,
+        { role },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log("✅ Clerk role synced successfully");
@@ -262,14 +263,14 @@ export const AppContextProvider = ({ children }) => {
       const { data } = await axios.get(`${backendUrl}/api/user/data`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (data.success) {
         setUserData(data.user);
-        
+
         // ✅ تحديث الـ isEducator state بناءً على الداتا من الداتابيز
         const userRole = data.user.role;
         console.log("👤 User role from database:", userRole);
-        
+
         if (userRole === "educator") {
           setIsEducator(true);
           console.log("🎓 User is educator - updating state");
@@ -277,7 +278,7 @@ export const AppContextProvider = ({ children }) => {
           setIsEducator(false);
           console.log("👨‍🎓 User is student");
         }
-        
+
         // ✅ تأكد إن Clerk metadata متزامن مع الداتابيز
         const clerkRole = user.publicMetadata?.role;
         if (userRole !== clerkRole) {
@@ -298,16 +299,16 @@ export const AppContextProvider = ({ children }) => {
     const initializeUserRole = async () => {
       if (user?.id) {
         console.log("🚀 Initializing user role for:", user.id);
-        
+
         // تحقق من الرول في Clerk أولاً
         const clerkRole = user.publicMetadata?.role;
         console.log("🔍 Initial Clerk role:", clerkRole);
-        
+
         if (clerkRole === "educator") {
           setIsEducator(true);
           console.log("✅ Set educator from Clerk metadata");
         }
-        
+
         // جيب باقي بيانات المستخدم
         await fetchUserData();
         await fetchUserEnrolledCourses();
@@ -341,7 +342,7 @@ export const AppContextProvider = ({ children }) => {
   // Fetch user enrolled courses
   const fetchUserEnrolledCourses = async () => {
     if (!user?.id) return;
-    
+
     try {
       const token = await getToken();
       console.log(token);
