@@ -63,8 +63,24 @@ const Footer = () => {
           <div className="flex flex-col items-center md:items-start">
             <img src={assets.logo} alt="logo" className="w-16 h-16" />
             <p className="mt-4 text-center md:text-left text-sm text-white/80">
-              Lorem Ipsum is simply dummy text of the printing and typesetting industry.
-              <br />Lorem Ipsum has been the industry's standard dummy text.
+              Unlock Your Potential Through Learning
+              <br />
+              Join us and gain:
+              <br />
+              <br />
+              ✔ 1000+ career-boosting courses
+              <br />
+              <br />
+              ✔ World-class instructors
+              <br />
+              <br />
+              ✔ Learn anytime, anywhere
+              <br />
+              <br />
+              ✔ Certified skills
+              <br />
+              <br />
+              Start learning today - transform your future!
             </p>
           </div>
 

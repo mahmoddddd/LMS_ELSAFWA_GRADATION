@@ -156,3 +156,153 @@ export const uploadLectureVideo = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
+
+// Get course by ID for editing
+export const getCourseById = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const educatorId = extractClerkUserId(req.headers.authorization);
+    
+    if (!educatorId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const course = await Course.findById(courseId);
+    
+    if (!course) {
+      return res.status(404).json({ success: false, message: "Course not found" });
+    }
+
+    // Verify that the educator owns this course
+    const educator = await User.findOne({ clerkId: educatorId });
+    if (!educator) return res.status(404).json({ success: false, message: "Educator not found" });
+
+    // Check if the educator owns this course - handle both string and ObjectId comparisons
+    const courseEducatorId = course.educator.toString();
+    const educatorUserId = educator._id.toString();
+    
+    if (courseEducatorId !== educatorUserId) {
+      return res.status(403).json({ success: false, message: "You don't have permission to edit this course" });
+    }
+
+    res.json({ success: true, course });
+  } catch (error) {
+    console.error("Error fetching course:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Update course details
+export const updateCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const educatorId = extractClerkUserId(req.headers.authorization);
+    const { courseData } = req.body;
+    const imagefile = req.file;
+
+    if (!educatorId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    // Verify that the educator owns this course
+    const educator = await User.findOne({ clerkId: educatorId });
+    if (!educator) return res.status(404).json({ success: false, message: "Educator not found" });
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ success: false, message: "Course not found" });
+    }
+
+    // Check if the educator owns this course - handle both string and ObjectId comparisons
+    const courseEducatorId = course.educator.toString();
+    const educatorUserId = educator._id.toString();
+    
+    if (courseEducatorId !== educatorUserId) {
+      return res.status(403).json({ success: false, message: "You don't have permission to edit this course" });
+    }
+
+    const parsedCourseData = JSON.parse(courseData);
+    
+    // Handle thumbnail update if new image is provided
+    if (imagefile) {
+      const b64 = Buffer.from(imagefile.buffer).toString("base64");
+      const dataURI = `data:${imagefile.mimetype};base64,${b64}`;
+      const imageUpload = await cloudinary.uploader.upload(dataURI, { resource_type: "auto" });
+      parsedCourseData.courseThumbnail = imageUpload.secure_url;
+    }
+
+    // Remove the educator field from parsedCourseData to prevent unauthorized changes
+    delete parsedCourseData.educator;
+
+    // Update the course
+    const updatedCourse = await Course.findByIdAndUpdate(
+      courseId,
+      parsedCourseData,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedCourse) {
+      return res.status(500).json({ success: false, message: "Failed to update course" });
+    }
+
+    res.json({ success: true, message: "Course updated successfully", course: updatedCourse });
+  } catch (error) {
+    console.error("Error updating course:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Add lecture to existing course
+export const addLectureToCourse = async (req, res) => {
+  try {
+    const { courseId, chapterId } = req.params;
+    const educatorId = extractClerkUserId(req.headers.authorization);
+    const { lectureData } = req.body;
+    const videoFile = req.file;
+
+    if (!educatorId) return res.status(401).json({ success: false, message: "Unauthorized" });
+    if (!videoFile) return res.json({ success: false, message: "No video file attached" });
+
+    // Verify that the educator owns this course
+    const educator = await User.findOne({ clerkId: educatorId });
+    if (!educator) return res.status(404).json({ success: false, message: "Educator not found" });
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ success: false, message: "Course not found" });
+    }
+
+    if (course.educator !== educator._id.toString()) {
+      return res.status(403).json({ success: false, message: "You don't have permission to edit this course" });
+    }
+
+    // Upload video
+    const b64 = Buffer.from(videoFile.buffer).toString("base64");
+    const dataURI = `data:${videoFile.mimetype};base64,${b64}`;
+    const uploadResult = await cloudinary.uploader.upload(dataURI, {
+      resource_type: "video",
+      chunk_size: 6000000,
+      eager: [{ format: "mp4", quality: "auto" }],
+      eager_async: true,
+    });
+
+    const parsedLectureData = JSON.parse(lectureData);
+    const newLecture = {
+      lectureId: parsedLectureData.lectureId,
+      lectureTitle: parsedLectureData.lectureTitle,
+      lectureDuration: parsedLectureData.lectureDuration,
+      lectureUrl: uploadResult.secure_url,
+      isPreviewfree: parsedLectureData.isPreviewFree,
+      lectureOrder: parsedLectureData.lectureOrder,
+    };
+
+    // Find the chapter and add the lecture
+    const chapterIndex = course.courseContent.findIndex(chapter => chapter.chapterId === chapterId);
+    if (chapterIndex === -1) {
+      return res.status(404).json({ success: false, message: "Chapter not found" });
+    }
+
+    course.courseContent[chapterIndex].chapterContent.push(newLecture);
+    await course.save();
+
+    res.json({ success: true, message: "Lecture added successfully", course });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
