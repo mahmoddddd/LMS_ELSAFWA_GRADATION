@@ -3,10 +3,12 @@ import { AppContext } from '../../context/AppContext'
 import Loading from '../../components/student/Loading'
 import axios from 'axios'
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 const MyCourse = () => {
   const { currency, backendUrl, getToken, isEducator } = useContext(AppContext)
   const [courses, setCourses] = useState(null)
+  const navigate = useNavigate();
 
   const fetchEducatorCourses = async () => {
     try {
@@ -31,19 +33,24 @@ const MyCourse = () => {
     }
   }, [isEducator])
 
+  const handleEditCourse = (courseId) => {
+    navigate(`/educator/edit-course/${courseId}`);
+  };
+
   return courses ? (
     <div className="h-screen flex flex-col items-start justify-between md:p-8 p-4 pt-8">
     <div className="w-full">
       <h2 className="pb-4 text-lg font-medium text-gray-900">My Courses</h2>
   
-      <div className="flex flex-col items-center max-w-4xl w-full overflow-hidden rounded-md bg-white border border-gray-300 shadow-md">
+      <div className="flex flex-col items-center max-w-6xl w-full overflow-hidden rounded-md bg-white border border-gray-300 shadow-md">
         <table className="w-full table-auto">
           <thead className="text-gray-900 bg-gray-100 text-sm border-b border-gray-300">
             <tr>
-              <th className="px-4 py-3 font-semibold text-left">All Course</th>
+              <th className="px-4 py-3 font-semibold text-left">All Courses</th>
               <th className="px-4 py-3 font-semibold text-center">Earnings</th>
               <th className="px-4 py-3 font-semibold text-center">Students</th>
-              <th className="px-4 py-3 font-semibold text-right">Published On</th>
+              <th className="px-4 py-3 font-semibold text-center">Published On</th>
+              <th className="px-4 py-3 font-semibold text-center">Actions</th>
             </tr>
           </thead>
   
@@ -69,8 +76,18 @@ const MyCourse = () => {
                 </td>
   
                 {/* Published Date */}
-                <td className="px-4 py-3 text-right text-gray-600">
+                <td className="px-4 py-3 text-center text-gray-600">
                   {new Date(course.createdAt).toLocaleDateString()}
+                </td>
+
+                {/* Actions */}
+                <td className="px-4 py-3 text-center">
+                  <button
+                    onClick={() => handleEditCourse(course._id)}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Edit
+                  </button>
                 </td>
               </tr>
             ))}

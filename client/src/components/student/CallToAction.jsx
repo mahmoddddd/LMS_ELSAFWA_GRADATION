@@ -7,16 +7,8 @@ import "react-toastify/dist/ReactToastify.css";
 const CallToAction = () => {
   const navigate = useNavigate();
 
-  const notify = () => {
-    toast.info("Please log in to enroll in courses.", {
-      position: "top-center",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      theme: "colored",
-    });
+  const handleGetStarted = () => {
+    navigate("/course-list");
   };
 
   return (
@@ -34,7 +26,7 @@ const CallToAction = () => {
       <div className="flex flex-row items-center font-medium gap-6 mt-4">
         <button
           className="px-10 py-3 rounded-md text-white bg-blue-600 hover:bg-blue-700 transition"
-          onClick={notify}
+          onClick={handleGetStarted}
         >
           Get Started
         </button>

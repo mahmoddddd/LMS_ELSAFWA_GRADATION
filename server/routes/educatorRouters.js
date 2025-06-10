@@ -6,7 +6,10 @@ import {
   educatorDashboardData,
   getEducatorCourses,
   getEnrolledStudentsData,
-  uploadLectureVideo, 
+  uploadLectureVideo,
+  getCourseById,
+  updateCourse,
+  addLectureToCourse,
 } from "../controllers/educatorController.js";
 import upload from "../configs/multer.js";
 import { protectEducator } from "../middlewares/authMiddleWare.js";
@@ -29,5 +32,10 @@ educateRouter.post(
   upload.single("video"),
   uploadLectureVideo
 );
+
+// Course editing routes
+educateRouter.get("/course/:courseId", protectEducator, getCourseById);
+educateRouter.put("/course/:courseId", protectEducator, upload.single("image"), updateCourse);
+educateRouter.post("/course/:courseId/chapter/:chapterId/lecture", protectEducator, upload.single("video"), addLectureToCourse);
 
 export default educateRouter;
