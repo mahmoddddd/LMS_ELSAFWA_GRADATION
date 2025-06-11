@@ -25,7 +25,7 @@ import {
   Cell,
 } from "recharts";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+const COLORS = ["#4CAF50", "#8BC34A", "#FFC107", "#FF9800", "#F44336"];
 
 const QuizAnalytics = () => {
   const { quizId } = useParams();
@@ -49,7 +49,7 @@ const QuizAnalytics = () => {
           },
         }
       );
-      setAnalytics(response.data);
+      setAnalytics(response.data.statistics);
     } catch (err) {
       setError("حدث خطأ في جلب التحليلات");
       console.error(err);
@@ -80,17 +80,19 @@ const QuizAnalytics = () => {
   }
 
   const gradeDistribution = [
-    { name: "ممتاز", value: analytics.gradeDistribution.excellent },
-    { name: "جيد جداً", value: analytics.gradeDistribution.veryGood },
-    { name: "جيد", value: analytics.gradeDistribution.good },
-    { name: "مقبول", value: analytics.gradeDistribution.acceptable },
+    { name: "ممتاز", value: analytics?.gradeDistribution?.excellent || 0 },
+    { name: "جيد جداً", value: analytics?.gradeDistribution?.veryGood || 0 },
+    { name: "جيد", value: analytics?.gradeDistribution?.good || 0 },
+    { name: "مقبول", value: analytics?.gradeDistribution?.acceptable || 0 },
+    { name: "راسب", value: analytics?.gradeDistribution?.failed || 0 },
   ];
 
-  const questionStats = analytics.questionStats.map((stat, index) => ({
-    name: `سؤال ${index + 1}`,
-    correct: stat.correctAnswers,
-    incorrect: stat.incorrectAnswers,
-  }));
+  const questionStats =
+    analytics?.questionStats?.map((stat, index) => ({
+      name: `سؤال ${index + 1}`,
+      correct: stat.correctAnswers,
+      incorrect: stat.incorrectAnswers,
+    })) || [];
 
   return (
     <Box p={3}>
@@ -106,7 +108,9 @@ const QuizAnalytics = () => {
               <Typography variant="h6" gutterBottom>
                 إجمالي التقديمات
               </Typography>
-              <Typography variant="h3">{analytics.totalSubmissions}</Typography>
+              <Typography variant="h3">
+                {analytics?.totalSubmissions || 0}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -117,7 +121,7 @@ const QuizAnalytics = () => {
                 متوسط الدرجات
               </Typography>
               <Typography variant="h3">
-                {analytics.averageGrade.toFixed(1)}
+                {analytics?.averageScore?.toFixed(1) || 0}
               </Typography>
             </CardContent>
           </Card>
@@ -128,7 +132,9 @@ const QuizAnalytics = () => {
               <Typography variant="h6" gutterBottom>
                 نسبة النجاح
               </Typography>
-              <Typography variant="h3">{analytics.passRate}%</Typography>
+              <Typography variant="h3">
+                {analytics?.passRate?.toFixed(1) || 0}%
+              </Typography>
             </CardContent>
           </Card>
         </Grid>

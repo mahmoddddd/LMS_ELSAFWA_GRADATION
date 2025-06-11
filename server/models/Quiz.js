@@ -134,6 +134,23 @@ const quizSchema = new mongoose.Schema(
           type: Date,
           default: Date.now,
         },
+        feedback: {
+          type: String,
+          // تعليقات المدرس على التقديم
+        },
+        gradedAt: {
+          type: Date,
+          // وقت تصحيح التقديم
+        },
+        gradedBy: {
+          type: String,
+          // معرف المدرس الذي قام بالتصحيح
+        },
+        gradeText: {
+          type: String,
+          enum: ["ممتاز", "جيد جداً", "جيد", "مقبول", "راسب"],
+          // التقدير النصي للتقديم
+        },
       },
     ],
     isActive: {

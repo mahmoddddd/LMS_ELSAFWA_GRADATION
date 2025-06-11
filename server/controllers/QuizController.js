@@ -545,6 +545,30 @@ export const getQuizStatistics = async (req, res) => {
     const averageScore =
       totalSubmissions > 0 ? totalScore / totalSubmissions : 0;
 
+    // Calculate grade distribution
+    const gradeDistribution = {
+      excellent: 0, // 90-100
+      veryGood: 0, // 80-89
+      good: 0, // 70-79
+      acceptable: 0, // 60-69
+      failed: 0, // < 60
+    };
+
+    quiz.submissions.forEach((submission) => {
+      const percentage = (submission.score / quiz.totalMarks) * 100;
+      if (percentage >= 90) {
+        gradeDistribution.excellent++;
+      } else if (percentage >= 80) {
+        gradeDistribution.veryGood++;
+      } else if (percentage >= 70) {
+        gradeDistribution.good++;
+      } else if (percentage >= 60) {
+        gradeDistribution.acceptable++;
+      } else {
+        gradeDistribution.failed++;
+      }
+    });
+
     // Calculate question-wise statistics
     const questionStats = quiz.questions.map((question, index) => {
       const correctAnswers = quiz.submissions.reduce((count, submission) => {
@@ -558,6 +582,7 @@ export const getQuizStatistics = async (req, res) => {
         questionType: question.questionType,
         totalAttempts: totalSubmissions,
         correctAnswers,
+        incorrectAnswers: totalSubmissions - correctAnswers,
         correctPercentage:
           totalSubmissions > 0 ? (correctAnswers / totalSubmissions) * 100 : 0,
         averageScore:
@@ -567,49 +592,37 @@ export const getQuizStatistics = async (req, res) => {
       };
     });
 
-    // Calculate score distribution
-    const scoreDistribution = {
-      "0-20": 0,
-      "21-40": 0,
-      "41-60": 0,
-      "61-80": 0,
-      "81-100": 0,
-    };
+    // Calculate pass rate
+    const passingSubmissions = quiz.submissions.filter(
+      (submission) => (submission.score / quiz.totalMarks) * 100 >= 60
+    ).length;
+    const passRate =
+      totalSubmissions > 0 ? (passingSubmissions / totalSubmissions) * 100 : 0;
 
-    quiz.submissions.forEach((submission) => {
-      const percentage = (submission.score / quiz.totalMarks) * 100;
-      if (percentage <= 20) scoreDistribution["0-20"]++;
-      else if (percentage <= 40) scoreDistribution["21-40"]++;
-      else if (percentage <= 60) scoreDistribution["41-60"]++;
-      else if (percentage <= 80) scoreDistribution["61-80"]++;
-      else scoreDistribution["81-100"]++;
-    });
-
-    const statistics = {
-      quizId: quiz._id,
-      quizTitle: quiz.title,
-      totalSubmissions,
-      totalStudents,
-      averageScore,
-      scoreDistribution,
-      questionStats,
-      submissions: quiz.submissions.map((submission) => ({
-        student: submission.student,
-        score: submission.score || 0,
-        percentage: (submission.score / quiz.totalMarks) * 100,
-        submittedAt: submission.submittedAt,
-      })),
-    };
+    // Format submissions for display
+    const formattedSubmissions = quiz.submissions.map((submission) => ({
+      student: submission.student,
+      score: submission.score || 0,
+      submittedAt: submission.submittedAt,
+      feedback: submission.feedback || "",
+      gradedAt: submission.gradedAt,
+      gradedBy: submission.gradedBy,
+    }));
 
     res.json({
       success: true,
-      statistics,
+      statistics: {
+        totalSubmissions,
+        totalStudents,
+        averageScore,
+        passRate,
+        gradeDistribution,
+        questionStats,
+        submissions: formattedSubmissions,
+      },
     });
   } catch (error) {
     console.error("Error getting quiz statistics:", error);
-    if (error.message === "Unauthorized") {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -1054,11 +1067,27 @@ export const gradeSubmission = async (req, res) => {
       });
     }
 
+    // Calculate grade text based on percentage
+    const percentage = (grade / quiz.totalMarks) * 100;
+    let gradeText = "";
+    if (percentage >= 90) {
+      gradeText = "ممتاز";
+    } else if (percentage >= 80) {
+      gradeText = "جيد جداً";
+    } else if (percentage >= 70) {
+      gradeText = "جيد";
+    } else if (percentage >= 60) {
+      gradeText = "مقبول";
+    } else {
+      gradeText = "راسب";
+    }
+
     // Update submission
     submission.score = grade;
     submission.feedback = feedback;
     submission.gradedAt = new Date();
     submission.gradedBy = clerkId;
+    submission.gradeText = gradeText;
 
     // Update answers if they exist
     if (submission.answers && submission.answers.length > 0) {
@@ -1076,14 +1105,14 @@ export const gradeSubmission = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Submission graded successfully",
-      submission,
+      message: "تم تقدير التقديم بنجاح",
+      submission: {
+        ...submission.toObject(),
+        gradeText,
+      },
     });
   } catch (error) {
     console.error("Error grading submission:", error);
-    if (error.message === "Unauthorized") {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
     res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -28,6 +28,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import PrintIcon from "@mui/icons-material/Print";
 
 const QuizSubmissions = () => {
   const { quizId } = useParams();
@@ -121,14 +122,11 @@ const QuizSubmissions = () => {
       setError(null);
       const token = await getToken();
 
-      // تحويل الدرجة من 10 إلى النسبة المئوية
-      const percentageGrade = (grade / 10) * 100;
-
       const response = await axios.post(
         `http://localhost:4000/api/quiz/${quizId}/submissions/${selectedSubmission.student}/grade`,
         {
-          grade: percentageGrade,
-          feedback,
+          grade: grade,
+          feedback: feedback,
         },
         {
           headers: {
@@ -139,12 +137,22 @@ const QuizSubmissions = () => {
       );
 
       if (response.data.success) {
+        setSubmissions((prevSubmissions) =>
+          prevSubmissions.map((sub) =>
+            sub.student === selectedSubmission.student
+              ? {
+                  ...sub,
+                  score: grade,
+                  feedback: feedback,
+                  gradedAt: new Date(),
+                  gradeText: response.data.submission.gradeText,
+                }
+              : sub
+          )
+        );
         setGradeDialogOpen(false);
         setGrade(0);
         setFeedback("");
-        await fetchSubmissions(); // تحديث قائمة التقديمات
-      } else {
-        setError(response.data.message || "حدث خطأ في تقدير التقديم");
       }
     } catch (err) {
       console.error("Error grading submission:", err);
@@ -152,6 +160,89 @@ const QuizSubmissions = () => {
     } finally {
       setGradingLoading(false);
     }
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <html dir="rtl">
+        <head>
+          <title>تفاصيل التقديم</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .info { margin-bottom: 20px; }
+            .question { margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+            .question-title { font-weight: bold; margin-bottom: 10px; }
+            .answer { margin: 10px 0; padding: 10px; background-color: #f5f5f5; border-radius: 5px; }
+            .correct-answer { margin: 10px 0; padding: 10px; background-color: #e8f5e9; border-radius: 5px; }
+            .score { margin: 10px 0; padding: 10px; background-color: #e3f2fd; border-radius: 5px; }
+            .feedback { margin: 10px 0; padding: 10px; background-color: #fff3e0; border-radius: 5px; }
+            @media print {
+              body { padding: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>تفاصيل التقديم</h1>
+          </div>
+          <div class="info">
+            <p><strong>معرف الطالب:</strong> ${submissionDetails.student}</p>
+            <p><strong>تاريخ التقديم:</strong> ${new Date(
+              submissionDetails.submittedAt
+            ).toLocaleString()}</p>
+            <p><strong>الدرجة:</strong> ${submissionDetails.score}</p>
+            <p><strong>التقدير:</strong> ${submissionDetails.gradeText ||
+              "لم يتم التقدير"}</p>
+          </div>
+          <h2>تفاصيل الإجابات</h2>
+          ${submissionDetails.answers
+            ?.map(
+              (answer, index) => `
+            <div class="question">
+              <div class="question-title">سؤال ${index + 1}</div>
+              <p>${answer.questionText}</p>
+              <div class="answer">
+                <strong>إجابة الطالب:</strong><br>
+                ${answer.answer}
+              </div>
+              ${
+                answer.correctAnswer
+                  ? `
+                <div class="correct-answer">
+                  <strong>الإجابة الصحيحة:</strong><br>
+                  ${answer.correctAnswer}
+                </div>
+              `
+                  : ""
+              }
+              <div class="score">
+                <strong>الدرجة:</strong><br>
+                ${answer.score} من ${answer.maxScore}
+              </div>
+              ${
+                answer.feedback
+                  ? `
+                <div class="feedback">
+                  <strong>التعليقات:</strong><br>
+                  ${answer.feedback}
+                </div>
+              `
+                  : ""
+              }
+            </div>
+          `
+            )
+            .join("")}
+          <div class="no-print">
+            <button onclick="window.print()">طباعة</button>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   if (loading) {
@@ -209,9 +300,12 @@ const QuizSubmissions = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>الطالب</TableCell>
+                <TableCell>معرف الطالب</TableCell>
                 <TableCell>الدرجة</TableCell>
+                <TableCell>التقدير</TableCell>
                 <TableCell>تاريخ التقديم</TableCell>
+                <TableCell>تاريخ التقدير</TableCell>
+                <TableCell>التعليقات</TableCell>
                 <TableCell>الإجراءات</TableCell>
               </TableRow>
             </TableHead>
@@ -221,8 +315,33 @@ const QuizSubmissions = () => {
                   <TableCell>{submission.student}</TableCell>
                   <TableCell>{submission.score}</TableCell>
                   <TableCell>
+                    <Typography
+                      sx={{
+                        color:
+                          submission.gradeText === "ممتاز"
+                            ? "success.main"
+                            : submission.gradeText === "جيد جداً"
+                            ? "info.main"
+                            : submission.gradeText === "جيد"
+                            ? "primary.main"
+                            : submission.gradeText === "مقبول"
+                            ? "warning.main"
+                            : "error.main",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {submission.gradeText || "لم يتم التقدير"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
                     {new Date(submission.submittedAt).toLocaleDateString()}
                   </TableCell>
+                  <TableCell>
+                    {submission.gradedAt
+                      ? new Date(submission.gradedAt).toLocaleDateString()
+                      : "لم يتم التقدير"}
+                  </TableCell>
+                  <TableCell>{submission.feedback || "-"}</TableCell>
                   <TableCell>
                     <Button
                       variant="outlined"
@@ -258,7 +377,23 @@ const QuizSubmissions = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>تفاصيل التقديم</DialogTitle>
+        <DialogTitle>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Typography variant="h6">تفاصيل التقديم</Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PrintIcon />}
+              onClick={handlePrint}
+            >
+              طباعة
+            </Button>
+          </Box>
+        </DialogTitle>
         <DialogContent>
           {submissionDetails && (
             <Box>
@@ -271,6 +406,27 @@ const QuizSubmissions = () => {
                 {new Date(submissionDetails.submittedAt).toLocaleString()}
               </Typography>
               <Typography>الدرجة: {submissionDetails.score}</Typography>
+              <Typography>
+                التقدير:{" "}
+                <Typography
+                  component="span"
+                  sx={{
+                    color:
+                      submissionDetails.gradeText === "ممتاز"
+                        ? "success.main"
+                        : submissionDetails.gradeText === "جيد جداً"
+                        ? "info.main"
+                        : submissionDetails.gradeText === "جيد"
+                        ? "primary.main"
+                        : submissionDetails.gradeText === "مقبول"
+                        ? "warning.main"
+                        : "error.main",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {submissionDetails.gradeText || "لم يتم التقدير"}
+                </Typography>
+              </Typography>
               {submissionDetails.feedback && (
                 <Typography>التعليقات: {submissionDetails.feedback}</Typography>
               )}
@@ -330,239 +486,88 @@ const QuizSubmissions = () => {
                             {answer.questionText}
                           </Typography>
 
-                          {answer.options && answer.options.length > 0 && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ fontWeight: "bold", mb: 1 }}
+                            >
+                              إجابة الطالب:
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                p: 2,
+                                bgcolor: "grey.100",
+                                borderRadius: 1,
+                              }}
+                            >
+                              {answer.answer}
+                            </Typography>
+                          </Box>
+
+                          {answer.correctAnswer && (
                             <Box sx={{ mb: 2 }}>
                               <Typography
                                 variant="subtitle1"
-                                sx={{
-                                  color: "primary.main",
-                                  fontWeight: "bold",
-                                  mb: 1,
-                                }}
+                                sx={{ fontWeight: "bold", mb: 1 }}
                               >
-                                الخيارات المتاحة:
+                                الإجابة الصحيحة:
                               </Typography>
-                              <Box
-                                sx={{
-                                  display: "grid",
-                                  gap: 1,
-                                  gridTemplateColumns: {
-                                    xs: "1fr",
-                                    sm: "1fr 1fr",
-                                  },
-                                }}
-                              >
-                                {answer.options.map((option, optIndex) => (
-                                  <Box
-                                    key={optIndex}
-                                    sx={{
-                                      p: 1,
-                                      borderRadius: 1,
-                                      bgcolor: option.isCorrect
-                                        ? "success.light"
-                                        : "grey.100",
-                                      border: option.isCorrect
-                                        ? "2px solid"
-                                        : "1px solid",
-                                      borderColor: option.isCorrect
-                                        ? "success.main"
-                                        : "grey.300",
-                                    }}
-                                  >
-                                    <Typography
-                                      variant="body2"
-                                      sx={{
-                                        color: option.isCorrect
-                                          ? "success.dark"
-                                          : "text.primary",
-                                        fontWeight: option.isCorrect
-                                          ? "bold"
-                                          : "normal",
-                                      }}
-                                    >
-                                      {option.text}
-                                    </Typography>
-                                  </Box>
-                                ))}
-                              </Box>
-                            </Box>
-                          )}
-                        </Box>
-                      }
-                      secondary={
-                        <Box sx={{ mt: 2 }}>
-                          <Grid container spacing={2}>
-                            <Grid item xs={12} md={6}>
-                              <Box
-                                sx={{
-                                  p: 2,
-                                  bgcolor: "grey.50",
-                                  borderRadius: 2,
-                                  height: "100%",
-                                }}
-                              >
-                                <Typography
-                                  variant="subtitle1"
-                                  sx={{
-                                    color: "primary.main",
-                                    fontWeight: "bold",
-                                    mb: 1,
-                                  }}
-                                >
-                                  إجابة الطالب:
-                                </Typography>
-                                <Typography
-                                  variant="body1"
-                                  sx={{
-                                    bgcolor: "white",
-                                    p: 1.5,
-                                    borderRadius: 1,
-                                    border: "1px solid",
-                                    borderColor: "grey.300",
-                                  }}
-                                >
-                                  {answer.answer}
-                                </Typography>
-                              </Box>
-                            </Grid>
-
-                            <Grid item xs={12} md={6}>
-                              <Box
+                              <Typography
+                                variant="body1"
                                 sx={{
                                   p: 2,
                                   bgcolor: "success.light",
-                                  borderRadius: 2,
-                                  height: "100%",
+                                  color: "success.dark",
+                                  borderRadius: 1,
                                 }}
                               >
-                                <Typography
-                                  variant="subtitle1"
-                                  sx={{
-                                    color: "success.dark",
-                                    fontWeight: "bold",
-                                    mb: 1,
-                                  }}
-                                >
-                                  الإجابة الصحيحة:
-                                </Typography>
-                                <Typography
-                                  variant="body1"
-                                  sx={{
-                                    bgcolor: "white",
-                                    p: 1.5,
-                                    borderRadius: 1,
-                                    border: "1px solid",
-                                    borderColor: "success.main",
-                                  }}
-                                >
-                                  {answer.correctAnswer}
-                                </Typography>
-                              </Box>
-                            </Grid>
+                                {answer.correctAnswer}
+                              </Typography>
+                            </Box>
+                          )}
 
-                            <Grid item xs={12} md={6}>
-                              <Box
+                          <Box sx={{ mb: 2 }}>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ fontWeight: "bold", mb: 1 }}
+                            >
+                              الدرجة:
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                p: 2,
+                                bgcolor: "primary.light",
+                                color: "primary.dark",
+                                borderRadius: 1,
+                              }}
+                            >
+                              {answer.score} من {answer.maxScore}
+                            </Typography>
+                          </Box>
+
+                          {answer.feedback && (
+                            <Box>
+                              <Typography
+                                variant="subtitle1"
+                                sx={{ fontWeight: "bold", mb: 1 }}
+                              >
+                                التعليقات:
+                              </Typography>
+                              <Typography
+                                variant="body1"
                                 sx={{
                                   p: 2,
-                                  bgcolor: "grey.50",
-                                  borderRadius: 2,
+                                  bgcolor: "warning.light",
+                                  color: "warning.dark",
+                                  borderRadius: 1,
                                 }}
                               >
-                                <Typography
-                                  variant="subtitle1"
-                                  sx={{
-                                    color: "primary.main",
-                                    fontWeight: "bold",
-                                    mb: 1,
-                                  }}
-                                >
-                                  الدرجة:
-                                </Typography>
-                                <Typography
-                                  variant="h6"
-                                  sx={{
-                                    color: "primary.main",
-                                    fontWeight: "bold",
-                                  }}
-                                >
-                                  {answer.score} من {answer.maxScore}
-                                </Typography>
-                              </Box>
-                            </Grid>
-
-                            <Grid item xs={12} md={6}>
-                              <Box
-                                sx={{
-                                  p: 2,
-                                  bgcolor: answer.isCorrect
-                                    ? "success.light"
-                                    : "error.light",
-                                  borderRadius: 2,
-                                }}
-                              >
-                                <Typography
-                                  variant="subtitle1"
-                                  sx={{
-                                    color: answer.isCorrect
-                                      ? "success.dark"
-                                      : "error.dark",
-                                    fontWeight: "bold",
-                                    mb: 1,
-                                  }}
-                                >
-                                  الحالة:
-                                </Typography>
-                                <Typography
-                                  variant="h6"
-                                  sx={{
-                                    color: answer.isCorrect
-                                      ? "success.dark"
-                                      : "error.dark",
-                                    fontWeight: "bold",
-                                  }}
-                                >
-                                  {answer.isCorrect
-                                    ? "إجابة صحيحة"
-                                    : "إجابة خاطئة"}
-                                </Typography>
-                              </Box>
-                            </Grid>
-
-                            {answer.feedback && (
-                              <Grid item xs={12}>
-                                <Box
-                                  sx={{
-                                    p: 2,
-                                    bgcolor: "warning.light",
-                                    borderRadius: 2,
-                                  }}
-                                >
-                                  <Typography
-                                    variant="subtitle1"
-                                    sx={{
-                                      color: "warning.dark",
-                                      fontWeight: "bold",
-                                      mb: 1,
-                                    }}
-                                  >
-                                    التعليقات:
-                                  </Typography>
-                                  <Typography
-                                    variant="body1"
-                                    sx={{
-                                      bgcolor: "white",
-                                      p: 1.5,
-                                      borderRadius: 1,
-                                      border: "1px solid",
-                                      borderColor: "warning.main",
-                                    }}
-                                  >
-                                    {answer.feedback}
-                                  </Typography>
-                                </Box>
-                              </Grid>
-                            )}
-                          </Grid>
+                                {answer.feedback}
+                              </Typography>
+                            </Box>
+                          )}
                         </Box>
                       }
                     />
@@ -588,6 +593,38 @@ const QuizSubmissions = () => {
               onChange={(event, newValue) => setGrade(newValue)}
               max={10}
             />
+            <Typography variant="body2" color="textSecondary" mt={1}>
+              {grade > 0 && (
+                <Box>
+                  <Typography
+                    component="span"
+                    sx={{
+                      color:
+                        grade >= 9
+                          ? "success.main"
+                          : grade >= 8
+                          ? "info.main"
+                          : grade >= 7
+                          ? "primary.main"
+                          : grade >= 6
+                          ? "warning.main"
+                          : "error.main",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {grade >= 9
+                      ? "ممتاز"
+                      : grade >= 8
+                      ? "جيد جداً"
+                      : grade >= 7
+                      ? "جيد"
+                      : grade >= 6
+                      ? "مقبول"
+                      : "راسب"}
+                  </Typography>
+                </Box>
+              )}
+            </Typography>
           </Box>
           <Box mt={2}>
             <Typography gutterBottom>التعليقات:</Typography>
