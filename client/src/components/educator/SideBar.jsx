@@ -3,6 +3,9 @@ import { AppContext } from "../../context/AppContext";
 import { NavLink } from "react-router-dom";
 import { assets } from "../../assets/assets";
 import QuizIcon from "@mui/icons-material/Quiz";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import GradingIcon from "@mui/icons-material/Grading";
+import AnalyticsIcon from "@mui/icons-material/Analytics";
 
 const SideBar = () => {
   const { isEducator } = useContext(AppContext);
@@ -21,6 +24,7 @@ const SideBar = () => {
       icon: assets.person_tick_icon,
     },
     { name: "Quizzes", path: "/educator/quizzes", icon: <QuizIcon /> },
+    { name: "Add Quiz", path: "/educator/add-quiz", icon: <QuizIcon /> },
   ];
 
   return (

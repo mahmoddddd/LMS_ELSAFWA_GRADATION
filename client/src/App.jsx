@@ -26,6 +26,7 @@ import QuizAnalytics from "./pages/educator/QuizAnalytics";
 import AddQuiz from "./pages/educator/AddQuiz";
 import CourseQuizzes from "./pages/educator/student/CourseQuizzes";
 import TakeQuiz from "./pages/educator/student/TakeQuiz";
+import StudentQuizAnalytics from "./pages/educator/student/StudentQuizAnalytics";
 
 const App = () => {
   const isEducatorRoute = useMatch("/educator/*");
@@ -50,6 +51,7 @@ const App = () => {
         {/* Student Quiz Routes */}
         <Route path="/course/:courseId/quizzes" element={<CourseQuizzes />} />
         <Route path="/quiz/:quizId/take" element={<TakeQuiz />} />
+        <Route path="/my-quizzes" element={<StudentQuizAnalytics />} />
 
         {/* Educator Routes */}
         <Route path="/educator" element={<Educator />}>
@@ -63,10 +65,10 @@ const App = () => {
           <Route path="quizzes" element={<QuizManagement />} />
           <Route path="add-quiz" element={<AddQuiz />} />
           <Route
-            path="quiz/:quizId/submissions"
+            path="quizzes/:quizId/submissions"
             element={<QuizSubmissions />}
           />
-          <Route path="quiz/:quizId/analytics" element={<QuizAnalytics />} />
+          <Route path="quizzes/:quizId/analytics" element={<QuizAnalytics />} />
         </Route>
         <Route path="/about" element={<AboutUs />} />
         <Route path="/contact" element={<ContactUs />} />

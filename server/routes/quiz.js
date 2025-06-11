@@ -16,10 +16,13 @@ import {
   uploadQuestionFile,
   uploadAnswerFile,
   gradeFileSubmission,
+  gradeSubmission,
+  getSubmissionDetails,
 } from "../controllers/QuizController.js";
 import { protectEducator } from "../middlewares/authMiddleware.js";
 import multer from "multer";
 import cloudinary from "cloudinary";
+import Quiz from "../models/Quiz.js";
 
 // Configure Cloudinary
 cloudinary.v2.config({
@@ -79,6 +82,18 @@ const router = express.Router();
 
 // Educator routes
 router.post("/", protectEducator, createQuiz);
+router.get("/instructor/:instructorId", protectEducator, async (req, res) => {
+  try {
+    const { instructorId } = req.params;
+    const quizzes = await Quiz.find({ instructor: instructorId })
+      .populate("course", "title")
+      .sort({ createdAt: -1 });
+    res.json({ success: true, quizzes });
+  } catch (error) {
+    console.error("Error fetching instructor quizzes:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 router.put("/:id", protectEducator, updateQuiz);
 router.delete("/:id", protectEducator, deleteQuiz);
 router.get("/:id/statistics", protectEducator, getQuizStatistics);
@@ -93,6 +108,16 @@ router.post(
   "/:quizId/submissions/:submissionId/answers/:answerId/grade",
   protectEducator,
   gradeFileSubmission
+);
+router.post(
+  "/:quizId/submissions/:studentId/grade",
+  protectEducator,
+  gradeSubmission
+);
+router.get(
+  "/:quizId/submissions/:studentId",
+  protectEducator,
+  getSubmissionDetails
 );
 
 // Student routes

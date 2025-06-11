@@ -539,7 +539,7 @@ export const getQuizStatistics = async (req, res) => {
 
     // Calculate average score
     const totalScore = quiz.submissions.reduce(
-      (sum, submission) => sum + submission.score,
+      (sum, submission) => sum + (submission.score || 0),
       0
     );
     const averageScore =
@@ -595,7 +595,7 @@ export const getQuizStatistics = async (req, res) => {
       questionStats,
       submissions: quiz.submissions.map((submission) => ({
         student: submission.student,
-        score: submission.score,
+        score: submission.score || 0,
         percentage: (submission.score / quiz.totalMarks) * 100,
         submittedAt: submission.submittedAt,
       })),
@@ -1009,6 +1009,202 @@ export const gradeFileSubmission = async (req, res) => {
     });
   } catch (error) {
     console.error("Error grading file submission:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Grade submission
+export const gradeSubmission = async (req, res) => {
+  try {
+    const clerkId = getClerkId(req);
+    const { quizId, studentId } = req.params;
+    const { grade, feedback } = req.body;
+
+    if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid quiz ID",
+      });
+    }
+
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+    }
+
+    // Check if user is the instructor
+    if (quiz.instructor !== clerkId) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to grade submissions",
+      });
+    }
+
+    // Find the submission
+    const submission = quiz.submissions.find(
+      (sub) => sub.student === studentId
+    );
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: "Submission not found",
+      });
+    }
+
+    // Update submission
+    submission.score = grade;
+    submission.feedback = feedback;
+    submission.gradedAt = new Date();
+    submission.gradedBy = clerkId;
+
+    // Update answers if they exist
+    if (submission.answers && submission.answers.length > 0) {
+      submission.answers.forEach((answer) => {
+        if (answer.questionType === "text") {
+          answer.score = (grade / quiz.totalMarks) * answer.maxScore;
+          answer.feedback = feedback;
+          answer.gradedAt = new Date();
+          answer.gradedBy = clerkId;
+        }
+      });
+    }
+
+    await quiz.save();
+
+    res.json({
+      success: true,
+      message: "Submission graded successfully",
+      submission,
+    });
+  } catch (error) {
+    console.error("Error grading submission:", error);
+    if (error.message === "Unauthorized") {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get submission details
+export const getSubmissionDetails = async (req, res) => {
+  try {
+    const clerkId = getClerkId(req);
+    const { quizId, studentId } = req.params;
+
+    if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid quiz ID",
+      });
+    }
+
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+    }
+
+    // Check if user is the instructor
+    if (quiz.instructor !== clerkId) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to view submissions",
+      });
+    }
+
+    // Find the submission
+    const submission = quiz.submissions.find(
+      (sub) => sub.student === studentId
+    );
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: "Submission not found",
+      });
+    }
+
+    // Get question details for each answer
+    const submissionWithQuestions = {
+      student: submission.student,
+      submittedAt: submission.submittedAt,
+      score: submission.score || 0,
+      feedback: submission.feedback || "",
+      answers: submission.answers.map((answer) => {
+        // Find the question by its ID
+        const question = quiz.questions.find(
+          (q) =>
+            q._id &&
+            answer.questionId &&
+            q._id.toString() === answer.questionId.toString()
+        );
+
+        // Handle different answer types
+        let answerText = "لا توجد إجابة";
+        let isCorrect = false;
+        let correctAnswer = "";
+
+        if (answer.answer) {
+          if (typeof answer.answer === "string") {
+            answerText = answer.answer;
+          } else if (typeof answer.answer === "object") {
+            // Extract the actual answer text from the object
+            if (answer.answer.answer) {
+              answerText = answer.answer.answer;
+            } else if (answer.answer.text) {
+              answerText = answer.answer.text;
+            } else {
+              answerText = JSON.stringify(answer.answer);
+            }
+            isCorrect = answer.answer.isCorrect || false;
+          }
+        }
+
+        // Get correct answer based on question type
+        if (question) {
+          if (question.questionType === "multiple_choice") {
+            const correctOption = question.options.find((opt) => opt.isCorrect);
+            correctAnswer = correctOption
+              ? correctOption.text
+              : "لا توجد إجابة صحيحة";
+          } else if (question.questionType === "true-false") {
+            correctAnswer = question.correctAnswer ? "صح" : "خطأ";
+          } else if (question.questionType === "text") {
+            correctAnswer = question.correctAnswer || "لا توجد إجابة صحيحة";
+          } else if (question.questionType === "number") {
+            correctAnswer = question.correctAnswer
+              ? question.correctAnswer.toString()
+              : "لا توجد إجابة صحيحة";
+          }
+        }
+
+        return {
+          questionText: question ? question.questionText : "سؤال غير متوفر",
+          answer: answerText,
+          correctAnswer: correctAnswer,
+          score: answer.score || 0,
+          maxScore: question ? question.marks : 0,
+          feedback: answer.feedback || "",
+          isCorrect: isCorrect,
+          questionType: question ? question.questionType : "unknown",
+          options: question ? question.options : [],
+        };
+      }),
+    };
+
+    res.json({
+      success: true,
+      submission: submissionWithQuestions,
+    });
+  } catch (error) {
+    console.error("Error getting submission details:", error);
+    if (error.message === "Unauthorized") {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 };
