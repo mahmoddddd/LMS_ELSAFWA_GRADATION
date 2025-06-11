@@ -119,6 +119,7 @@
 
 //   // Function to calculate the total duration of a course
 //   const calculateCourseDuration = (course) => {
+//     if (!course?.courseContent) return "0h 0m";
 //     let totalDuration = 0;
 //     course.courseContent.forEach((chapter) => {
 //       chapter.chapterContent.forEach((lecture) => {
@@ -365,6 +366,7 @@ export const AppContextProvider = ({ children }) => {
 
   // Function to calculate the number of lectures in a course
   const calculateNoOfLectures = (course) => {
+    if (!course?.courseContent) return 0;
     let totalLectures = 0;
     course.courseContent.forEach((chapter) => {
       totalLectures += chapter.chapterContent.length;
@@ -374,6 +376,7 @@ export const AppContextProvider = ({ children }) => {
 
   // Function to calculate the total duration of a course
   const calculateCourseDuration = (course) => {
+    if (!course?.courseContent) return "0h 0m";
     let totalDuration = 0;
     course.courseContent.forEach((chapter) => {
       chapter.chapterContent.forEach((lecture) => {

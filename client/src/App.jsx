@@ -1,4 +1,3 @@
-import React from "react";
 import { Route, Routes, useMatch } from "react-router-dom";
 
 import Home from "./pages/educator/student/Home";
@@ -21,6 +20,12 @@ import ContactUs from "./components/student/ContactUs";
 import PolicyPrivacy from "./components/student/PolicyPrivacy";
 import LoadingMyEnrollments from "./pages/loading/MyEnrollments";
 import AboutLMS from "./pages/AboutLMS";
+import QuizManagement from "./pages/educator/QuizManagement";
+import QuizSubmissions from "./pages/educator/QuizSubmissions";
+import QuizAnalytics from "./pages/educator/QuizAnalytics";
+import AddQuiz from "./pages/educator/AddQuiz";
+import CourseQuizzes from "./pages/educator/student/CourseQuizzes";
+import TakeQuiz from "./pages/educator/student/TakeQuiz";
 
 const App = () => {
   const isEducatorRoute = useMatch("/educator/*");
@@ -42,13 +47,26 @@ const App = () => {
           element={<LoadingMyEnrollments />}
         />
 
+        {/* Student Quiz Routes */}
+        <Route path="/course/:courseId/quizzes" element={<CourseQuizzes />} />
+        <Route path="/quiz/:quizId/take" element={<TakeQuiz />} />
+
         {/* Educator Routes */}
         <Route path="/educator" element={<Educator />}>
-          <Route path="/educator" element={<DashBoard />} />
+          <Route index element={<DashBoard />} />
           <Route path="add-course" element={<AddCourse />} />
           <Route path="edit-course/:courseId" element={<EditCourse />} />
           <Route path="my-courses" element={<MyCourse />} />
           <Route path="student-enrolled" element={<StudentEnrolled />} />
+
+          {/* Quiz Management Routes */}
+          <Route path="quizzes" element={<QuizManagement />} />
+          <Route path="add-quiz" element={<AddQuiz />} />
+          <Route
+            path="quiz/:quizId/submissions"
+            element={<QuizSubmissions />}
+          />
+          <Route path="quiz/:quizId/analytics" element={<QuizAnalytics />} />
         </Route>
         <Route path="/about" element={<AboutUs />} />
         <Route path="/contact" element={<ContactUs />} />

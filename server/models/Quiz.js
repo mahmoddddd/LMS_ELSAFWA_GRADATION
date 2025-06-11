@@ -19,6 +19,11 @@ const quizSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    duration: {
+      type: Number,
+      required: true,
+      default: 10, // مدة افتراضية 10 دقائق
+    },
     dueDate: {
       type: Date,
       required: true,

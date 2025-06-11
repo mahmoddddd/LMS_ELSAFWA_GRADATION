@@ -14,7 +14,7 @@ import chatbotRouter from "./routes/chatbotRoute.js";
 import subscribeRoutes from "./routes/subscribeRoutes.js";
 import contactUs from "./routes/subscribeRoutes.js";
 import quizRouter from "./routes/quiz.js";
-import assignmentRouter from "./routes/assignment.js";
+// import assignmentRouter from "./routes/assignment.js";
 
 const app = express();
 
@@ -62,7 +62,7 @@ app.use("/api/chatbot", chatbotRouter);
 app.use("/api/subscribe", subscribeRoutes);
 app.use("/api/cont", contactUs);
 app.use("/api/quiz", quizRouter);
-app.use("/api/assignment", assignmentRouter);
+// app.use("/api/assignment", assignmentRouter);
 
 // نقطة الدخول الرئيسية
 app.get("/", (req, res) => {

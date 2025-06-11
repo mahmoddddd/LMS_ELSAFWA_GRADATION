@@ -94,6 +94,11 @@ export const createQuiz = async (req, res) => {
     });
 
     await quiz.save();
+
+    // Add quiz to course's quizzes array
+    course.quizzes.push(quiz._id);
+    await course.save();
+
     res.json({ success: true, quiz });
   } catch (error) {
     console.error("Error creating quiz:", error);
@@ -192,16 +197,35 @@ export const getCourseQuizzes = async (req, res) => {
 // Get single quiz
 export const getQuiz = async (req, res) => {
   try {
-    const quiz = await Quiz.findById(req.params.id).populate("course", "title");
-    if (!quiz) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Quiz not found" });
+    const { id } = req.params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid quiz ID",
+      });
     }
-    res.json({ success: true, quiz });
+
+    const quiz = await Quiz.findById(id)
+      .populate("course", "title")
+      .populate("instructor", "firstName lastName");
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      quiz,
+    });
   } catch (error) {
     console.error("Error fetching quiz:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error fetching quiz",
+    });
   }
 };
 

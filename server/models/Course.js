@@ -36,6 +36,7 @@ const courseSchema = new mongoose.Schema(
     ],
     educator: { type: String, ref: "User", required: true },
     enrolledStudents: [{ type: String, ref: "User" }],
+    quizzes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Quiz" }],
   },
   { timestamps: true, minimize: false }
 );
