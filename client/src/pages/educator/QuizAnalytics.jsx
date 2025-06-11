@@ -156,9 +156,10 @@ const QuizAnalytics = () => {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
-                    }
+                    label={({ name, percent }) => {
+                      if (percent === 0) return "";
+                      return `${name} (${(percent * 100).toFixed(0)}%)`;
+                    }}
                   >
                     {gradeDistribution.map((entry, index) => (
                       <Cell
@@ -167,7 +168,18 @@ const QuizAnalytics = () => {
                       />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip
+                    formatter={(value, name) => [`${value} طالب`, name]}
+                    contentStyle={{ direction: "rtl", textAlign: "right" }}
+                  />
+                  <Legend
+                    layout="vertical"
+                    verticalAlign="middle"
+                    align="right"
+                    formatter={(value) => (
+                      <span style={{ marginRight: "8px" }}>{value}</span>
+                    )}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </Box>

@@ -64,6 +64,7 @@ const App = () => {
           {/* Quiz Management Routes */}
           <Route path="quizzes" element={<QuizManagement />} />
           <Route path="add-quiz" element={<AddQuiz />} />
+          <Route path="edit-quiz/:quizId" element={<AddQuiz />} />
           <Route
             path="quizzes/:quizId/submissions"
             element={<QuizSubmissions />}

@@ -32,6 +32,15 @@ const quizSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    isFileQuiz: {
+      type: Boolean,
+      default: false,
+    },
+    quizFile: {
+      fileUrl: String,
+      fileId: String,
+      fileType: String,
+    },
     questions: [
       {
         questionText: {
@@ -40,7 +49,7 @@ const quizSchema = new mongoose.Schema(
         },
         questionType: {
           type: String,
-          enum: ["multiple_choice", "text"],
+          enum: ["multiple_choice", "text", "file"],
           required: [true, "Question type is required"],
         },
         options: [
@@ -63,9 +72,10 @@ const quizSchema = new mongoose.Schema(
           // معرف Cloudinary للملف
         },
         fileType: {
-          type: String,
+          type: [String],
           enum: ["pdf", "doc", "docx"],
-          // نوع الملف المسموح به
+          default: ["pdf"],
+          // يسمح بأنواع ملفات متعددة للسؤال من نوع ملف
         },
         maxFileSize: {
           type: Number,

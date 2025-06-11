@@ -29,6 +29,7 @@ cloudinary.v2.config({
   cloud_name: process.env.CLOUDINARY_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_SECRET_KEY,
+  secure: true,
 });
 
 // Configure multer for memory storage
@@ -67,13 +68,33 @@ const uploadToCloudinary = async (req, res, next) => {
 
     const result = await cloudinary.v2.uploader.upload(dataURI, {
       folder: "LMS_ELSAFWA/quiz_files",
-      resource_type: "raw",
+      resource_type: "auto", // 👈 خليه auto
+      use_filename: true,
+      unique_filename: true,
+      overwrite: true,
     });
 
     req.file.path = result.secure_url;
     req.file.filename = result.public_id;
+
+    // استخدام الرابط الصحيح من Cloudinary
+    const publicUrl = cloudinary.v2.url(result.public_id, {
+      secure: true,
+      resource_type: "raw",
+      type: "upload",
+    });
+    console.log("Cloudinary upload result:", {
+      public_id: result.public_id,
+      url: publicUrl,
+      format: result.format,
+    });
+
+    req.file.path = publicUrl;
+    req.file.filename = result.public_id;
+    req.file.originalname = req.file.originalname;
     next();
   } catch (error) {
+    console.error("Cloudinary upload error:", error);
     next(error);
   }
 };
@@ -81,7 +102,13 @@ const uploadToCloudinary = async (req, res, next) => {
 const router = express.Router();
 
 // Educator routes
-router.post("/", protectEducator, createQuiz);
+router.post(
+  "/",
+  protectEducator,
+  upload.single("quizFile"),
+  uploadToCloudinary,
+  createQuiz
+);
 router.get("/instructor/:instructorId", protectEducator, async (req, res) => {
   try {
     const { instructorId } = req.params;

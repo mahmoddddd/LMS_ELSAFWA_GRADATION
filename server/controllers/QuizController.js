@@ -30,8 +30,15 @@ const getClerkId = (req) => {
 export const createQuiz = async (req, res) => {
   try {
     const clerkId = getClerkId(req);
-    const { title, description, courseId, dueDate, totalMarks, questions } =
-      req.body;
+    const {
+      title,
+      description,
+      courseId,
+      dueDate,
+      totalMarks,
+      questions,
+      isFileQuiz,
+    } = req.body;
 
     if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
       return res.status(400).json({
@@ -43,56 +50,36 @@ export const createQuiz = async (req, res) => {
     // Verify if the course exists
     const course = await Course.findById(courseId);
     if (!course) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Course not found" });
-    }
-
-    // Validate questions format
-    if (!Array.isArray(questions) || questions.length === 0) {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
-        message: "At least one question is required",
+        message: "Course not found",
       });
     }
 
-    // Validate each question
-    for (const question of questions) {
-      if (!question.questionText || !question.questionType || !question.marks) {
-        return res.status(400).json({
-          success: false,
-          message: "Each question must have text, type, and marks",
-        });
-      }
-
-      if (question.questionType === "multiple_choice") {
-        if (!Array.isArray(question.options) || question.options.length < 2) {
-          return res.status(400).json({
-            success: false,
-            message: "Multiple choice questions must have at least 2 options",
-          });
-        }
-
-        const hasCorrectOption = question.options.some((opt) => opt.isCorrect);
-        if (!hasCorrectOption) {
-          return res.status(400).json({
-            success: false,
-            message: "Multiple choice questions must have one correct option",
-          });
-        }
-      }
+    // Handle file upload if it's a file quiz
+    let quizFile = null;
+    if (isFileQuiz && req.file) {
+      quizFile = {
+        fileUrl: req.file.path,
+        fileId: req.file.filename,
+        fileType: req.file.mimetype,
+      };
     }
 
-    const quiz = new Quiz({
+    // Create quiz object
+    const quizData = {
       title,
       description,
       course: courseId,
       instructor: clerkId,
       dueDate,
       totalMarks,
-      questions,
-    });
+      isFileQuiz,
+      quizFile,
+      questions: questions || [],
+    };
 
+    const quiz = new Quiz(quizData);
     await quiz.save();
 
     // Add quiz to course's quizzes array
@@ -791,45 +778,63 @@ export const getStudentAnalytics = async (req, res) => {
 };
 
 // Upload question file
+
+// Upload question file
 export const uploadQuestionFile = async (req, res) => {
   try {
     const clerkId = getClerkId(req);
     const { quizId, questionId } = req.params;
 
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No file uploaded",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded" });
     }
 
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
-      return res.status(404).json({
-        success: false,
-        message: "Quiz not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Quiz not found" });
     }
 
-    // Check if user is the instructor
     if (quiz.instructor !== clerkId) {
-      return res.status(403).json({
-        success: false,
-        message: "Not authorized to upload files",
-      });
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
     }
 
     const question = quiz.questions.id(questionId);
     if (!question) {
-      return res.status(404).json({
+      return res
+        .status(404)
+        .json({ success: false, message: "Question not found" });
+    }
+
+    // Extract file extension
+    const getFileExtension = (mimetype) => {
+      switch (mimetype) {
+        case "application/pdf":
+          return "pdf";
+        case "application/msword":
+          return "doc";
+        case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+          return "docx";
+        default:
+          return null;
+      }
+    };
+
+    const fileType = getFileExtension(req.file.mimetype);
+    if (!fileType) {
+      return res.status(400).json({
         success: false,
-        message: "Question not found",
+        message: "Unsupported file type",
       });
     }
 
-    // Update question with file information
     question.fileUrl = req.file.path; // Cloudinary URL
-    question.fileType = req.file.mimetype;
+    question.fileType = fileType; // Correct extension
     question.fileId = req.file.filename; // Cloudinary public_id
     await quiz.save();
 
@@ -846,94 +851,86 @@ export const uploadQuestionFile = async (req, res) => {
 };
 
 // Upload answer file
+// Upload student answer file
 export const uploadAnswerFile = async (req, res) => {
   try {
-    const clerkId = getClerkId(req);
+    const studentId = getClerkId(req);
     const { quizId, questionId } = req.params;
 
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No file uploaded",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded" });
     }
 
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
-      return res.status(404).json({
-        success: false,
-        message: "Quiz not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Quiz not found" });
     }
 
     const question = quiz.questions.id(questionId);
     if (!question) {
-      return res.status(404).json({
-        success: false,
-        message: "Question not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Question not found" });
     }
 
-    // Check file size
-    const fileSizeMB = req.file.size / (1024 * 1024);
-    if (fileSizeMB > question.maxFileSize) {
-      // Delete uploaded file from Cloudinary if size exceeds limit
-      await cloudinary.v2.uploader.destroy(req.file.filename);
-      return res.status(400).json({
-        success: false,
-        message: `File size exceeds the maximum limit of ${question.maxFileSize}MB`,
-      });
-    }
+    // Get correct file extension
+    const getFileExtension = (mimetype) => {
+      switch (mimetype) {
+        case "application/pdf":
+          return "pdf";
+        case "application/msword":
+          return "doc";
+        case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+          return "docx";
+        default:
+          return null;
+      }
+    };
 
-    // Check file type
-    if (!question.fileType.includes(req.file.mimetype)) {
-      // Delete uploaded file from Cloudinary if type is not allowed
-      await cloudinary.v2.uploader.destroy(req.file.filename);
+    const fileType = getFileExtension(req.file.mimetype);
+    if (!fileType) {
       return res.status(400).json({
         success: false,
-        message: `File type not allowed. Allowed types: ${question.fileType.join(
-          ", "
-        )}`,
+        message: "Unsupported file type",
       });
     }
 
     // Find or create submission
-    let submission = quiz.submissions.find((sub) => sub.student === clerkId);
+    let submission = quiz.submissions.find((sub) => sub.student === studentId);
+
     if (!submission) {
       submission = {
-        student: clerkId,
+        student: studentId,
         answers: [],
         score: 0,
-        submittedAt: new Date(),
       };
       quiz.submissions.push(submission);
     }
 
-    // Update or add answer
-    const answerIndex = submission.answers.findIndex(
+    // Find or add answer
+    let answer = submission.answers.find(
       (ans) => ans.questionId.toString() === questionId
     );
 
-    const answer = {
-      questionId,
-      fileUrl: req.file.path, // Cloudinary URL
-      fileId: req.file.filename, // Cloudinary public_id
-      fileName: req.file.originalname,
-      fileSize: fileSizeMB,
-      isCorrect: false,
-      score: 0,
-    };
-
-    if (answerIndex === -1) {
+    if (!answer) {
+      answer = {
+        questionId,
+        answer: null,
+        isCorrect: false,
+        score: 0,
+      };
       submission.answers.push(answer);
-    } else {
-      // Delete old file from Cloudinary if exists
-      const oldAnswer = submission.answers[answerIndex];
-      if (oldAnswer.fileId) {
-        await cloudinary.v2.uploader.destroy(oldAnswer.fileId);
-      }
-      submission.answers[answerIndex] = answer;
     }
+
+    answer.fileUrl = req.file.path;
+    answer.fileId = req.file.filename;
+    answer.fileName = req.file.originalname;
+    answer.fileSize = +(req.file.size / (1024 * 1024)).toFixed(2); // Convert to MB
+    answer.fileType = fileType;
 
     await quiz.save();
 
@@ -945,10 +942,6 @@ export const uploadAnswerFile = async (req, res) => {
     });
   } catch (error) {
     console.error("Error uploading answer file:", error);
-    // Delete uploaded file from Cloudinary if error occurs
-    if (req.file && req.file.filename) {
-      await cloudinary.v2.uploader.destroy(req.file.filename);
-    }
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -1067,8 +1060,26 @@ export const gradeSubmission = async (req, res) => {
       });
     }
 
+    // Calculate total score from answers
+    let totalScore = 0;
+    let totalMaxScore = 0;
+
+    submission.answers.forEach((answer) => {
+      if (answer.questionType === "multiple_choice") {
+        // For multiple choice, use the existing score
+        totalScore += answer.score || 0;
+        totalMaxScore += answer.maxScore || 0;
+      } else if (answer.questionType === "text") {
+        // For text questions, use the provided grade proportionally
+        const questionScore = (grade / quiz.totalMarks) * answer.maxScore;
+        answer.score = questionScore;
+        totalScore += questionScore;
+        totalMaxScore += answer.maxScore || 0;
+      }
+    });
+
     // Calculate grade text based on percentage
-    const percentage = (grade / quiz.totalMarks) * 100;
+    const percentage = (totalScore / totalMaxScore) * 100;
     let gradeText = "";
     if (percentage >= 90) {
       gradeText = "ممتاز";
@@ -1082,24 +1093,23 @@ export const gradeSubmission = async (req, res) => {
       gradeText = "راسب";
     }
 
-    // Update submission
-    submission.score = grade;
+    // Update submission with all grade information
+    submission.score = totalScore;
+    submission.totalMaxScore = totalMaxScore;
+    submission.percentage = percentage;
     submission.feedback = feedback;
     submission.gradedAt = new Date();
     submission.gradedBy = clerkId;
     submission.gradeText = gradeText;
 
-    // Update answers if they exist
-    if (submission.answers && submission.answers.length > 0) {
-      submission.answers.forEach((answer) => {
-        if (answer.questionType === "text") {
-          answer.score = (grade / quiz.totalMarks) * answer.maxScore;
-          answer.feedback = feedback;
-          answer.gradedAt = new Date();
-          answer.gradedBy = clerkId;
-        }
-      });
-    }
+    // Update each answer with its grade information
+    submission.answers.forEach((answer) => {
+      answer.gradedAt = new Date();
+      answer.gradedBy = clerkId;
+      if (answer.questionType === "text") {
+        answer.feedback = feedback;
+      }
+    });
 
     await quiz.save();
 
@@ -1109,6 +1119,8 @@ export const gradeSubmission = async (req, res) => {
       submission: {
         ...submission.toObject(),
         gradeText,
+        percentage,
+        totalMaxScore,
       },
     });
   } catch (error) {

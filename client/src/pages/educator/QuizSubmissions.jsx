@@ -44,6 +44,7 @@ const QuizSubmissions = () => {
   const [feedback, setFeedback] = useState("");
   const [gradingLoading, setGradingLoading] = useState(false);
   const [submissionDetails, setSubmissionDetails] = useState(null);
+  const [quiz, setQuiz] = useState(null);
 
   useEffect(() => {
     if (!quizId) {
@@ -75,6 +76,7 @@ const QuizSubmissions = () => {
 
       if (response.data.success && response.data.statistics) {
         setSubmissions(response.data.statistics.submissions || []);
+        setQuiz(response.data.statistics.quiz);
       } else {
         setSubmissions([]);
       }
@@ -193,10 +195,25 @@ const QuizSubmissions = () => {
             <p><strong>تاريخ التقديم:</strong> ${new Date(
               submissionDetails.submittedAt
             ).toLocaleString()}</p>
-            <p><strong>الدرجة:</strong> ${submissionDetails.score || 0}</p>
+            <p><strong>الدرجة:</strong> ${submissionDetails.score ||
+              0} من ${submissionDetails.totalMaxScore ||
+      quiz?.totalMarks ||
+      0}</p>
+            <p><strong>النسبة المئوية:</strong> ${
+              submissionDetails.percentage
+                ? submissionDetails.percentage.toFixed(1) + "%"
+                : "لم يتم التقدير"
+            }</p>
+            <p><strong>التقدير:</strong> ${submissionDetails.gradeText ||
+              "لم يتم التقدير"}</p>
             <p><strong>حالة التقدير:</strong> ${
               submissionDetails.gradedAt ? "تم التقدير" : "لم يتم التقدير"
             }</p>
+            ${
+              submissionDetails.feedback
+                ? `<p><strong>التعليقات:</strong> ${submissionDetails.feedback}</p>`
+                : ""
+            }
           </div>
           <h2>تفاصيل الإجابات</h2>
           ${submissionDetails.answers
@@ -314,7 +331,14 @@ const QuizSubmissions = () => {
               {submissions.map((submission) => (
                 <TableRow key={submission.student}>
                   <TableCell>{submission.student}</TableCell>
-                  <TableCell>{submission.score}</TableCell>
+                  <TableCell>
+                    <Typography>
+                      {submission.score || 0} من{" "}
+                      {submission.totalMaxScore || quiz?.totalMarks || 0}
+                      {submission.percentage &&
+                        ` (${submission.percentage.toFixed(1)}%)`}
+                    </Typography>
+                  </TableCell>
                   <TableCell>
                     <Typography
                       sx={{
@@ -406,7 +430,42 @@ const QuizSubmissions = () => {
                 تاريخ التقديم:{" "}
                 {new Date(submissionDetails.submittedAt).toLocaleString()}
               </Typography>
-              <Typography>الدرجة: {submissionDetails.score}</Typography>
+              <Typography>
+                الدرجة: {submissionDetails.score || 0} من{" "}
+                {submissionDetails.totalMaxScore || quiz?.totalMarks || 0}
+              </Typography>
+              <Typography>
+                النسبة المئوية:{" "}
+                {submissionDetails.percentage
+                  ? submissionDetails.percentage.toFixed(1) + "%"
+                  : "لم يتم التقدير"}
+              </Typography>
+              <Typography
+                sx={{
+                  color:
+                    submissionDetails.percentage >= 90
+                      ? "success.main"
+                      : submissionDetails.percentage >= 80
+                      ? "info.main"
+                      : submissionDetails.percentage >= 70
+                      ? "primary.main"
+                      : submissionDetails.percentage >= 60
+                      ? "warning.main"
+                      : "error.main",
+                  fontWeight: "bold",
+                }}
+              >
+                التقدير:{" "}
+                {submissionDetails.percentage >= 90
+                  ? "ممتاز"
+                  : submissionDetails.percentage >= 80
+                  ? "جيد جداً"
+                  : submissionDetails.percentage >= 70
+                  ? "جيد"
+                  : submissionDetails.percentage >= 60
+                  ? "مقبول"
+                  : "راسب"}
+              </Typography>
               <Typography>
                 حالة التقدير:{" "}
                 {submissionDetails.gradedAt ? "تم التقدير" : "لم يتم التقدير"}

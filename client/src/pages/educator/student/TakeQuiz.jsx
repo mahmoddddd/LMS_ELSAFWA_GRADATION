@@ -15,9 +15,14 @@ import {
   RadioGroup,
   FormControlLabel,
   FormControl,
+  Card,
+  CardContent,
+  Divider,
 } from "@mui/material";
 import { useAuth } from "@clerk/clerk-react";
 import { AppContext } from "../../../context/AppContext";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import DownloadIcon from "@mui/icons-material/Download";
 
 const TakeQuiz = () => {
   const { quizId } = useParams();
@@ -32,6 +37,7 @@ const TakeQuiz = () => {
   const [timeLeft, setTimeLeft] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [eligibility, setEligibility] = useState(null);
+  const [answerFile, setAnswerFile] = useState(null);
   const { userId } = useAuth();
 
   useEffect(() => {
@@ -73,75 +79,40 @@ const TakeQuiz = () => {
 
         if (quizResponse.data.success) {
           setQuiz(quizResponse.data.quiz);
-          const duration = Number(quizResponse.data.quiz.duration) || 60;
-          setTimeLeft(duration * 60);
-          setAnswers(
-            quizResponse.data.quiz.questions.reduce((acc, q) => {
-              acc[q._id] = q.questionType === "multiple_choice" ? "" : "";
-              return acc;
-            }, {})
-          );
+          // Initialize answers object
+          const initialAnswers = {};
+          quizResponse.data.quiz.questions.forEach((question) => {
+            initialAnswers[question._id] = {
+              answer: question.questionType === "multiple_choice" ? "" : "",
+              file: null,
+            };
+          });
+          setAnswers(initialAnswers);
         } else {
-          setError(quizResponse.data.message || "فشل في جلب بيانات الاختبار");
+          setError("فشل في تحميل بيانات الاختبار");
         }
-      } catch (err) {
-        console.error("Error:", err);
-        if (err.response?.status === 404) {
-          setError("لم يتم العثور على الاختبار");
-        } else {
-          setError(
-            err.response?.data?.message || "حدث خطأ في جلب بيانات الاختبار"
-          );
-        }
+      } catch (error) {
+        setError("حدث خطأ أثناء تحميل بيانات الاختبار");
       } finally {
         setLoading(false);
       }
     };
 
     fetchQuizData();
-  }, [quizId, getToken, backendUrl]);
-
-  useEffect(() => {
-    if (timeLeft === null) return;
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [timeLeft]);
-
-  const formatTime = (seconds) => {
-    if (!seconds || isNaN(seconds)) return "0:00";
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
+  }, [quizId]);
 
   const handleAnswerChange = (questionId, value) => {
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: value,
+      [questionId]: { ...prev[questionId], answer: value },
     }));
   };
 
-  const handleNext = () => {
-    if (currentQuestion < quiz.questions.length - 1) {
-      setCurrentQuestion((prev) => prev + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion((prev) => prev - 1);
-    }
+  const handleFileChange = (questionId, file) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: { ...prev[questionId], file },
+    }));
   };
 
   const handleSubmit = async () => {
@@ -149,199 +120,260 @@ const TakeQuiz = () => {
       setSubmitting(true);
       const token = await getToken();
 
-      // التحقق من أن جميع الأسئلة تمت الإجابة عليها
-      const unansweredQuestions = quiz.questions.filter(
-        (question) => !answers[question._id]
-      );
+      if (quiz.isFileQuiz) {
+        // إذا كان الامتحان ملف، قم بإنشاء FormData
+        const formData = new FormData();
+        formData.append("quizId", quizId);
+        formData.append("answerFile", answerFile);
 
-      if (unansweredQuestions.length > 0) {
-        setError("يرجى الإجابة على جميع الأسئلة قبل التقديم");
-        return;
-      }
-
-      // تنسيق الإجابات بالشكل المطلوب
-      const formattedAnswers = quiz.questions.map((question) => {
-        const answer = answers[question._id];
-        console.log("Processing question:", question);
-        console.log("Answer for question:", answer);
-
-        // معالجة الإجابات النصية
-        if (question.questionType === "text") {
-          return {
-            question: question._id,
-            answer: answer,
-            isCorrect: false,
-            score: 0,
-          };
-        }
-
-        // معالجة الإجابات متعددة الخيارات
-        const selectedOption = question.options.find(
-          (opt) => opt.text === answer
+        const response = await axios.post(
+          `${backendUrl}/api/quiz/${quizId}/submit`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
         );
-        console.log("Selected option:", selectedOption);
 
-        if (!selectedOption) {
-          throw new Error(`Invalid answer for question ${question._id}`);
+        if (response.data.success) {
+          navigate("/my-quizzes");
         }
-
-        return {
-          question: question._id,
-          answer: answer,
-          isCorrect: selectedOption.isCorrect,
-          score: selectedOption.isCorrect ? parseInt(question.marks) : 0,
-        };
-      });
-
-      const submissionData = {
-        student: userId,
-        answers: formattedAnswers,
-        submittedAt: new Date().toISOString(),
-      };
-
-      console.log("Submitting data:", JSON.stringify(submissionData, null, 2));
-
-      const response = await axios.post(
-        `${backendUrl}/api/quiz/${quizId}/submit`,
-        submissionData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (response.data.success) {
-        navigate(`/course/${quiz.course._id}/quizzes`);
       } else {
-        setError(response.data.message || "فشل في تقديم الاختبار");
+        // إذا كان الامتحان عادي
+        const response = await axios.post(
+          `${backendUrl}/api/quiz/${quizId}/submit`,
+          {
+            answers: Object.entries(answers).map(([questionId, answer]) => ({
+              questionId,
+              answer: answer.answer,
+              file: answer.file,
+            })),
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data.success) {
+          navigate("/my-quizzes");
+        }
       }
-    } catch (err) {
-      console.error("Error submitting quiz:", err);
-      console.error("Error details:", err.response?.data);
-      setError(err.response?.data?.message || "حدث خطأ في تقديم الاختبار");
+    } catch (error) {
+      setError("حدث خطأ أثناء تقديم الإجابات");
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (loading) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Alert severity="error">{error}</Alert>
+      </Container>
+    );
+  }
+
+  if (!quiz) {
+    return null;
+  }
+
   return (
-    <Box p={4}>
-      <Container maxWidth="lg">
-        {loading ? (
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            minHeight="50vh"
-          >
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Box textAlign="center" py={10}>
-            <Alert severity="warning" sx={{ mb: 4 }}>
-              {error}
-            </Alert>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => navigate(`/course/${quiz?.course?._id}/quizzes`)}
-            >
-              العودة إلى قائمة الاختبارات
-            </Button>
-          </Box>
-        ) : quiz ? (
-          <Paper elevation={3} sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom align="center">
-              {quiz.title}
+    <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          {quiz.title}
+        </Typography>
+        <Typography variant="body1" paragraph>
+          {quiz.description}
+        </Typography>
+
+        {quiz.isFileQuiz ? (
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              تحميل ملف الإجابة
             </Typography>
-
-            <Box sx={{ mb: 3, textAlign: "center" }}>
-              <Typography variant="h6" color="primary">
-                الوقت المتبقي: {formatTime(timeLeft)}
-              </Typography>
-            </Box>
-
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                السؤال {currentQuestion + 1}:{" "}
-                {quiz.questions[currentQuestion].questionText}
-              </Typography>
-
-              {quiz.questions[currentQuestion].questionType ===
-              "multiple_choice" ? (
-                <FormControl component="fieldset">
-                  <RadioGroup
-                    value={answers[quiz.questions[currentQuestion]._id] || ""}
-                    onChange={(e) =>
-                      handleAnswerChange(
-                        quiz.questions[currentQuestion]._id,
-                        e.target.value
-                      )
-                    }
-                  >
-                    {quiz.questions[currentQuestion].options.map(
-                      (option, index) => (
-                        <FormControlLabel
-                          key={index}
-                          value={option.text}
-                          control={<Radio />}
-                          label={option.text}
-                        />
-                      )
-                    )}
-                  </RadioGroup>
-                </FormControl>
-              ) : (
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={4}
-                  value={answers[quiz.questions[currentQuestion]._id] || ""}
-                  onChange={(e) =>
-                    handleAnswerChange(
-                      quiz.questions[currentQuestion]._id,
-                      e.target.value
-                    )
-                  }
-                  placeholder="اكتب إجابتك هنا..."
-                  variant="outlined"
-                />
-              )}
-            </Box>
-
-            <Grid container spacing={2} justifyContent="space-between">
-              <Grid item>
-                <Button
-                  variant="contained"
-                  onClick={handlePrevious}
-                  disabled={currentQuestion === 0}
-                >
-                  السابق
-                </Button>
-              </Grid>
-              <Grid item>
-                {currentQuestion === quiz.questions.length - 1 ? (
+            {quiz.quizFile && (
+              <Box
+                sx={{ mb: 3, p: 2, border: "1px solid #ddd", borderRadius: 1 }}
+              >
+                <Typography variant="subtitle1" gutterBottom>
+                  معلومات ملف الكويز:
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  نوع الملف: {quiz.quizFile.fileType || "PDF"}
+                </Typography>
+                <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
                   <Button
                     variant="contained"
-                    color="primary"
-                    onClick={handleSubmit}
-                    disabled={submitting}
+                    component="a"
+                    href={quiz.quizFile.fileUrl}
+                    target="_blank"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // فتح الملف في نافذة جديدة
+                      window.open(quiz.quizFile.fileUrl, "_blank");
+                    }}
+                    startIcon={<DownloadIcon />}
                   >
-                    {submitting ? "جاري التقديم..." : "تقديم الاختبار"}
+                    عرض الملف
                   </Button>
-                ) : (
-                  <Button variant="contained" onClick={handleNext}>
-                    التالي
+                  <Button
+                    variant="outlined"
+                    component="a"
+                    href={quiz.quizFile.fileUrl}
+                    download={`quiz_${
+                      quiz.title
+                    }.${quiz.quizFile.fileType?.split("/")[1] || "pdf"}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // تحميل الملف مباشرة
+                      const link = document.createElement("a");
+                      link.href = quiz.quizFile.fileUrl;
+                      link.download = `quiz_${
+                        quiz.title
+                      }.${quiz.quizFile.fileType?.split("/")[1] || "pdf"}`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    startIcon={<DownloadIcon />}
+                  >
+                    تحميل الملف
                   </Button>
+                </Box>
+                {quiz.quizFile.fileUrl && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mt: 1, display: "block" }}
+                  >
+                    رابط الملف: {quiz.quizFile.fileUrl}
+                  </Typography>
                 )}
-              </Grid>
-            </Grid>
-          </Paper>
-        ) : null}
-      </Container>
-    </Box>
+              </Box>
+            )}
+            <Box sx={{ mt: 2 }}>
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<CloudUploadIcon />}
+                fullWidth
+              >
+                رفع ملف الإجابة
+                <input
+                  type="file"
+                  hidden
+                  accept=".pdf,.doc,.docx"
+                  onChange={(e) => setAnswerFile(e.target.files[0])}
+                />
+              </Button>
+              {answerFile && (
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: 2,
+                    border: "1px solid #ddd",
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="subtitle1" gutterBottom>
+                    معلومات ملف الإجابة:
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    اسم الملف: {answerFile.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    نوع الملف: {answerFile.type || "غير معروف"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    حجم الملف: {(answerFile.size / (1024 * 1024)).toFixed(2)} MB
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        ) : (
+          <Box>
+            {quiz.questions.map((question, index) => (
+              <Card key={question._id} sx={{ mb: 3 }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    السؤال {index + 1}
+                  </Typography>
+                  <Typography variant="body1" paragraph>
+                    {question.questionText}
+                  </Typography>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    الدرجة: {question.marks}
+                  </Typography>
+
+                  {question.questionType === "multiple_choice" ? (
+                    <FormControl component="fieldset" sx={{ mt: 2 }}>
+                      <RadioGroup
+                        value={answers[question._id]?.answer || ""}
+                        onChange={(e) =>
+                          handleAnswerChange(question._id, e.target.value)
+                        }
+                      >
+                        {question.options.map((option, optionIndex) => (
+                          <FormControlLabel
+                            key={optionIndex}
+                            value={option.text}
+                            control={<Radio />}
+                            label={option.text}
+                          />
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                  ) : (
+                    <Box sx={{ mt: 2 }}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={4}
+                        label="إجابتك"
+                        value={answers[question._id]?.answer || ""}
+                        onChange={(e) =>
+                          handleAnswerChange(question._id, e.target.value)
+                        }
+                      />
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
+
+        <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? <CircularProgress size={24} /> : "تقديم الإجابات"}
+          </Button>
+        </Box>
+      </Paper>
+    </Container>
   );
 };
 
