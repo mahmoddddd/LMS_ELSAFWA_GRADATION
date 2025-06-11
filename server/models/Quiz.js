@@ -36,12 +36,12 @@ const quizSchema = new mongoose.Schema(
       {
         questionText: {
           type: String,
-          required: true,
+          required: [true, "Question text is required"],
         },
         questionType: {
           type: String,
-          enum: ["multiple_choice", "text", "file"],
-          required: true,
+          enum: ["multiple_choice", "text"],
+          required: [true, "Question type is required"],
         },
         options: [
           {
@@ -51,7 +51,8 @@ const quizSchema = new mongoose.Schema(
         ],
         marks: {
           type: Number,
-          required: true,
+          required: [true, "Marks are required"],
+          min: [0, "Marks cannot be negative"],
         },
         fileUrl: {
           type: String,
@@ -69,6 +70,20 @@ const quizSchema = new mongoose.Schema(
         maxFileSize: {
           type: Number,
           default: 10, // الحد الأقصى لحجم الملف بالميجابايت
+        },
+        correctAnswer: {
+          type: String,
+          default: "",
+          validate: {
+            validator: function (v) {
+              // Only validate if question type is text
+              if (this.questionType === "text") {
+                return v && v.length > 0;
+              }
+              return true;
+            },
+            message: "Correct answer is required for text questions",
+          },
         },
       },
     ],

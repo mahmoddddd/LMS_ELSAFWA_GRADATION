@@ -35,10 +35,13 @@ const TakeQuiz = () => {
   const { userId } = useAuth();
 
   useEffect(() => {
-    const checkEligibility = async () => {
+    const fetchQuizData = async () => {
       try {
+        setLoading(true);
         const token = await getToken();
-        const response = await axios.get(
+
+        // First check eligibility
+        const eligibilityResponse = await axios.get(
           `${backendUrl}/api/quiz/${quizId}/check-eligibility`,
           {
             headers: {
@@ -47,46 +50,18 @@ const TakeQuiz = () => {
           }
         );
 
-        if (response.data.success) {
-          setEligibility(response.data.eligibility);
-          if (!response.data.eligibility.canSubmit) {
-            setError(response.data.eligibility.reason);
-            return;
-          }
-          // إذا كان مؤهلاً، قم بجلب بيانات الاختبار
-          fetchQuiz();
-        } else {
+        if (!eligibilityResponse.data.success) {
           setError("فشل في التحقق من أهلية تقديم الاختبار");
-        }
-      } catch (err) {
-        console.error("Error checking eligibility:", err);
-        setError(err.response?.data?.message || "حدث خطأ في التحقق من الأهلية");
-      }
-    };
-
-    checkEligibility();
-  }, [quizId, getToken, backendUrl]);
-
-  useEffect(() => {
-    const checkSubmission = async () => {
-      try {
-        const token = await getToken();
-        const response = await axios.get(
-          `${backendUrl}/api/quiz/${quizId}/check-submission`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.data.submitted) {
-          setError("لقد قمت بتقديم هذا الاختبار من قبل");
-          setQuiz(null);
           return;
         }
 
-        // إذا لم يكن قد قدم الاختبار، قم بجلب بيانات الاختبار
+        setEligibility(eligibilityResponse.data.eligibility);
+        if (!eligibilityResponse.data.eligibility.canSubmit) {
+          setError(eligibilityResponse.data.eligibility.reason);
+          return;
+        }
+
+        // Fetch quiz data
         const quizResponse = await axios.get(
           `${backendUrl}/api/quiz/${quizId}`,
           {
@@ -111,15 +86,19 @@ const TakeQuiz = () => {
         }
       } catch (err) {
         console.error("Error:", err);
-        setError(
-          err.response?.data?.message || "حدث خطأ في جلب بيانات الاختبار"
-        );
+        if (err.response?.status === 404) {
+          setError("لم يتم العثور على الاختبار");
+        } else {
+          setError(
+            err.response?.data?.message || "حدث خطأ في جلب بيانات الاختبار"
+          );
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    checkSubmission();
+    fetchQuizData();
   }, [quizId, getToken, backendUrl]);
 
   useEffect(() => {

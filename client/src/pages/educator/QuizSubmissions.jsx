@@ -193,9 +193,10 @@ const QuizSubmissions = () => {
             <p><strong>تاريخ التقديم:</strong> ${new Date(
               submissionDetails.submittedAt
             ).toLocaleString()}</p>
-            <p><strong>الدرجة:</strong> ${submissionDetails.score}</p>
-            <p><strong>التقدير:</strong> ${submissionDetails.gradeText ||
-              "لم يتم التقدير"}</p>
+            <p><strong>الدرجة:</strong> ${submissionDetails.score || 0}</p>
+            <p><strong>حالة التقدير:</strong> ${
+              submissionDetails.gradedAt ? "تم التقدير" : "لم يتم التقدير"
+            }</p>
           </div>
           <h2>تفاصيل الإجابات</h2>
           ${submissionDetails.answers
@@ -220,7 +221,7 @@ const QuizSubmissions = () => {
               }
               <div class="score">
                 <strong>الدرجة:</strong><br>
-                ${answer.score} من ${answer.maxScore}
+                ${answer.score || 0} من ${answer.maxScore}
               </div>
               ${
                 answer.feedback
@@ -407,29 +408,9 @@ const QuizSubmissions = () => {
               </Typography>
               <Typography>الدرجة: {submissionDetails.score}</Typography>
               <Typography>
-                التقدير:{" "}
-                <Typography
-                  component="span"
-                  sx={{
-                    color:
-                      submissionDetails.gradeText === "ممتاز"
-                        ? "success.main"
-                        : submissionDetails.gradeText === "جيد جداً"
-                        ? "info.main"
-                        : submissionDetails.gradeText === "جيد"
-                        ? "primary.main"
-                        : submissionDetails.gradeText === "مقبول"
-                        ? "warning.main"
-                        : "error.main",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {submissionDetails.gradeText || "لم يتم التقدير"}
-                </Typography>
+                حالة التقدير:{" "}
+                {submissionDetails.gradedAt ? "تم التقدير" : "لم يتم التقدير"}
               </Typography>
-              {submissionDetails.feedback && (
-                <Typography>التعليقات: {submissionDetails.feedback}</Typography>
-              )}
 
               <Divider sx={{ my: 2 }} />
 
@@ -505,27 +486,28 @@ const QuizSubmissions = () => {
                             </Typography>
                           </Box>
 
-                          {answer.correctAnswer && (
-                            <Box sx={{ mb: 2 }}>
-                              <Typography
-                                variant="subtitle1"
-                                sx={{ fontWeight: "bold", mb: 1 }}
-                              >
-                                الإجابة الصحيحة:
-                              </Typography>
-                              <Typography
-                                variant="body1"
-                                sx={{
-                                  p: 2,
-                                  bgcolor: "success.light",
-                                  color: "success.dark",
-                                  borderRadius: 1,
-                                }}
-                              >
-                                {answer.correctAnswer}
-                              </Typography>
-                            </Box>
-                          )}
+                          {answer.questionType === "text" &&
+                            answer.correctAnswer && (
+                              <Box sx={{ mb: 2 }}>
+                                <Typography
+                                  variant="subtitle1"
+                                  sx={{ fontWeight: "bold", mb: 1 }}
+                                >
+                                  الإجابة الصحيحة:
+                                </Typography>
+                                <Typography
+                                  variant="body1"
+                                  sx={{
+                                    p: 2,
+                                    bgcolor: "success.light",
+                                    color: "success.dark",
+                                    borderRadius: 1,
+                                  }}
+                                >
+                                  {answer.correctAnswer}
+                                </Typography>
+                              </Box>
+                            )}
 
                           <Box sx={{ mb: 2 }}>
                             <Typography
@@ -543,7 +525,7 @@ const QuizSubmissions = () => {
                                 borderRadius: 1,
                               }}
                             >
-                              {answer.score} من {answer.maxScore}
+                              {answer.score || 0} من {answer.maxScore}
                             </Typography>
                           </Box>
 

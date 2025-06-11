@@ -21,6 +21,7 @@ import {
   FormControlLabel,
   Checkbox,
   CircularProgress,
+  Radio,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -48,6 +49,7 @@ const AddQuiz = () => {
         questionText: "",
         questionType: "multiple_choice",
         marks: 10,
+        correctAnswer: "",
         options: [
           { text: "", isCorrect: false },
           { text: "", isCorrect: false },
@@ -109,7 +111,9 @@ const AddQuiz = () => {
             questionText: q.questionText,
             questionType: q.questionType,
             marks: parseInt(q.marks),
-            options: q.options,
+            options: q.questionType === "text" ? [] : q.options,
+            correctAnswer:
+              q.questionType === "text" ? q.correctAnswer : undefined,
           })),
         },
         {
@@ -164,6 +168,7 @@ const AddQuiz = () => {
           questionText: "",
           questionType: "multiple_choice",
           marks: 10,
+          correctAnswer: "",
           options: [
             { text: "", isCorrect: false },
             { text: "", isCorrect: false },
@@ -173,6 +178,25 @@ const AddQuiz = () => {
         },
       ],
     });
+  };
+
+  const handleQuestionTypeChange = (index, type) => {
+    const newQuestions = [...quiz.questions];
+    newQuestions[index] = {
+      ...newQuestions[index],
+      questionType: type,
+      options:
+        type === "text"
+          ? []
+          : [
+              { text: "", isCorrect: false },
+              { text: "", isCorrect: false },
+              { text: "", isCorrect: false },
+              { text: "", isCorrect: false },
+            ],
+      correctAnswer: type === "text" ? "" : undefined,
+    };
+    setQuiz({ ...quiz, questions: newQuestions });
   };
 
   const handleRemoveQuestion = (index) => {
@@ -333,24 +357,93 @@ const AddQuiz = () => {
                 إضافة سؤال
               </Button>
             </Grid>
-            {quiz.questions.map((question, questionIndex) => (
-              <Grid item xs={12} key={questionIndex}>
+            {quiz.questions.map((question, index) => (
+              <Grid item xs={12} key={index}>
                 <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label={`السؤال ${questionIndex + 1}`}
-                        value={question.questionText}
-                        onChange={(e) =>
-                          handleQuestionChange(
-                            questionIndex,
-                            "questionText",
-                            e.target.value
-                          )
-                        }
-                        required
-                      />
+                      {question.questionType === "text" ? (
+                        <>
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={4}
+                            label="نص السؤال"
+                            value={question.questionText}
+                            onChange={(e) =>
+                              handleQuestionChange(
+                                index,
+                                "questionText",
+                                e.target.value
+                              )
+                            }
+                            sx={{ mb: 2 }}
+                          />
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={4}
+                            label="الإجابة الصحيحة"
+                            value={question.correctAnswer || ""}
+                            onChange={(e) =>
+                              handleQuestionChange(
+                                index,
+                                "correctAnswer",
+                                e.target.value
+                              )
+                            }
+                            sx={{ mb: 2 }}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={4}
+                            label="نص السؤال"
+                            value={question.questionText}
+                            onChange={(e) =>
+                              handleQuestionChange(
+                                index,
+                                "questionText",
+                                e.target.value
+                              )
+                            }
+                            sx={{ mb: 2 }}
+                          />
+                          {question.options.map((option, optionIndex) => (
+                            <Box key={optionIndex} sx={{ mb: 2 }}>
+                              <TextField
+                                fullWidth
+                                label={`الخيار ${optionIndex + 1}`}
+                                value={option.text}
+                                onChange={(e) =>
+                                  handleOptionChange(
+                                    index,
+                                    optionIndex,
+                                    e.target.value
+                                  )
+                                }
+                              />
+                              <FormControlLabel
+                                control={
+                                  <Radio
+                                    checked={option.isCorrect}
+                                    onChange={() =>
+                                      handleCorrectAnswerChange(
+                                        index,
+                                        optionIndex
+                                      )
+                                    }
+                                  />
+                                }
+                                label="إجابة صحيحة"
+                              />
+                            </Box>
+                          ))}
+                        </>
+                      )}
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <FormControl fullWidth>
@@ -358,11 +451,7 @@ const AddQuiz = () => {
                         <Select
                           value={question.questionType}
                           onChange={(e) =>
-                            handleQuestionChange(
-                              questionIndex,
-                              "questionType",
-                              e.target.value
-                            )
+                            handleQuestionTypeChange(index, e.target.value)
                           }
                           label="نوع السؤال"
                         >
@@ -380,64 +469,16 @@ const AddQuiz = () => {
                         type="number"
                         value={question.marks}
                         onChange={(e) =>
-                          handleQuestionChange(
-                            questionIndex,
-                            "marks",
-                            e.target.value
-                          )
+                          handleQuestionChange(index, "marks", e.target.value)
                         }
                         required
                       />
                     </Grid>
-                    {question.questionType === "multiple_choice" && (
-                      <Grid item xs={12}>
-                        <Typography variant="subtitle1" gutterBottom>
-                          الخيارات
-                        </Typography>
-                        {question.options.map((option, optionIndex) => (
-                          <Box
-                            key={optionIndex}
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              mb: 1,
-                            }}
-                          >
-                            <TextField
-                              fullWidth
-                              label={`الخيار ${optionIndex + 1}`}
-                              value={option.text}
-                              onChange={(e) =>
-                                handleOptionChange(
-                                  questionIndex,
-                                  optionIndex,
-                                  e.target.value
-                                )
-                              }
-                              required
-                            />
-                            <Checkbox
-                              checked={option.isCorrect}
-                              onChange={() =>
-                                handleCorrectAnswerChange(
-                                  questionIndex,
-                                  optionIndex
-                                )
-                              }
-                              sx={{ ml: 1 }}
-                            />
-                            <Typography variant="body2" sx={{ ml: 1 }}>
-                              إجابة صحيحة
-                            </Typography>
-                          </Box>
-                        ))}
-                      </Grid>
-                    )}
                     <Grid item xs={12}>
                       <Button
                         variant="outlined"
                         color="error"
-                        onClick={() => handleRemoveQuestion(questionIndex)}
+                        onClick={() => handleRemoveQuestion(index)}
                         startIcon={<DeleteIcon />}
                       >
                         حذف السؤال
