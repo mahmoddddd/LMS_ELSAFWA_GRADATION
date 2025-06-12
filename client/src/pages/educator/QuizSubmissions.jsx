@@ -27,7 +27,7 @@ import {
   Chip,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import axios from "axios";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PrintIcon from "@mui/icons-material/Print";
@@ -36,6 +36,7 @@ const QuizSubmissions = () => {
   const { quizId } = useParams();
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const { user } = useUser();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -47,6 +48,7 @@ const QuizSubmissions = () => {
   const [gradingLoading, setGradingLoading] = useState(false);
   const [submissionDetails, setSubmissionDetails] = useState(null);
   const [quiz, setQuiz] = useState(null);
+  const [studentNames, setStudentNames] = useState({});
 
   useEffect(() => {
     if (!quizId) {
@@ -77,8 +79,34 @@ const QuizSubmissions = () => {
       console.log("Response:", response.data);
 
       if (response.data.success && response.data.statistics) {
-        setSubmissions(response.data.statistics.submissions || []);
+        const submissionsData = response.data.statistics.submissions || [];
+        setSubmissions(submissionsData);
         setQuiz(response.data.statistics.quiz);
+
+        // Fetch student names for each submission
+        const names = {};
+        for (const submission of submissionsData) {
+          try {
+            const studentResponse = await axios.get(
+              `http://localhost:4000/api/user/${submission.student}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            if (studentResponse.data.success) {
+              names[submission.student] = studentResponse.data.user.name;
+            } else {
+              names[submission.student] = "طالب غير معروف";
+            }
+          } catch (err) {
+            console.error("Error fetching student name:", err);
+            names[submission.student] = "طالب غير معروف";
+          }
+        }
+        setStudentNames(names);
       } else {
         setSubmissions([]);
       }
@@ -313,41 +341,14 @@ const QuizSubmissions = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>الطالب</TableCell>
-                  <TableCell>تاريخ التقديم</TableCell>
-                  <TableCell>الدرجة</TableCell>
-                  <TableCell>النسبة المئوية</TableCell>
-                  <TableCell>التقدير</TableCell>
-                  <TableCell>الحالة</TableCell>
                   <TableCell>الإجراءات</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {submissions.map((submission) => (
                   <TableRow key={submission.student}>
-                    <TableCell>{submission.student}</TableCell>
                     <TableCell>
-                      {new Date(submission.submittedAt).toLocaleString("ar-SA")}
-                    </TableCell>
-                    <TableCell>
-                      {submission.score || 0} من {submission.totalMarks || 0}
-                    </TableCell>
-                    <TableCell>
-                      {submission.percentage
-                        ? submission.percentage.toFixed(1)
-                        : 0}
-                      %
-                    </TableCell>
-                    <TableCell>
-                      {submission.gradeText || "لم يتم التقدير"}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`status ${
-                          submission.status === "تم التقدير" ? "success" : ""
-                        }`}
-                      >
-                        {submission.status || "لم يتم التقدير"}
-                      </span>
+                      {studentNames[submission.student] || "جاري التحميل..."}
                     </TableCell>
                     <TableCell>
                       <Button

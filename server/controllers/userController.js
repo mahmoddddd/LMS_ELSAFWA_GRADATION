@@ -691,3 +691,24 @@ export const updatePurchaseClerkId = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const getUserByClerkId = async (req, res) => {
+  try {
+    const { clerkId } = req.params;
+    console.log("🔍 Getting user data for clerkId:", clerkId);
+
+    const user = await User.findOne({ clerkId });
+    if (!user) {
+      console.log("⚠️ User not found in database");
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    console.log("✅ Found user:", user._id);
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error("❌ Error getting user by Clerk ID:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
