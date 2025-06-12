@@ -23,6 +23,8 @@ import {
   ListItem,
   ListItemText,
   Grid,
+  Container,
+  Chip,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
@@ -180,6 +182,18 @@ const QuizSubmissions = () => {
             .correct-answer { margin: 10px 0; padding: 10px; background-color: #e8f5e9; border-radius: 5px; }
             .score { margin: 10px 0; padding: 10px; background-color: #e3f2fd; border-radius: 5px; }
             .feedback { margin: 10px 0; padding: 10px; background-color: #fff3e0; border-radius: 5px; }
+            .status { 
+              margin: 10px 0; 
+              padding: 10px; 
+              background-color: ${
+                submissionDetails.status === "ناجح" ? "#e8f5e9" : "#ffebee"
+              }; 
+              border-radius: 5px;
+              color: ${
+                submissionDetails.status === "ناجح" ? "#2e7d32" : "#c62828"
+              };
+              font-weight: bold;
+            }
             @media print {
               body { padding: 0; }
               .no-print { display: none; }
@@ -191,76 +205,61 @@ const QuizSubmissions = () => {
             <h1>تفاصيل التقديم</h1>
           </div>
           <div class="info">
+            <h3>معلومات الطالب</h3>
             <p><strong>معرف الطالب:</strong> ${submissionDetails.student}</p>
+            <p><strong>البريد الإلكتروني:</strong> ${submissionDetails.studentEmail ||
+              "غير متوفر"}</p>
+            <p><strong>اسم الكويز:</strong> ${submissionDetails.quizTitle}</p>
             <p><strong>تاريخ التقديم:</strong> ${new Date(
               submissionDetails.submittedAt
-            ).toLocaleString()}</p>
-            <p><strong>الدرجة:</strong> ${submissionDetails.score ||
-              0} من ${submissionDetails.totalMaxScore ||
-      quiz?.totalMarks ||
-      0}</p>
-            <p><strong>النسبة المئوية:</strong> ${
-              submissionDetails.percentage
-                ? submissionDetails.percentage.toFixed(1) + "%"
-                : "لم يتم التقدير"
-            }</p>
-            <p><strong>التقدير:</strong> ${submissionDetails.gradeText ||
-              "لم يتم التقدير"}</p>
-            <p><strong>حالة التقدير:</strong> ${
-              submissionDetails.gradedAt ? "تم التقدير" : "لم يتم التقدير"
-            }</p>
-            ${
-              submissionDetails.feedback
-                ? `<p><strong>التعليقات:</strong> ${submissionDetails.feedback}</p>`
-                : ""
-            }
+            ).toLocaleString("ar-SA")}</p>
+            <p><strong>الدرجة:</strong> ${submissionDetails.score} من ${
+      submissionDetails.totalMarks
+    }</p>
+            <p><strong>النسبة المئوية:</strong> ${submissionDetails.percentage.toFixed(
+              2
+            )}%</p>
+            <p><strong>التقدير:</strong> ${submissionDetails.gradeText}</p>
+            <div class="status">
+              <strong>الحالة:</strong> ${submissionDetails.status}
+            </div>
           </div>
-          <h2>تفاصيل الإجابات</h2>
-          ${submissionDetails.answers
-            ?.map(
-              (answer, index) => `
-            <div class="question">
-              <div class="question-title">سؤال ${index + 1}</div>
-              <p>${answer.questionText}</p>
-              <div class="answer">
-                <strong>إجابة الطالب:</strong><br>
-                ${answer.answer}
-              </div>
-              ${
-                answer.correctAnswer
-                  ? `
+          <div class="questions">
+            <h3>تفاصيل الإجابات</h3>
+            ${submissionDetails.answers
+              .map(
+                (answer, index) => `
+              <div class="question">
+                <div class="question-title">سؤال ${index + 1}</div>
+                <div class="question-text">${answer.questionText}</div>
+                <div class="answer">
+                  <strong>إجابة الطالب:</strong><br>
+                  ${
+                    answer.questionType === "multiple_choice"
+                      ? answer.answer.selectedOption || "لم يتم الإجابة"
+                      : answer.answer.textAnswer || "لم يتم الإجابة"
+                  }
+                </div>
                 <div class="correct-answer">
                   <strong>الإجابة الصحيحة:</strong><br>
                   ${answer.correctAnswer}
                 </div>
-              `
-                  : ""
-              }
-              <div class="score">
-                <strong>الدرجة:</strong><br>
-                ${answer.score || 0} من ${answer.maxScore}
-              </div>
-              ${
-                answer.feedback
-                  ? `
-                <div class="feedback">
-                  <strong>التعليقات:</strong><br>
-                  ${answer.feedback}
+                <div class="score">
+                  <strong>الدرجة:</strong> ${answer.score} من ${answer.maxScore}
                 </div>
-              `
-                  : ""
-              }
-            </div>
-          `
-            )
-            .join("")}
-          <div class="no-print">
-            <button onclick="window.print()">طباعة</button>
+                <div class="feedback">
+                  <strong>التغذية الراجعة:</strong> ${answer.feedback}
+                </div>
+              </div>
+            `
+              )
+              .join("")}
           </div>
         </body>
       </html>
     `);
     printWindow.document.close();
+    printWindow.print();
   };
 
   if (loading) {
@@ -294,403 +293,281 @@ const QuizSubmissions = () => {
   }
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Typography variant="h4" gutterBottom>
         تقديمات الاختبار
       </Typography>
 
-      {submissions.length === 0 ? (
-        <Box textAlign="center" mt={4}>
-          <Typography variant="h6" color="textSecondary" gutterBottom>
-            لا توجد تقديمات حتى الآن
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate("/educator/quizzes")}
-            sx={{ mt: 2 }}
-          >
-            العودة إلى قائمة الاختبارات
-          </Button>
+      {loading ? (
+        <Box display="flex" justifyContent="center" mt={4}>
+          <CircularProgress />
         </Box>
+      ) : error ? (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {error}
+        </Alert>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>معرف الطالب</TableCell>
-                <TableCell>الدرجة</TableCell>
-                <TableCell>التقدير</TableCell>
-                <TableCell>تاريخ التقديم</TableCell>
-                <TableCell>تاريخ التقدير</TableCell>
-                <TableCell>التعليقات</TableCell>
-                <TableCell>الإجراءات</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {submissions.map((submission) => (
-                <TableRow key={submission.student}>
-                  <TableCell>{submission.student}</TableCell>
-                  <TableCell>
-                    <Typography>
-                      {submission.score || 0} من{" "}
-                      {submission.totalMaxScore || quiz?.totalMarks || 0}
-                      {submission.percentage &&
-                        ` (${submission.percentage.toFixed(1)}%)`}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography
-                      sx={{
-                        color:
-                          submission.gradeText === "ممتاز"
-                            ? "success.main"
-                            : submission.gradeText === "جيد جداً"
-                            ? "info.main"
-                            : submission.gradeText === "جيد"
-                            ? "primary.main"
-                            : submission.gradeText === "مقبول"
-                            ? "warning.main"
-                            : "error.main",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {submission.gradeText || "لم يتم التقدير"}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(submission.submittedAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {submission.gradedAt
-                      ? new Date(submission.gradedAt).toLocaleDateString()
-                      : "لم يتم التقدير"}
-                  </TableCell>
-                  <TableCell>{submission.feedback || "-"}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outlined"
-                      color="primary"
-                      startIcon={<VisibilityIcon />}
-                      onClick={() => handleViewSubmission(submission)}
-                      sx={{ mr: 1 }}
-                    >
-                      عرض
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={() => {
-                        setSelectedSubmission(submission);
-                        setGradeDialogOpen(true);
-                      }}
-                    >
-                      تقدير
-                    </Button>
-                  </TableCell>
+        <>
+          <TableContainer component={Paper} sx={{ mt: 2 }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>الطالب</TableCell>
+                  <TableCell>تاريخ التقديم</TableCell>
+                  <TableCell>الدرجة</TableCell>
+                  <TableCell>النسبة المئوية</TableCell>
+                  <TableCell>التقدير</TableCell>
+                  <TableCell>الحالة</TableCell>
+                  <TableCell>الإجراءات</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-
-      {/* نافذة عرض تفاصيل التقديم */}
-      <Dialog
-        open={viewDialogOpen}
-        onClose={() => setViewDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Typography variant="h6">تفاصيل التقديم</Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<PrintIcon />}
-              onClick={handlePrint}
-            >
-              طباعة
-            </Button>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {submissionDetails && (
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                معلومات الطالب
-              </Typography>
-              <Typography>معرف الطالب: {submissionDetails.student}</Typography>
-              <Typography>
-                تاريخ التقديم:{" "}
-                {new Date(submissionDetails.submittedAt).toLocaleString()}
-              </Typography>
-              <Typography>
-                الدرجة: {submissionDetails.score || 0} من{" "}
-                {submissionDetails.totalMaxScore || quiz?.totalMarks || 0}
-              </Typography>
-              <Typography>
-                النسبة المئوية:{" "}
-                {submissionDetails.percentage
-                  ? submissionDetails.percentage.toFixed(1) + "%"
-                  : "لم يتم التقدير"}
-              </Typography>
-              <Typography
-                sx={{
-                  color:
-                    submissionDetails.percentage >= 90
-                      ? "success.main"
-                      : submissionDetails.percentage >= 80
-                      ? "info.main"
-                      : submissionDetails.percentage >= 70
-                      ? "primary.main"
-                      : submissionDetails.percentage >= 60
-                      ? "warning.main"
-                      : "error.main",
-                  fontWeight: "bold",
-                }}
-              >
-                التقدير:{" "}
-                {submissionDetails.percentage >= 90
-                  ? "ممتاز"
-                  : submissionDetails.percentage >= 80
-                  ? "جيد جداً"
-                  : submissionDetails.percentage >= 70
-                  ? "جيد"
-                  : submissionDetails.percentage >= 60
-                  ? "مقبول"
-                  : "راسب"}
-              </Typography>
-              <Typography>
-                حالة التقدير:{" "}
-                {submissionDetails.gradedAt ? "تم التقدير" : "لم يتم التقدير"}
-              </Typography>
-
-              <Divider sx={{ my: 2 }} />
-
-              <Typography
-                variant="h6"
-                gutterBottom
-                sx={{ mb: 3, color: "primary.main", fontWeight: "bold" }}
-              >
-                تفاصيل الإجابات
-              </Typography>
-              <List>
-                {submissionDetails.answers?.map((answer, index) => (
-                  <ListItem
-                    key={index}
-                    sx={{
-                      mb: 3,
-                      bgcolor: "background.paper",
-                      borderRadius: 2,
-                      boxShadow: 1,
-                      p: 2,
-                    }}
-                  >
-                    <ListItemText
-                      primary={
-                        <Box>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              mb: 2,
-                              bgcolor: "primary.main",
-                              color: "white",
-                              p: 1,
-                              borderRadius: 1,
-                            }}
-                          >
-                            <Typography
-                              variant="h6"
-                              sx={{ fontWeight: "bold" }}
-                            >
-                              سؤال {index + 1}
-                            </Typography>
-                          </Box>
-
-                          <Typography
-                            variant="body1"
-                            sx={{
-                              mb: 2,
-                              fontWeight: "medium",
-                              fontSize: "1.1rem",
-                              color: "text.primary",
-                            }}
-                          >
-                            {answer.questionText}
-                          </Typography>
-
-                          <Box sx={{ mb: 2 }}>
-                            <Typography
-                              variant="subtitle1"
-                              sx={{ fontWeight: "bold", mb: 1 }}
-                            >
-                              إجابة الطالب:
-                            </Typography>
-                            <Typography
-                              variant="body1"
-                              sx={{
-                                p: 2,
-                                bgcolor: "grey.100",
-                                borderRadius: 1,
-                              }}
-                            >
-                              {answer.answer}
-                            </Typography>
-                          </Box>
-
-                          {answer.questionType === "text" &&
-                            answer.correctAnswer && (
-                              <Box sx={{ mb: 2 }}>
-                                <Typography
-                                  variant="subtitle1"
-                                  sx={{ fontWeight: "bold", mb: 1 }}
-                                >
-                                  الإجابة الصحيحة:
-                                </Typography>
-                                <Typography
-                                  variant="body1"
-                                  sx={{
-                                    p: 2,
-                                    bgcolor: "success.light",
-                                    color: "success.dark",
-                                    borderRadius: 1,
-                                  }}
-                                >
-                                  {answer.correctAnswer}
-                                </Typography>
-                              </Box>
-                            )}
-
-                          <Box sx={{ mb: 2 }}>
-                            <Typography
-                              variant="subtitle1"
-                              sx={{ fontWeight: "bold", mb: 1 }}
-                            >
-                              الدرجة:
-                            </Typography>
-                            <Typography
-                              variant="body1"
-                              sx={{
-                                p: 2,
-                                bgcolor: "primary.light",
-                                color: "primary.dark",
-                                borderRadius: 1,
-                              }}
-                            >
-                              {answer.score || 0} من {answer.maxScore}
-                            </Typography>
-                          </Box>
-
-                          {answer.feedback && (
-                            <Box>
-                              <Typography
-                                variant="subtitle1"
-                                sx={{ fontWeight: "bold", mb: 1 }}
-                              >
-                                التعليقات:
-                              </Typography>
-                              <Typography
-                                variant="body1"
-                                sx={{
-                                  p: 2,
-                                  bgcolor: "warning.light",
-                                  color: "warning.dark",
-                                  borderRadius: 1,
-                                }}
-                              >
-                                {answer.feedback}
-                              </Typography>
-                            </Box>
-                          )}
-                        </Box>
-                      }
-                    />
-                  </ListItem>
+              </TableHead>
+              <TableBody>
+                {submissions.map((submission) => (
+                  <TableRow key={submission.student}>
+                    <TableCell>{submission.student}</TableCell>
+                    <TableCell>
+                      {new Date(submission.submittedAt).toLocaleString("ar-SA")}
+                    </TableCell>
+                    <TableCell>
+                      {submission.score || 0} من {submission.totalMarks || 0}
+                    </TableCell>
+                    <TableCell>
+                      {submission.percentage
+                        ? submission.percentage.toFixed(1)
+                        : 0}
+                      %
+                    </TableCell>
+                    <TableCell>
+                      {submission.gradeText || "لم يتم التقدير"}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`status ${
+                          submission.status === "تم التقدير" ? "success" : ""
+                        }`}
+                      >
+                        {submission.status || "لم يتم التقدير"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => handleViewSubmission(submission)}
+                      >
+                        عرض
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </List>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewDialogOpen(false)}>إغلاق</Button>
-        </DialogActions>
-      </Dialog>
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-      {/* نافذة تقدير التقديم */}
-      <Dialog open={gradeDialogOpen} onClose={() => setGradeDialogOpen(false)}>
-        <DialogTitle>تقدير التقديم</DialogTitle>
-        <DialogContent>
-          <Box mt={2}>
-            <Typography gutterBottom>الدرجة:</Typography>
-            <Rating
-              value={grade}
-              onChange={(event, newValue) => setGrade(newValue)}
-              max={10}
-            />
-            <Typography variant="body2" color="textSecondary" mt={1}>
-              {grade > 0 && (
-                <Box>
-                  <Typography
-                    component="span"
-                    sx={{
-                      color:
-                        grade >= 9
-                          ? "success.main"
-                          : grade >= 8
-                          ? "info.main"
-                          : grade >= 7
-                          ? "primary.main"
-                          : grade >= 6
-                          ? "warning.main"
-                          : "error.main",
-                      fontWeight: "bold",
+          <Dialog
+            open={viewDialogOpen}
+            onClose={() => setViewDialogOpen(false)}
+            maxWidth="md"
+            fullWidth
+          >
+            <DialogTitle>تفاصيل التقديم</DialogTitle>
+            <DialogContent>
+              <Box sx={{ p: 2 }}>
+                {submissionDetails && (
+                  <div
+                    className="submission-details"
+                    style={{
+                      maxWidth: "800px",
+                      margin: "0 auto",
+                      padding: "20px",
+                      backgroundColor: "#fff",
+                      borderRadius: "8px",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                     }}
                   >
-                    {grade >= 9
-                      ? "ممتاز"
-                      : grade >= 8
-                      ? "جيد جداً"
-                      : grade >= 7
-                      ? "جيد"
-                      : grade >= 6
-                      ? "مقبول"
-                      : "راسب"}
-                  </Typography>
-                </Box>
-              )}
-            </Typography>
-          </Box>
-          <Box mt={2}>
-            <Typography gutterBottom>التعليقات:</Typography>
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setGradeDialogOpen(false)}>إلغاء</Button>
-          <Button
-            onClick={handleGradeSubmission}
-            variant="contained"
-            color="primary"
-            disabled={gradingLoading}
-          >
-            {gradingLoading ? <CircularProgress size={24} /> : "حفظ"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+                    <h3
+                      style={{
+                        textAlign: "center",
+                        color: "#1976d2",
+                        marginBottom: "24px",
+                        fontSize: "24px",
+                        borderBottom: "2px solid #1976d2",
+                        paddingBottom: "12px",
+                      }}
+                    >
+                      تفاصيل التقديم
+                    </h3>
+
+                    <div
+                      className="student-info"
+                      style={{
+                        backgroundColor: "#f5f5f5",
+                        padding: "16px",
+                        borderRadius: "8px",
+                        marginBottom: "20px",
+                      }}
+                    >
+                      <p style={{ margin: "8px 0" }}>
+                        <strong style={{ color: "#1976d2" }}>الطالب:</strong>{" "}
+                        {submissionDetails.student?.name || "غير معروف"}
+                      </p>
+                      <p style={{ margin: "8px 0" }}>
+                        <strong style={{ color: "#1976d2" }}>
+                          البريد الإلكتروني:
+                        </strong>{" "}
+                        {submissionDetails.student?.email || "غير معروف"}
+                      </p>
+                      <p style={{ margin: "8px 0" }}>
+                        <strong style={{ color: "#1976d2" }}>
+                          تاريخ التقديم:
+                        </strong>{" "}
+                        {submissionDetails.submittedAt
+                          ? new Date(
+                              submissionDetails.submittedAt
+                            ).toLocaleString("ar-SA")
+                          : "غير معروف"}
+                      </p>
+                    </div>
+
+                    <div
+                      className="score-info"
+                      style={{
+                        backgroundColor: "#e3f2fd",
+                        padding: "16px",
+                        borderRadius: "8px",
+                        marginBottom: "20px",
+                        textAlign: "center",
+                      }}
+                    >
+                      <p style={{ margin: "8px 0", fontSize: "18px" }}>
+                        <strong style={{ color: "#1976d2" }}>الدرجة:</strong>{" "}
+                        {submissionDetails.score || 0} من{" "}
+                        {submissionDetails.totalMarks || 0}
+                      </p>
+                      <p style={{ margin: "8px 0", fontSize: "18px" }}>
+                        <strong style={{ color: "#1976d2" }}>
+                          النسبة المئوية:
+                        </strong>{" "}
+                        {submissionDetails.percentage
+                          ? submissionDetails.percentage.toFixed(1)
+                          : 0}
+                        %
+                      </p>
+                      <p style={{ margin: "8px 0", fontSize: "18px" }}>
+                        <strong style={{ color: "#1976d2" }}>التقدير:</strong>{" "}
+                        {submissionDetails.gradeText || "لم يتم التقدير"}
+                      </p>
+                      <p style={{ margin: "8px 0", fontSize: "18px" }}>
+                        <strong style={{ color: "#1976d2" }}>الحالة:</strong>{" "}
+                        <span
+                          className={`status ${
+                            submissionDetails.status === "تم التقدير"
+                              ? "success"
+                              : ""
+                          }`}
+                          style={{
+                            backgroundColor:
+                              submissionDetails.status === "تم التقدير"
+                                ? "#4caf50"
+                                : "#f44336",
+                            color: "white",
+                            padding: "4px 12px",
+                            borderRadius: "16px",
+                            fontSize: "14px",
+                          }}
+                        >
+                          {submissionDetails.status || "لم يتم التقدير"}
+                        </span>
+                      </p>
+                    </div>
+
+                    {submissionDetails.answers &&
+                      submissionDetails.answers.length > 0 && (
+                        <div
+                          className="answers-section"
+                          style={{
+                            backgroundColor: "#f5f5f5",
+                            padding: "16px",
+                            borderRadius: "8px",
+                          }}
+                        >
+                          <h4
+                            style={{
+                              textAlign: "center",
+                              color: "#1976d2",
+                              marginBottom: "20px",
+                              fontSize: "20px",
+                              borderBottom: "2px solid #1976d2",
+                              paddingBottom: "8px",
+                            }}
+                          >
+                            الإجابات
+                          </h4>
+                          {submissionDetails.answers.map((answer, index) => (
+                            <div
+                              key={answer.questionId}
+                              className="answer-item"
+                              style={{
+                                backgroundColor: "white",
+                                padding: "16px",
+                                borderRadius: "8px",
+                                marginBottom: "16px",
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                              }}
+                            >
+                              <p style={{ margin: "8px 0", fontSize: "16px" }}>
+                                <strong style={{ color: "#1976d2" }}>
+                                  السؤال {index + 1}:
+                                </strong>{" "}
+                                {answer.questionText}
+                              </p>
+                              <p style={{ margin: "8px 0", fontSize: "16px" }}>
+                                <strong style={{ color: "#1976d2" }}>
+                                  إجابة الطالب:
+                                </strong>{" "}
+                                {answer.answer?.selectedOption ||
+                                  answer.answer?.textAnswer ||
+                                  "لم يتم الإجابة"}
+                              </p>
+                              <p style={{ margin: "8px 0", fontSize: "16px" }}>
+                                <strong style={{ color: "#1976d2" }}>
+                                  الإجابة الصحيحة:
+                                </strong>{" "}
+                                {answer.correctAnswer}
+                              </p>
+                              <p style={{ margin: "8px 0", fontSize: "16px" }}>
+                                <strong style={{ color: "#1976d2" }}>
+                                  الدرجة:
+                                </strong>{" "}
+                                {answer.score || 0} من {answer.maxScore || 0}
+                              </p>
+                              {answer.feedback && (
+                                <p
+                                  style={{ margin: "8px 0", fontSize: "16px" }}
+                                >
+                                  <strong style={{ color: "#1976d2" }}>
+                                    التغذية الراجعة:
+                                  </strong>{" "}
+                                  {answer.feedback}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                  </div>
+                )}
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setViewDialogOpen(false)}>إغلاق</Button>
+              <Button onClick={handlePrint} startIcon={<PrintIcon />}>
+                طباعة
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </>
+      )}
+    </Container>
   );
 };
 

@@ -142,23 +142,41 @@ const TakeQuiz = () => {
         }
       } else {
         // إذا كان الامتحان عادي
+        const formattedAnswers = Object.entries(answers)
+          .map(([questionId, answer]) => {
+            const question = quiz.questions.find((q) => q._id === questionId);
+            if (question.questionType === "multiple_choice") {
+              return {
+                questionId,
+                selectedOption: answer.answer,
+              };
+            } else if (question.questionType === "text") {
+              return {
+                questionId,
+                textAnswer: answer.answer,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
+
+        console.log("Sending answers:", formattedAnswers); // للتأكد من صحة البيانات
+
         const response = await axios.post(
           `${backendUrl}/api/quiz/${quizId}/submit`,
           {
-            answers: Object.entries(answers).map(([questionId, answer]) => ({
-              questionId,
-              answer: answer.answer,
-              file: answer.file,
-            })),
+            answers: formattedAnswers,
           },
           {
             headers: {
               Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
             },
           }
         );
 
         if (response.data.success) {
+          console.log("Submission response:", response.data); // للتأكد من استجابة الخادم
           navigate("/my-quizzes");
         }
       }

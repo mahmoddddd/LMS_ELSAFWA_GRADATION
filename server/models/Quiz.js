@@ -63,14 +63,8 @@ const quizSchema = new mongoose.Schema(
           required: [true, "Marks are required"],
           min: [0, "Marks cannot be negative"],
         },
-        fileUrl: {
-          type: String,
-          // رابط ملف PDF للسؤال (إذا كان نوع السؤال file)
-        },
-        fileId: {
-          type: String,
-          // معرف Cloudinary للملف
-        },
+        fileUrl: String,
+        fileId: String,
         fileType: {
           type: [String],
           enum: ["pdf", "doc", "docx"],
@@ -109,45 +103,33 @@ const quizSchema = new mongoose.Schema(
               type: mongoose.Schema.Types.ObjectId,
               required: true,
             },
-            answer: {
-              type: mongoose.Schema.Types.Mixed,
+            questionText: {
+              type: String,
               required: true,
             },
-            fileUrl: {
+            answer: {
+              selectedOption: String,
+              textAnswer: String,
+            },
+            correctAnswer: {
               type: String,
-              // رابط ملف إجابة الطالب (إذا كان نوع السؤال file)
-            },
-            fileId: {
-              type: String,
-              // معرف Cloudinary للملف
-            },
-            fileName: {
-              type: String,
-              // اسم الملف الأصلي
-            },
-            fileSize: {
-              type: Number,
-              // حجم الملف بالميجابايت
-            },
-            isCorrect: {
-              type: Boolean,
               required: true,
             },
             score: {
               type: Number,
               required: true,
             },
+            maxScore: {
+              type: Number,
+              required: true,
+            },
+            isCorrect: {
+              type: Boolean,
+              required: true,
+            },
             feedback: {
               type: String,
-              // تعليقات المدرس على الإجابة
-            },
-            gradedAt: {
-              type: Date,
-              // وقت تصحيح الإجابة
-            },
-            gradedBy: {
-              type: String,
-              // معرف المدرس الذي قام بالتصحيح
+              default: "",
             },
           },
         ],
@@ -155,26 +137,27 @@ const quizSchema = new mongoose.Schema(
           type: Number,
           required: true,
         },
-        submittedAt: {
-          type: Date,
-          default: Date.now,
+        totalMarks: {
+          type: Number,
+          required: true,
         },
-        feedback: {
-          type: String,
-          // تعليقات المدرس على التقديم
-        },
-        gradedAt: {
-          type: Date,
-          // وقت تصحيح التقديم
-        },
-        gradedBy: {
-          type: String,
-          // معرف المدرس الذي قام بالتصحيح
+        percentage: {
+          type: Number,
+          required: true,
         },
         gradeText: {
           type: String,
           enum: ["ممتاز", "جيد جداً", "جيد", "مقبول", "راسب"],
-          // التقدير النصي للتقديم
+          required: true,
+        },
+        status: {
+          type: String,
+          enum: ["ناجح", "راسب"],
+          required: true,
+        },
+        submittedAt: {
+          type: Date,
+          default: Date.now,
         },
       },
     ],

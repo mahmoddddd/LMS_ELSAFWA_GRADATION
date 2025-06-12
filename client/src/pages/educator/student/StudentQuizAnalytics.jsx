@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
 import {
@@ -11,6 +10,12 @@ import {
   Card,
   CardContent,
   Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import {
   LineChart,
@@ -29,8 +34,7 @@ import {
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 const StudentQuizAnalytics = () => {
-  const { courseId } = useParams();
-  const { getToken } = useAuth();
+  const { getToken, userId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
@@ -42,7 +46,7 @@ const StudentQuizAnalytics = () => {
         const response = await axios.get(
           `${
             import.meta.env.VITE_API_URL
-          }/api/quiz/course/${courseId}/analytics`,
+          }/api/quiz/student/${userId}/analytics`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -58,7 +62,7 @@ const StudentQuizAnalytics = () => {
     };
 
     fetchAnalytics();
-  }, [courseId, getToken]);
+  }, [getToken, userId]);
 
   if (loading) {
     return (
@@ -88,6 +92,65 @@ const StudentQuizAnalytics = () => {
       </Typography>
 
       <Grid container spacing={3}>
+        {/* عرض الكويزات التي تم إجراؤها */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                الكويزات التي تم إجراؤها
+              </Typography>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>عنوان الكويز</TableCell>
+                      <TableCell>المقرر</TableCell>
+                      <TableCell>المدرس</TableCell>
+                      <TableCell>الدرجة</TableCell>
+                      <TableCell>النسبة المئوية</TableCell>
+                      <TableCell>تاريخ الإجراء</TableCell>
+                      <TableCell>الحالة</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {(analytics?.completedQuizzes || []).map((quiz, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{quiz.title}</TableCell>
+                        <TableCell>
+                          {quiz.course?.title || "غير محدد"}
+                        </TableCell>
+                        <TableCell>
+                          {quiz.instructor
+                            ? `${quiz.instructor.firstName} ${quiz.instructor.lastName}`
+                            : "غير محدد"}
+                        </TableCell>
+                        <TableCell>
+                          {quiz.score} من {quiz.totalMarks}
+                        </TableCell>
+                        <TableCell>{quiz.percentage.toFixed(1)}%</TableCell>
+                        <TableCell>
+                          {new Date(quiz.submittedAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            color={
+                              quiz.percentage >= 60
+                                ? "success.main"
+                                : "error.main"
+                            }
+                          >
+                            {quiz.percentage >= 60 ? "ناجح" : "راسب"}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* تقدم الدرجات */}
         <Grid item xs={12}>
           <Card>
@@ -97,7 +160,7 @@ const StudentQuizAnalytics = () => {
               </Typography>
               <Box height={400}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={analytics.scoreProgress}>
+                  <LineChart data={analytics?.scoreProgress || []}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis domain={[0, 100]} />
@@ -127,7 +190,7 @@ const StudentQuizAnalytics = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={analytics.scoreDistribution}
+                      data={analytics?.scoreDistribution || []}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
@@ -135,12 +198,14 @@ const StudentQuizAnalytics = () => {
                       outerRadius={100}
                       label
                     >
-                      {analytics.scoreDistribution.map((entry, index) => (
-                        <Cell
-                          key={index}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
+                      {(analytics?.scoreDistribution || []).map(
+                        (entry, index) => (
+                          <Cell
+                            key={index}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        )
+                      )}
                     </Pie>
                     <Tooltip />
                     <Legend />
@@ -165,7 +230,7 @@ const StudentQuizAnalytics = () => {
                       متوسط الدرجات
                     </Typography>
                     <Typography variant="h4">
-                      {analytics.averageScore}%
+                      {analytics?.averageScore || 0}%
                     </Typography>
                   </Paper>
                 </Grid>
@@ -174,7 +239,9 @@ const StudentQuizAnalytics = () => {
                     <Typography variant="body2" color="textSecondary">
                       نسبة النجاح
                     </Typography>
-                    <Typography variant="h4">{analytics.passRate}%</Typography>
+                    <Typography variant="h4">
+                      {analytics?.passRate || 0}%
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={6}>
@@ -183,7 +250,7 @@ const StudentQuizAnalytics = () => {
                       عدد المحاولات
                     </Typography>
                     <Typography variant="h4">
-                      {analytics.totalAttempts}
+                      {analytics?.totalAttempts || 0}
                     </Typography>
                   </Paper>
                 </Grid>
@@ -193,45 +260,8 @@ const StudentQuizAnalytics = () => {
                       متوسط الوقت
                     </Typography>
                     <Typography variant="h4">
-                      {analytics.averageTime} دقيقة
+                      {analytics?.averageTime || 0} دقيقة
                     </Typography>
-                  </Paper>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* نقاط القوة والضعف */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                نقاط القوة والضعف
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: "success.light" }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      نقاط القوة
-                    </Typography>
-                    {analytics.strengths.map((strength, index) => (
-                      <Typography key={index} variant="body2">
-                        • {strength}
-                      </Typography>
-                    ))}
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: "error.light" }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      نقاط تحتاج تحسين
-                    </Typography>
-                    {analytics.weaknesses.map((weakness, index) => (
-                      <Typography key={index} variant="body2">
-                        • {weakness}
-                      </Typography>
-                    ))}
                   </Paper>
                 </Grid>
               </Grid>

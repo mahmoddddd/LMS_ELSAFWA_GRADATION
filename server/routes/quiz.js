@@ -68,30 +68,37 @@ const uploadToCloudinary = async (req, res, next) => {
 
     const result = await cloudinary.v2.uploader.upload(dataURI, {
       folder: "LMS_ELSAFWA/quiz_files",
-      resource_type: "auto", // 👈 خليه auto
+      resource_type: "auto",
       use_filename: true,
       unique_filename: true,
       overwrite: true,
+      access_mode: "public",
+      type: "upload",
+      format: "pdf",
+      display_name: req.file.originalname,
+      allowed_formats: ["pdf"],
+      tags: ["quiz", "pdf"],
+      access_control: [
+        {
+          access_type: "anonymous",
+          start: new Date(),
+          end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        },
+      ],
     });
 
+    // استخدام الرابط المباشر من نتيجة الرفع
     req.file.path = result.secure_url;
     req.file.filename = result.public_id;
+    req.file.originalname = req.file.originalname;
 
-    // استخدام الرابط الصحيح من Cloudinary
-    const publicUrl = cloudinary.v2.url(result.public_id, {
-      secure: true,
-      resource_type: "raw",
-      type: "upload",
-    });
     console.log("Cloudinary upload result:", {
       public_id: result.public_id,
-      url: publicUrl,
+      url: result.secure_url,
       format: result.format,
+      access_mode: result.access_mode,
     });
 
-    req.file.path = publicUrl;
-    req.file.filename = result.public_id;
-    req.file.originalname = req.file.originalname;
     next();
   } catch (error) {
     console.error("Cloudinary upload error:", error);
@@ -151,7 +158,7 @@ router.get(
 router.get("/course/:courseId", getCourseQuizzes);
 router.get("/course/:courseId/progress", getStudentProgress);
 router.get("/course/:courseId/analytics", getStudentAnalytics);
-router.post("/:id/submit", submitQuiz);
+router.post("/:quizId/submit", submitQuiz);
 router.post(
   "/:quizId/questions/:questionId/answer",
   upload.single("file"),
@@ -163,5 +170,87 @@ router.get("/:id/submission-history", getStudentSubmissionHistory);
 router.get("/:id/check-eligibility", checkSubmissionEligibility);
 router.get("/:id/leaderboard", getQuizLeaderboard);
 router.get("/:id", getQuiz);
+
+// Get student quiz analytics
+router.get("/student/:studentId/analytics", async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const quizzes = await Quiz.find({
+      "submissions.student": studentId,
+    })
+      .populate("course", "title")
+      .populate("instructor", "firstName lastName");
+
+    const completedQuizzes = [];
+    let totalScore = 0;
+    let totalMarks = 0;
+    let passedQuizzes = 0;
+
+    quizzes.forEach((quiz) => {
+      const submission = quiz.submissions.find(
+        (sub) => sub.student === studentId
+      );
+      if (submission) {
+        const quizData = {
+          title: quiz.title,
+          course: quiz.course,
+          instructor: quiz.instructor,
+          score: submission.score,
+          totalMarks: quiz.totalMarks,
+          percentage: (submission.score / quiz.totalMarks) * 100,
+          submittedAt: submission.submittedAt,
+          status: submission.status,
+          grade: submission.grade,
+          answers: submission.answers.map((answer) => {
+            const question = quiz.questions.find(
+              (q) => q._id.toString() === answer.questionId.toString()
+            );
+            return {
+              questionText: question.questionText,
+              questionType: question.questionType,
+              answer: answer.answer,
+              isCorrect: answer.isCorrect,
+              score: answer.score,
+              maxScore: question.marks,
+              feedback: answer.feedback,
+            };
+          }),
+        };
+        completedQuizzes.push(quizData);
+
+        totalScore += submission.score;
+        totalMarks += quiz.totalMarks;
+        if (submission.status === "passed") {
+          passedQuizzes++;
+        }
+      }
+    });
+
+    // Calculate analytics
+    const analytics = {
+      completedQuizzes,
+      averageScore:
+        completedQuizzes.length > 0 ? (totalScore / totalMarks) * 100 : 0,
+      passRate:
+        completedQuizzes.length > 0
+          ? (passedQuizzes / completedQuizzes.length) * 100
+          : 0,
+      totalAttempts: completedQuizzes.length,
+      scoreProgress: completedQuizzes.map((quiz) => ({
+        date: new Date(quiz.submittedAt).toLocaleDateString(),
+        score: quiz.percentage,
+      })),
+      scoreDistribution: [
+        { name: "ناجح", value: passedQuizzes },
+        { name: "راسب", value: completedQuizzes.length - passedQuizzes },
+      ],
+    };
+
+    res.json(analytics);
+  } catch (error) {
+    console.error("Error fetching student analytics:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 export default router;

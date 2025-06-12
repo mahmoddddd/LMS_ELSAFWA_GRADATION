@@ -3,6 +3,7 @@ import Quiz from "../models/Quiz.js";
 import Course from "../models/Course.js";
 import { clerkClient } from "@clerk/clerk-sdk-node";
 import cloudinary from "cloudinary";
+import User from "../models/User.js";
 
 // Helper function to check if user is educator
 const isEducator = async (userId) => {
@@ -219,137 +220,127 @@ export const getQuiz = async (req, res) => {
 // Submit quiz
 export const submitQuiz = async (req, res) => {
   try {
-    const clerkId = getClerkId(req);
-    const quiz = await Quiz.findById(req.params.id);
+    const { quizId } = req.params;
+    const { answers } = req.body;
+    const studentId = getClerkId(req);
 
+    const quiz = await Quiz.findById(quizId);
     if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: "Quiz not found",
-      });
-    }
-
-    // Check if quiz is still open
-    if (new Date() > new Date(quiz.dueDate)) {
-      return res.status(400).json({
-        success: false,
-        message: "Quiz submission deadline has passed",
+        message: "الاختبار غير موجود",
       });
     }
 
     // Check if student has already submitted
     const existingSubmission = quiz.submissions.find(
-      (sub) => sub.student === clerkId
+      (sub) => sub.student === studentId
     );
     if (existingSubmission) {
       return res.status(400).json({
         success: false,
-        message: "You have already submitted this quiz",
+        message: "لقد قمت بتقديم هذا الاختبار من قبل",
       });
     }
 
-    const { answers } = req.body;
-
-    // Validate answers format
-    if (!Array.isArray(answers) || answers.length !== quiz.questions.length) {
-      return res.status(400).json({
+    // Get student details
+    const student = await User.findOne({ clerkId: studentId });
+    if (!student) {
+      return res.status(404).json({
         success: false,
-        message: "Invalid answers format or number of answers",
+        message: "لم يتم العثور على بيانات الطالب",
       });
     }
 
-    // Calculate score and grade answers
+    // Grade answers and calculate score
     let totalScore = 0;
-    let correctAnswers = 0;
-    let totalQuestions = quiz.questions.length;
-    let multipleChoiceQuestions = 0;
-    let textQuestions = 0;
+    const gradedAnswers = answers
+      .map((answer) => {
+        const question = quiz.questions.find(
+          (q) => q._id.toString() === answer.questionId
+        );
+        if (!question) return null;
 
-    const gradedAnswers = answers.map((answer, index) => {
-      const question = quiz.questions[index];
-      let isCorrect = false;
-      let score = 0;
-      let feedback = "";
+        let score = 0;
+        let isCorrect = false;
+        let feedback = "";
 
-      if (question.questionType === "multiple_choice") {
-        multipleChoiceQuestions++;
-        const selectedOption = question.options[answer.selectedOption];
-
-        if (!selectedOption) {
-          feedback = "Invalid option selected";
-        } else {
-          isCorrect = selectedOption.isCorrect;
+        if (question.questionType === "multiple_choice") {
+          const selectedOption = question.options.find(
+            (opt) => opt.text === answer.selectedOption
+          );
+          isCorrect = selectedOption?.isCorrect || false;
           score = isCorrect ? question.marks : 0;
-          feedback = isCorrect ? "Correct answer!" : "Wrong answer";
-
-          if (isCorrect) {
-            correctAnswers++;
-          }
+          feedback = isCorrect ? "إجابة صحيحة" : "إجابة خاطئة";
+        } else if (question.questionType === "text") {
+          isCorrect = answer.textAnswer === question.correctAnswer;
+          score = isCorrect ? question.marks : 0;
+          feedback = isCorrect ? "إجابة صحيحة" : "إجابة خاطئة";
         }
-      } else if (question.questionType === "text") {
-        textQuestions++;
-        // For text questions, we'll just store the answer
-        // Manual grading will be required
-        score = 0;
-        feedback = "Pending manual grading";
-      }
 
-      totalScore += score;
-      return {
-        questionId: question._id,
-        questionText: question.questionText,
-        questionType: question.questionType,
-        answer: answer,
-        correctAnswer:
-          question.questionType === "multiple_choice"
-            ? question.options.findIndex((opt) => opt.isCorrect)
-            : null,
-        isCorrect,
-        score,
-        maxScore: question.marks,
-        feedback,
-      };
-    });
+        totalScore += score;
 
-    // Calculate statistics
-    const statistics = {
-      totalQuestions,
-      multipleChoiceQuestions,
-      textQuestions,
-      correctAnswers,
-      totalScore,
-      maxPossibleScore: quiz.totalMarks,
-      percentage: (totalScore / quiz.totalMarks) * 100,
-      autoGradedPercentage:
-        multipleChoiceQuestions > 0
-          ? (correctAnswers / multipleChoiceQuestions) * 100
-          : 0,
-    };
+        return {
+          questionId: question._id,
+          questionText: question.questionText,
+          answer: {
+            selectedOption: answer.selectedOption || "",
+            textAnswer: answer.textAnswer || "",
+          },
+          correctAnswer:
+            question.questionType === "multiple_choice"
+              ? question.options.find((opt) => opt.isCorrect)?.text || ""
+              : question.correctAnswer || "",
+          score,
+          maxScore: question.marks,
+          isCorrect,
+          feedback,
+        };
+      })
+      .filter(Boolean);
 
-    // Create submission
+    // Calculate percentage and grade
+    const percentage = (totalScore / quiz.totalMarks) * 100;
+    let gradeText = "راسب";
+    if (percentage >= 90) gradeText = "ممتاز";
+    else if (percentage >= 80) gradeText = "جيد جداً";
+    else if (percentage >= 70) gradeText = "جيد";
+    else if (percentage >= 60) gradeText = "مقبول";
+
+    // Create submission object
     const submission = {
-      student: clerkId,
+      student: studentId,
       answers: gradedAnswers,
       score: totalScore,
-      statistics,
+      totalMarks: quiz.totalMarks,
+      percentage,
+      gradeText,
+      status: percentage >= 60 ? "ناجح" : "راسب",
       submittedAt: new Date(),
     };
 
+    // Add submission to quiz
     quiz.submissions.push(submission);
     await quiz.save();
 
     res.json({
       success: true,
-      submission,
-      statistics,
-      message: "Quiz submitted successfully",
+      message: "تم تقديم الاختبار بنجاح",
+      submission: {
+        ...submission,
+        student: {
+          id: studentId,
+          name: student.name,
+          email: student.email,
+        },
+      },
     });
   } catch (error) {
-    console.error("Error submitting quiz:", error);
-    if (error.message === "Unauthorized") {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error in submitQuiz:", error);
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ في تقديم الاختبار",
+    });
   }
 };
 
@@ -699,6 +690,7 @@ export const getStudentAnalytics = async (req, res) => {
       weaknesses: [],
       timeSpent: 0,
       consistency: 0,
+      completedQuizzes: [], // إضافة مصفوفة للكويزات المكتملة
     };
 
     let totalScore = 0;
@@ -711,8 +703,18 @@ export const getStudentAnalytics = async (req, res) => {
       if (submission) {
         performance.completedQuizzes++;
         const score = submission.score;
+        const percentage = (score / quiz.totalMarks) * 100;
         totalScore += score;
         previousScores.push(score);
+
+        // إضافة معلومات الكويز المكتمل
+        performance.completedQuizzes.push({
+          title: quiz.title,
+          score: score,
+          percentage: percentage.toFixed(1),
+          submittedAt: submission.submittedAt,
+          totalMarks: quiz.totalMarks,
+        });
 
         // تحليل نقاط القوة والضعف
         submission.answers.forEach((answer, index) => {
@@ -1132,120 +1134,165 @@ export const gradeSubmission = async (req, res) => {
 // Get submission details
 export const getSubmissionDetails = async (req, res) => {
   try {
-    const clerkId = getClerkId(req);
     const { quizId, studentId } = req.params;
-
-    if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid quiz ID",
-      });
-    }
-
     const quiz = await Quiz.findById(quizId);
+
     if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: "Quiz not found",
+        message: "الاختبار غير موجود",
       });
     }
 
-    // Check if user is the instructor
-    if (quiz.instructor !== clerkId) {
-      return res.status(403).json({
-        success: false,
-        message: "Not authorized to view submissions",
-      });
-    }
-
-    // Find the submission
     const submission = quiz.submissions.find(
       (sub) => sub.student === studentId
     );
+
     if (!submission) {
       return res.status(404).json({
         success: false,
-        message: "Submission not found",
+        message: "لم يتم العثور على التقديم",
       });
     }
 
-    // Get question details for each answer
-    const submissionWithQuestions = {
-      student: submission.student,
+    // Get student details from database
+    const student = await User.findOne({ clerkId: submission.student });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "لم يتم العثور على بيانات الطالب",
+      });
+    }
+
+    // Calculate total marks from questions
+    const totalMarks = quiz.questions.reduce(
+      (total, question) => total + question.marks,
+      0
+    );
+
+    // Calculate total score from answers
+    const totalScore = submission.answers.reduce(
+      (total, answer) => total + (answer.score || 0),
+      0
+    );
+
+    // Calculate percentage
+    const percentage = totalMarks > 0 ? (totalScore / totalMarks) * 100 : 0;
+
+    // Determine grade text based on percentage
+    let gradeText = "لم يتم التقدير";
+    if (percentage >= 90) {
+      gradeText = "ممتاز";
+    } else if (percentage >= 80) {
+      gradeText = "جيد جداً";
+    } else if (percentage >= 70) {
+      gradeText = "جيد";
+    } else if (percentage >= 60) {
+      gradeText = "مقبول";
+    } else if (percentage > 0) {
+      gradeText = "راسب";
+    }
+
+    // Format submission data
+    const formattedSubmission = {
+      student: {
+        id: submission.student,
+        email: student.email,
+        name: student.name,
+      },
+      quizTitle: quiz.title,
       submittedAt: submission.submittedAt,
-      score: submission.score || 0,
-      feedback: submission.feedback || "",
+      score: totalScore,
+      totalMarks: totalMarks,
+      percentage: percentage,
+      gradeText: gradeText,
+      status: "تم التقدير",
       answers: submission.answers.map((answer) => {
-        // Find the question by its ID
         const question = quiz.questions.find(
-          (q) =>
-            q._id &&
-            answer.questionId &&
-            q._id.toString() === answer.questionId.toString()
+          (q) => q._id.toString() === answer.questionId.toString()
         );
 
-        // Handle different answer types
-        let answerText = "لا توجد إجابة";
-        let isCorrect = false;
-        let correctAnswer = "";
-
-        if (answer.answer) {
-          if (typeof answer.answer === "string") {
-            answerText = answer.answer;
-          } else if (typeof answer.answer === "object") {
-            // Extract the actual answer text from the object
-            if (answer.answer.answer) {
-              answerText = answer.answer.answer;
-            } else if (answer.answer.text) {
-              answerText = answer.answer.text;
-            } else {
-              answerText = JSON.stringify(answer.answer);
-            }
-            isCorrect = answer.answer.isCorrect || false;
-          }
-        }
-
-        // Get correct answer based on question type
-        if (question) {
-          if (question.questionType === "multiple_choice") {
-            const correctOption = question.options.find((opt) => opt.isCorrect);
-            correctAnswer = correctOption
-              ? correctOption.text
-              : "لا توجد إجابة صحيحة";
-          } else if (question.questionType === "true-false") {
-            correctAnswer = question.correctAnswer ? "صح" : "خطأ";
-          } else if (question.questionType === "text") {
-            correctAnswer = question.correctAnswer || "لا توجد إجابة صحيحة";
-          } else if (question.questionType === "number") {
-            correctAnswer = question.correctAnswer
-              ? question.correctAnswer.toString()
-              : "لا توجد إجابة صحيحة";
-          }
-        }
-
         return {
+          questionId: answer.questionId,
           questionText: question ? question.questionText : "سؤال غير متوفر",
-          answer: answerText,
-          correctAnswer: correctAnswer,
+          answer: {
+            selectedOption:
+              answer.answer.selectedOption ||
+              answer.answer.textAnswer ||
+              "لم يتم الإجابة",
+            textAnswer: answer.answer.textAnswer || "لم يتم الإجابة",
+          },
+          correctAnswer: question
+            ? question.questionType === "multiple_choice"
+              ? question.options.find((opt) => opt.isCorrect)?.text ||
+                "لا توجد إجابة صحيحة"
+              : question.correctAnswer || "لا توجد إجابة صحيحة"
+            : "لا توجد إجابة صحيحة",
           score: answer.score || 0,
           maxScore: question ? question.marks : 0,
-          feedback: answer.feedback || "",
-          isCorrect: isCorrect,
-          questionType: question ? question.questionType : "unknown",
-          options: question ? question.options : [],
+          feedback: answer.feedback || "لا توجد تغذية راجعة",
         };
       }),
     };
 
     res.json({
       success: true,
-      submission: submissionWithQuestions,
+      submission: formattedSubmission,
     });
   } catch (error) {
-    console.error("Error getting submission details:", error);
-    if (error.message === "Unauthorized") {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
+    console.error("Error in getSubmissionDetails:", error);
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ في جلب تفاصيل التقديم",
+    });
+  }
+};
+
+const getQuizSubmissions = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const quiz = await Quiz.findById(quizId);
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: "الاختبار غير موجود",
+      });
     }
-    res.status(500).json({ success: false, message: error.message });
+
+    // Format submissions with complete information
+    const formattedSubmissions = await Promise.all(
+      quiz.submissions.map(async (submission) => {
+        // Get student details
+        const student = await User.findOne({ clerkId: submission.student });
+
+        return {
+          id: submission._id,
+          student: {
+            id: submission.student,
+            name: student ? student.name : "غير معروف",
+            email: student ? student.email : "غير معروف",
+          },
+          submittedAt: submission.submittedAt,
+          score: submission.score,
+          totalMarks: submission.totalMarks,
+          percentage: submission.percentage,
+          gradeText: submission.gradeText,
+          status: submission.status,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      submissions: formattedSubmissions,
+    });
+  } catch (error) {
+    console.error("Error in getQuizSubmissions:", error);
+    res.status(500).json({
+      success: false,
+      message: "حدث خطأ في جلب تقديمات الاختبار",
+    });
   }
 };

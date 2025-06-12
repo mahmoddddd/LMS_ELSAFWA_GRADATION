@@ -62,7 +62,6 @@ app.use("/api/chatbot", chatbotRouter);
 app.use("/api/subscribe", subscribeRoutes);
 app.use("/api/cont", contactUs);
 app.use("/api/quiz", quizRouter);
-// app.use("/api/assignment", assignmentRouter);
 
 // نقطة الدخول الرئيسية
 app.get("/", (req, res) => {
