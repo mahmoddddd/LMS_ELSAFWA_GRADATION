@@ -61,61 +61,72 @@ export const getUserFullData = async (req, res) => {
 
 export const getUserData = async (req, res) => {
   try {
-    const userId = req.auth?.userId;
-    extractClerkUserId(req.headers.authorization);
-    if (!userId)
+    const clerkId = extractClerkUserId(req.headers.authorization);
+    if (!clerkId) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
-
-    console.log("🔍 Getting user data for:", userId);
-    const user = await User.findOne({ clerkId: userId });
-    if (!user)
-      return res
-        .status(404)
-        .json({ success: false, message: "User Not Found in db" });
-
-    try {
-      const clerkUser = await clerkClient.users.getUser(userId);
-      const clerkRole = clerkUser.publicMetadata?.role;
-      const dbRole = user.role;
-
-      if (clerkRole !== dbRole) {
-        await clerkClient.users.updateUserMetadata(userId, {
-          publicMetadata: { role: dbRole },
-        });
-      }
-    } catch (clerkError) {
-      console.error(
-        "⚠️ Warning: Could not sync Clerk role:",
-        clerkError.message
-      );
     }
 
+    console.log("🔍 Getting user data for clerkId:", clerkId);
+    const user = await User.findOne({ clerkId });
+
+    if (!user) {
+      console.log("⚠️ User not found in database, creating new user");
+      // Get user data from Clerk
+      const clerkUser = await clerkClient.users.getUser(clerkId);
+
+      // Create new user with Clerk data
+      const newUser = await User.create({
+        clerkId: clerkUser.id,
+        _id: clerkUser.id,
+        email:
+          clerkUser.emailAddresses[0]?.emailAddress ||
+          `${clerkUser.id}@placeholder.com`,
+        name:
+          `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
+          "New User",
+        imageUrl:
+          clerkUser.imageUrl ||
+          `https://api.dicebear.com/7.x/initials/svg?seed=${clerkUser.id}`,
+        role: "student",
+      });
+
+      console.log("✅ Created new user:", newUser._id);
+      return res.json({ success: true, user: newUser });
+    }
+
+    console.log("✅ Found existing user:", user._id);
     res.json({ success: true, user });
   } catch (error) {
-    console.error("❌ Error getting user data:", error.message);
+    console.error("❌ Error getting user data:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 export const userEnrolledCourses = async (req, res) => {
   try {
-    const userId = req.auth?.userId;
-    extractClerkUserId(req.headers.authorization);
-    const userData = await User.findOne({ clerkId: userId }).populate({
-      path: "enrolledCourses",
-      populate: { path: "educator", select: "name email imageUrl" },
-    });
-    if (!userData)
+    const clerkId = extractClerkUserId(req.headers.authorization);
+    if (!clerkId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    console.log("🔍 Getting enrolled courses for clerkId:", clerkId);
+    const user = await User.findOne({ clerkId });
+
+    if (!user) {
+      console.log("⚠️ User not found in database");
       return res
         .status(404)
-        .json({ success: false, message: "User Not Found" });
+        .json({ success: false, message: "User not found" });
+    }
 
     const enrolledCourses = await Course.find({
-      _id: { $in: userData.enrolledCourses },
+      _id: { $in: user.enrolledCourses },
     }).populate("educator", "name email imageUrl");
 
+    console.log("✅ Found enrolled courses:", enrolledCourses.length);
     res.json({ success: true, enrolledCourses });
   } catch (error) {
+    console.error("❌ Error getting enrolled courses:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

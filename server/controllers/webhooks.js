@@ -167,28 +167,58 @@ export const clerkWebHooks = async (req, res) => {
           .json({ success: false, message: "Missing Clerk user ID" });
       }
 
-      // 👇 تأكد إن المستخدم مش موجود بالفعل
+      // Check if user already exists
       const existingUser = await User.findOne({ clerkId: data.id });
       if (existingUser) {
         console.log("⚠️ User already exists:", existingUser._id);
         return res.status(200).json({ success: true });
       }
+
       console.log("🆔 Clerk user ID from webhook:", data.id);
 
-      // ✅ استدعاء بيانات المستخدم من Clerk
+      // Get user data from Clerk
       const clerkUser = await clerkClient.users.getUser(data.id);
 
-      // 👇 إنشاء المستخدم في قاعدة البيانات
+      // Create user object with fallback values
       const userToCreate = {
         clerkId: clerkUser.id,
-        _id: clerkUser.id, // أو أي ID حسب تصميمك
-        email: clerkUser.emailAddresses[0].emailAddress,
-        name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim(),
-        imageUrl: clerkUser.imageUrl || "",
+        _id: clerkUser.id,
+        email:
+          clerkUser.emailAddresses[0]?.emailAddress ||
+          `${clerkUser.id}@placeholder.com`,
+        name:
+          `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
+          "New User",
+        imageUrl:
+          clerkUser.imageUrl ||
+          `https://api.dicebear.com/7.x/initials/svg?seed=${clerkUser.id}`,
+        role: "student", // Default role
       };
 
-      const newUser = await User.create(userToCreate);
-      console.log("✅ User created:", newUser._id);
+      // Validate required fields
+      if (!userToCreate.email || !userToCreate.name || !userToCreate.imageUrl) {
+        console.error(
+          "❌ Missing required fields for user creation:",
+          userToCreate
+        );
+        return res.status(400).json({
+          success: false,
+          message: "Missing required fields for user creation",
+        });
+      }
+
+      try {
+        const newUser = await User.create(userToCreate);
+        console.log("✅ User created successfully:", newUser._id);
+        return res.status(200).json({ success: true, user: newUser });
+      } catch (error) {
+        console.error("❌ Error creating user:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to create user",
+          error: error.message,
+        });
+      }
     }
 
     res.status(200).json({ success: true });
@@ -204,13 +234,13 @@ const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 // ===== Stripe webhook handler =====
-   export const stripeWebhooks = async (req, res) => {
+export const stripeWebhooks = async (req, res) => {
   const sig = req.headers["stripe-signature"];
-  
+
   if (!sig) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Missing stripe signature" 
+    return res.status(400).json({
+      success: false,
+      message: "Missing stripe signature",
     });
   }
 
@@ -222,9 +252,9 @@ const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    return res.status(400).json({ 
-      success: false, 
-      message: `Webhook Error: ${err.message}` 
+    return res.status(400).json({
+      success: false,
+      message: `Webhook Error: ${err.message}`,
     });
   }
 
