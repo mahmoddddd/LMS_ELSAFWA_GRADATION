@@ -11,8 +11,8 @@ export const getAllCourse = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
-
-// Get Course by Id
+//// 
+// Get Course by Iddd 
 export const getCourseId = async (req, res) => {
   const { id } = req.params;
   try {
