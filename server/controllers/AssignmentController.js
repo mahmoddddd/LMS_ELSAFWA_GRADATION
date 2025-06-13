@@ -11,7 +11,7 @@
 //   // This depends on your authentication setup
 //   return token; // Simplified - adjust based on your token structure
 // };
-
+//
 // // Get user's full assignment data including all submissions and progress
 // export const getUserFullAssignmentData = async (req, res) => {
 //   try {
