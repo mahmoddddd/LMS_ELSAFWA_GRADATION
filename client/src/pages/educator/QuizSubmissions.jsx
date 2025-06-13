@@ -148,7 +148,10 @@ const QuizSubmissions = () => {
       setError(null);
       const token = await getToken();
 
-      console.log("Viewing submission:", submission); // Debug log
+      console.log("=== Starting View Submission Process ===");
+      console.log("Submission object:", submission);
+      console.log("Quiz ID:", quizId);
+      console.log("Student ID:", submission.student);
 
       const response = await axios.get(
         `http://localhost:4000/api/quiz/${quizId}/submissions/${submission.student}`,
@@ -160,17 +163,35 @@ const QuizSubmissions = () => {
         }
       );
 
-      console.log("Submission details response:", response.data); // Debug log
+      console.log("=== API Response ===");
+      console.log("Full Response:", response);
+      console.log("Response Data:", response.data);
 
       if (response.data.success) {
         const submissionData = response.data.submission;
-        console.log("Processing submission data:", submissionData); // Debug log
+        console.log("=== Processing Submission Data ===");
+        console.log("Raw Submission Data:", submissionData);
+        console.log("Answers Array:", submissionData.answers);
+
+        // Log each answer's details
+        submissionData.answers.forEach((answer, index) => {
+          console.log(`=== Answer ${index + 1} Details ===`);
+          console.log("Question Text:", answer.questionText);
+          console.log("Student Answer:", answer.answer);
+          console.log("Correct Answer:", answer.correctAnswer);
+          console.log("Is Correct:", answer.isCorrect);
+          console.log("Score:", answer.score);
+          console.log("Max Score:", answer.maxScore);
+          console.log("Feedback:", answer.feedback);
+        });
 
         // Calculate percentage if not already present
         if (!submissionData.percentage) {
           submissionData.percentage =
             (submissionData.score / submissionData.totalMarks) * 100;
         }
+        console.log("Calculated Percentage:", submissionData.percentage);
+
         // Determine grade text if not already present
         if (!submissionData.gradeText) {
           if (submissionData.percentage >= 90) {
@@ -185,20 +206,29 @@ const QuizSubmissions = () => {
             submissionData.gradeText = "راسب";
           }
         }
+        console.log("Final Grade Text:", submissionData.gradeText);
+
         // Set status if not already present
         if (!submissionData.status) {
           submissionData.status =
             submissionData.percentage >= 60 ? "ناجح" : "راسب";
         }
+        console.log("Final Status:", submissionData.status);
 
-        console.log("Final submission data:", submissionData); // Debug log
+        console.log("=== Final Processed Data ===");
+        console.log("Complete Submission Data:", submissionData);
+
         setSubmissionDetails(submissionData);
         setViewDialogOpen(true);
       } else {
+        console.error("API Error Response:", response.data);
         setError(response.data.message || "حدث خطأ في جلب تفاصيل التقديم");
       }
     } catch (err) {
-      console.error("Error fetching submission details:", err);
+      console.error("=== Error in handleViewSubmission ===");
+      console.error("Error object:", err);
+      console.error("Error response:", err.response);
+      console.error("Error message:", err.message);
       setError(err.response?.data?.message || "حدث خطأ في جلب تفاصيل التقديم");
     } finally {
       setLoading(false);
@@ -327,7 +357,9 @@ const QuizSubmissions = () => {
                 </div>
                 <div class="correct-answer">
                   <strong>الإجابة الصحيحة:</strong><br>
-                  ${answer.correctAnswer}
+                  ${answer.correctAnswer ||
+                    answer.question?.correctAnswer ||
+                    "غير متوفر"}
                 </div>
                 <div class="score">
                   <strong>الدرجة:</strong> ${answer.score} من ${answer.maxScore}
@@ -452,7 +484,7 @@ const QuizSubmissions = () => {
       >
         <DialogTitle
           sx={{
-            bgcolor: "primary.main",
+            bgcolor: "#2196f3",
             color: "white",
             py: 2,
             textAlign: "center",
@@ -469,7 +501,7 @@ const QuizSubmissions = () => {
                 sx={{
                   mb: 4,
                   p: 2,
-                  bgcolor: "background.paper",
+                  bgcolor: "#f5f5f5",
                   borderRadius: 2,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                 }}
@@ -478,7 +510,7 @@ const QuizSubmissions = () => {
                   variant="h5"
                   gutterBottom
                   sx={{
-                    color: "primary.main",
+                    color: "#2196f3",
                     fontWeight: "bold",
                     mb: 2,
                     textAlign: "center",
@@ -491,20 +523,29 @@ const QuizSubmissions = () => {
                     <Box
                       sx={{
                         p: 2,
-                        bgcolor: "grey.50",
+                        bgcolor: "white",
                         borderRadius: 1,
                         height: "100%",
+                        border: "1px solid #e0e0e0",
                       }}
                     >
                       <Typography
                         variant="subtitle1"
-                        sx={{ color: "text.secondary", mb: 1 }}
+                        sx={{
+                          color: "#2196f3",
+                          mb: 1,
+                          fontWeight: "bold",
+                        }}
                       >
                         معلومات الطالب
                       </Typography>
                       <Typography variant="body1" sx={{ mb: 1 }}>
                         <strong>الاسم:</strong>{" "}
                         {submissionDetails.student?.name || "غير معروف"}
+                      </Typography>
+                      <Typography variant="body1" sx={{ mb: 1 }}>
+                        <strong>البريد الإلكتروني:</strong>{" "}
+                        {submissionDetails.student?.email || "غير متوفر"}
                       </Typography>
                       <Typography variant="body1" sx={{ mb: 1 }}>
                         <strong>تاريخ التقديم:</strong>{" "}
@@ -518,14 +559,19 @@ const QuizSubmissions = () => {
                     <Box
                       sx={{
                         p: 2,
-                        bgcolor: "grey.50",
+                        bgcolor: "white",
                         borderRadius: 1,
                         height: "100%",
+                        border: "1px solid #e0e0e0",
                       }}
                     >
                       <Typography
                         variant="subtitle1"
-                        sx={{ color: "text.secondary", mb: 1 }}
+                        sx={{
+                          color: "#2196f3",
+                          mb: 1,
+                          fontWeight: "bold",
+                        }}
                       >
                         النتيجة
                       </Typography>
@@ -547,6 +593,7 @@ const QuizSubmissions = () => {
                           label={submissionDetails.gradeText}
                           color={getGradeColor(submissionDetails.gradeText)}
                           size="small"
+                          sx={{ fontWeight: "bold" }}
                         />
                       </Box>
                       <Box
@@ -568,6 +615,7 @@ const QuizSubmissions = () => {
                               : "error"
                           }
                           size="small"
+                          sx={{ fontWeight: "bold" }}
                         />
                       </Box>
                     </Box>
@@ -580,7 +628,7 @@ const QuizSubmissions = () => {
                   <Box
                     sx={{
                       mt: 3,
-                      bgcolor: "background.paper",
+                      bgcolor: "#f5f5f5",
                       borderRadius: 2,
                       boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                     }}
@@ -589,9 +637,10 @@ const QuizSubmissions = () => {
                       variant="h6"
                       sx={{
                         p: 2,
-                        bgcolor: "primary.main",
+                        bgcolor: "#2196f3",
                         color: "white",
                         borderRadius: "8px 8px 0 0",
+                        fontWeight: "bold",
                       }}
                     >
                       الإجابات
@@ -602,16 +651,17 @@ const QuizSubmissions = () => {
                           key={index}
                           sx={{
                             mb: 2,
-                            bgcolor: "grey.50",
+                            bgcolor: "white",
                             borderRadius: 1,
                             flexDirection: "column",
                             alignItems: "flex-start",
+                            border: "1px solid #e0e0e0",
                           }}
                         >
                           <Typography
                             variant="subtitle1"
                             sx={{
-                              color: "primary.main",
+                              color: "#2196f3",
                               mb: 1,
                               fontWeight: "bold",
                             }}
@@ -621,41 +671,107 @@ const QuizSubmissions = () => {
                           <Typography variant="body1" sx={{ mb: 1 }}>
                             {answer.questionText}
                           </Typography>
-                          <Box
-                            sx={{
-                              width: "100%",
-                              p: 1,
-                              bgcolor: "white",
-                              borderRadius: 1,
-                              border: "1px solid",
-                              borderColor: "divider",
-                            }}
-                          >
-                            <Typography variant="body2" sx={{ mb: 1 }}>
-                              <strong>الإجابة:</strong>{" "}
-                              {typeof answer.answer === "object"
-                                ? answer.answer.selectedOption ||
-                                  answer.answer.textAnswer ||
-                                  "لم يتم الإجابة"
-                                : answer.answer || "لم يتم الإجابة"}
-                            </Typography>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
-                              <strong>الدرجة:</strong> {answer.score} من{" "}
-                              {answer.maxScore}
-                            </Typography>
-                            {answer.feedback && (
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                              <Box
+                                sx={{
+                                  width: "100%",
+                                  p: 1,
+                                  bgcolor: "#f5f5f5",
+                                  borderRadius: 1,
+                                  border: "1px solid #e0e0e0",
+                                }}
+                              >
+                                <Typography
+                                  variant="subtitle2"
+                                  sx={{
+                                    color: "#2196f3",
+                                    mb: 1,
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  إجابة الطالب
+                                </Typography>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                  {typeof answer.answer === "object"
+                                    ? answer.answer.selectedOption ||
+                                      answer.answer.textAnswer ||
+                                      "لم يتم الإجابة"
+                                    : answer.answer || "لم يتم الإجابة"}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: answer.isCorrect
+                                      ? "#4caf50"
+                                      : "#f44336",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  {answer.isCorrect
+                                    ? "✓ إجابة صحيحة"
+                                    : "✗ إجابة خاطئة"}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <Box
+                                sx={{
+                                  width: "100%",
+                                  p: 1,
+                                  bgcolor: "#f5f5f5",
+                                  borderRadius: 1,
+                                  border: "1px solid #e0e0e0",
+                                }}
+                              >
+                                <Typography
+                                  variant="subtitle2"
+                                  sx={{
+                                    color: "#2196f3",
+                                    mb: 1,
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  الإجابة الصحيحة
+                                </Typography>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                  {answer.correctAnswer || "غير متوفر"}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: "#757575",
+                                    fontStyle: "italic",
+                                  }}
+                                >
+                                  الدرجة: {answer.score} من {answer.maxScore}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          </Grid>
+                          {answer.feedback && (
+                            <Box
+                              sx={{
+                                width: "100%",
+                                mt: 1,
+                                p: 1,
+                                bgcolor: "#e3f2fd",
+                                borderRadius: 1,
+                                border: "1px solid #90caf9",
+                              }}
+                            >
                               <Typography
                                 variant="body2"
                                 sx={{
-                                  color: "text.secondary",
+                                  color: "#2196f3",
                                   fontStyle: "italic",
                                 }}
                               >
                                 <strong>التغذية الراجعة:</strong>{" "}
                                 {answer.feedback}
                               </Typography>
-                            )}
-                          </Box>
+                            </Box>
+                          )}
                         </ListItem>
                       ))}
                     </List>
@@ -664,13 +780,32 @@ const QuizSubmissions = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, bgcolor: "grey.50" }}>
+        <DialogActions sx={{ p: 2, bgcolor: "#f5f5f5", gap: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<PrintIcon />}
+            onClick={() => window.print()}
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              bgcolor: "#2196f3",
+              "&:hover": {
+                bgcolor: "#1976d2",
+              },
+            }}
+          >
+            طباعة
+          </Button>
           <Button
             onClick={() => setViewDialogOpen(false)}
             variant="contained"
             sx={{
               borderRadius: 2,
               px: 3,
+              bgcolor: "#2196f3",
+              "&:hover": {
+                bgcolor: "#1976d2",
+              },
             }}
           >
             إغلاق

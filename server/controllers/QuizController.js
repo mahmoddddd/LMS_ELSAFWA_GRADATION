@@ -1179,14 +1179,12 @@ export const gradeSubmission = async (req, res) => {
 export const getSubmissionDetails = async (req, res) => {
   try {
     const { quizId, studentId } = req.params;
-    console.log(
-      "Getting submission details for quiz:",
-      quizId,
-      "student:",
-      studentId
-    );
+    console.log("=== Starting getSubmissionDetails ===");
+    console.log("Quiz ID:", quizId);
+    console.log("Student ID:", studentId);
 
     const quiz = await Quiz.findById(quizId);
+    console.log("Found Quiz:", quiz ? "Yes" : "No");
     if (!quiz) {
       return res.status(404).json({
         success: false,
@@ -1197,6 +1195,7 @@ export const getSubmissionDetails = async (req, res) => {
     const submission = quiz.submissions.find(
       (sub) => sub.student === studentId
     );
+    console.log("Found Submission:", submission ? "Yes" : "No");
 
     if (!submission) {
       return res.status(404).json({
@@ -1205,10 +1204,15 @@ export const getSubmissionDetails = async (req, res) => {
       });
     }
 
-    console.log("Found submission:", submission);
+    console.log("Submission Details:", {
+      student: submission.student,
+      score: submission.score,
+      answers: submission.answers,
+    });
 
     // Get student details from database
     const student = await User.findOne({ clerkId: submission.student });
+    console.log("Found Student:", student ? "Yes" : "No");
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -1216,22 +1220,23 @@ export const getSubmissionDetails = async (req, res) => {
       });
     }
 
-    console.log("Found student:", student);
-
     // Calculate total marks from questions
     const totalMarks = quiz.questions.reduce(
       (total, question) => total + question.marks,
       0
     );
+    console.log("Total Marks:", totalMarks);
 
     // Calculate total score from answers
     const totalScore = submission.answers.reduce(
       (total, answer) => total + (answer.score || 0),
       0
     );
+    console.log("Total Score:", totalScore);
 
     // Calculate percentage
     const percentage = totalMarks > 0 ? (totalScore / totalMarks) * 100 : 0;
+    console.log("Percentage:", percentage);
 
     // Determine grade text based on percentage
     let gradeText = "لم يتم التقدير";
@@ -1246,9 +1251,11 @@ export const getSubmissionDetails = async (req, res) => {
     } else if (percentage > 0) {
       gradeText = "راسب";
     }
+    console.log("Grade Text:", gradeText);
 
     // Determine status based on percentage
     const status = percentage >= 60 ? "ناجح" : "راسب";
+    console.log("Status:", status);
 
     // Format submission data
     const formattedSubmission = {
@@ -1265,31 +1272,40 @@ export const getSubmissionDetails = async (req, res) => {
       gradeText,
       status,
       answers: submission.answers.map((answer) => {
-        const question = quiz.questions.find(
-          (q) => q._id.toString() === answer.questionId.toString()
-        );
+        console.log("Processing Answer:", {
+          questionId: answer.questionId,
+          correctAnswer: answer.correctAnswer,
+          studentAnswer: answer.answer,
+        });
 
         return {
           questionId: answer.questionId,
-          questionText: question ? question.questionText : "سؤال غير متوفر",
-          questionType: question ? question.questionType : "غير معروف",
+          questionText: answer.questionText,
+          questionType: answer.questionType || "multiple_choice",
           answer: answer.answer,
+          correctAnswer: answer.correctAnswer,
           score: answer.score || 0,
-          maxScore: question ? question.marks : 0,
+          maxScore: answer.maxScore || 10,
           isCorrect: answer.isCorrect,
           feedback: answer.feedback || "",
         };
       }),
     };
 
-    console.log("Formatted submission:", formattedSubmission);
+    console.log("=== Final Formatted Submission ===");
+    console.log(
+      "Complete Submission Data:",
+      JSON.stringify(formattedSubmission, null, 2)
+    );
 
     res.json({
       success: true,
       submission: formattedSubmission,
     });
   } catch (error) {
-    console.error("Error getting submission details:", error);
+    console.error("=== Error in getSubmissionDetails ===");
+    console.error("Error:", error);
+    console.error("Error Stack:", error.stack);
     res.status(500).json({ success: false, message: error.message });
   }
 };
