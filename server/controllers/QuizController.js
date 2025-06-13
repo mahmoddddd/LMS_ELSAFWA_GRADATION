@@ -621,6 +621,28 @@ export const getQuizStatistics = async (req, res) => {
       };
     });
 
+    // === NEW: Calculate questionStats ===
+    const questionStats = quiz.questions.map((question) => {
+      let correctAnswers = 0;
+      let incorrectAnswers = 0;
+      quiz.submissions.forEach((submission) => {
+        const answer = submission.answers.find(
+          (a) => a.questionId.toString() === question._id.toString()
+        );
+        if (answer) {
+          if (answer.isCorrect) correctAnswers++;
+          else incorrectAnswers++;
+        }
+      });
+      return {
+        questionId: question._id,
+        questionText: question.questionText,
+        correctAnswers,
+        incorrectAnswers,
+      };
+    });
+    // === END NEW ===
+
     res.json({
       success: true,
       statistics: {
@@ -641,6 +663,7 @@ export const getQuizStatistics = async (req, res) => {
           totalMarks: quiz.totalMarks,
           questions: quiz.questions.length,
         },
+        questionStats,
       },
     });
   } catch (error) {
