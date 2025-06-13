@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
 import {
@@ -11,6 +10,13 @@ import {
   Card,
   CardContent,
   Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
 } from "@mui/material";
 import {
   LineChart,
@@ -25,42 +31,138 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return format(date, "dd/MM/yyyy 'في' hh:mm a", { locale: ar });
+};
+
 const StudentQuizAnalytics = () => {
-  const { courseId } = useParams();
-  const { getToken } = useAuth();
+  console.log("🎯 StudentQuizAnalytics component rendered");
+
+  const { getToken, userId } = useAuth();
+  console.log("🔑 Auth context:", { userId, hasToken: !!getToken });
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
+  const [instructorNames, setInstructorNames] = useState({});
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const token = await getToken();
+  // Function to fetch instructor names from Clerk
+  const fetchInstructorNames = async (instructorIds) => {
+    try {
+      const token = await getToken();
+      const uniqueIds = [...new Set(instructorIds)];
+      const names = {};
+
+      for (const id of uniqueIds) {
         const response = await axios.get(
-          `${
-            import.meta.env.VITE_API_URL
-          }/api/quiz/course/${courseId}/analytics`,
+          `https://api.clerk.dev/v1/users/${id}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${process.env.VITE_CLERK_SECRET_KEY}`,
             },
           }
         );
-        setAnalytics(response.data);
+        names[id] = {
+          firstName: response.data.first_name,
+          lastName: response.data.last_name,
+        };
+      }
+
+      setInstructorNames(names);
+    } catch (error) {
+      console.error("Error fetching instructor names:", error);
+    }
+  };
+
+  useEffect(() => {
+    console.log("🔄 useEffect triggered");
+    console.log("📊 Current state:", { loading, error, analytics });
+
+    const fetchAnalytics = async () => {
+      console.log("🚀 Starting fetchAnalytics");
+      try {
+        if (!userId) {
+          console.log("⏳ Waiting for userId...");
+          return;
+        }
+
+        console.log("👤 Fetching analytics for user:", userId);
+        const token = await getToken();
+        console.log("🔐 Token received:", token ? "Yes" : "No");
+
+        const url = `http://localhost:4000/api/quiz/student/${userId}/analytics`;
+        console.log("🌐 API URL:", url);
+
+        const response = await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            "X-User-ID": userId,
+          },
+        });
+
+        console.log("📥 API Response:", response.data);
+
+        if (response.data) {
+          console.log("✅ Analytics data received:", response.data);
+          setAnalytics(response.data);
+          setError(null);
+
+          // Extract instructor IDs and fetch their names
+          const instructorIds = response.data.completedQuizzes.map(
+            (quiz) => quiz.instructor
+          );
+          await fetchInstructorNames(instructorIds);
+        } else {
+          console.error("❌ API returned no data");
+          setError("لم يتم العثور على بيانات التحليلات");
+        }
       } catch (err) {
+        console.error("💥 Error fetching analytics:", err);
+        console.error("🔍 Error details:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+        });
         setError(err.response?.data?.message || "حدث خطأ في جلب التحليلات");
       } finally {
+        console.log("🏁 Fetch operation completed");
         setLoading(false);
       }
     };
 
     fetchAnalytics();
-  }, [courseId, getToken]);
+  }, [getToken, userId]);
+
+  // Log analytics state changes
+  useEffect(() => {
+    console.log("📈 Analytics state updated:", analytics);
+  }, [analytics]);
+
+  // Show loading state while waiting for userId
+  if (!userId) {
+    console.log("⏳ Waiting for userId...");
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="60vh"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (loading) {
+    console.log("⏳ Rendering loading state");
     return (
       <Box
         display="flex"
@@ -74,12 +176,21 @@ const StudentQuizAnalytics = () => {
   }
 
   if (error) {
+    console.log("❌ Rendering error state:", error);
     return (
       <Box m={3}>
         <Alert severity="error">{error}</Alert>
       </Box>
     );
   }
+
+  // Log before rendering
+  console.log("🎨 Rendering component with data:", {
+    analytics,
+    completedQuizzes: analytics?.completedQuizzes,
+    scoreProgress: analytics?.scoreProgress,
+    scoreDistribution: analytics?.scoreDistribution,
+  });
 
   return (
     <Box p={3}>
@@ -88,6 +199,73 @@ const StudentQuizAnalytics = () => {
       </Typography>
 
       <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                الكويزات التي تم إجراؤها
+              </Typography>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>عنوان الكويز</TableCell>
+                      <TableCell>المقرر</TableCell>
+                      <TableCell>المدرس</TableCell>
+                      <TableCell>الدرجة</TableCell>
+                      <TableCell>النسبة المئوية</TableCell>
+                      <TableCell>تاريخ الإجراء</TableCell>
+                      <TableCell>الحالة</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {(analytics?.completedQuizzes || []).map((quiz, index) => {
+                      console.log("📝 Rendering quiz:", quiz);
+                      return (
+                        <TableRow key={`${quiz.title}-${index}`}>
+                          <TableCell>{quiz.title}</TableCell>
+                          <TableCell>
+                            {quiz.course?.title || "غير محدد"}
+                          </TableCell>
+                          <TableCell>
+                            {quiz.instructor?.firstName
+                              ? `${quiz.instructor.firstName} ${quiz.instructor
+                                  .lastName || ""}`
+                              : "غير محدد"}
+                          </TableCell>
+                          <TableCell>
+                            {quiz.score} من {quiz.totalMarks}
+                          </TableCell>
+                          <TableCell>{quiz.percentage.toFixed(1)}%</TableCell>
+                          <TableCell>{formatDate(quiz.submittedAt)}</TableCell>
+                          <TableCell>
+                            <Typography
+                              sx={{
+                                color:
+                                  quiz.percentage >= 60 ? "#1B5E20" : "#B71C1C",
+                                fontWeight: "bold",
+                                textAlign: "center",
+                                backgroundColor:
+                                  quiz.percentage >= 60 ? "#C8E6C9" : "#FFCDD2",
+                                padding: "4px 8px",
+                                borderRadius: "4px",
+                                display: "inline-block",
+                                minWidth: "80px",
+                              }}
+                            >
+                              {quiz.percentage >= 60 ? "ناجح" : "راسب"}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* تقدم الدرجات */}
         <Grid item xs={12}>
           <Card>
@@ -97,7 +275,14 @@ const StudentQuizAnalytics = () => {
               </Typography>
               <Box height={400}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={analytics.scoreProgress}>
+                  <LineChart
+                    data={
+                      analytics?.scoreProgress?.map((item) => ({
+                        ...item,
+                        date: formatDate(item.date),
+                      })) || []
+                    }
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis domain={[0, 100]} />
@@ -127,7 +312,7 @@ const StudentQuizAnalytics = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={analytics.scoreDistribution}
+                      data={analytics?.scoreDistribution || []}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
@@ -135,12 +320,14 @@ const StudentQuizAnalytics = () => {
                       outerRadius={100}
                       label
                     >
-                      {analytics.scoreDistribution.map((entry, index) => (
-                        <Cell
-                          key={index}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
+                      {(analytics?.scoreDistribution || []).map(
+                        (entry, index) => (
+                          <Cell
+                            key={index}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        )
+                      )}
                     </Pie>
                     <Tooltip />
                     <Legend />
@@ -159,79 +346,41 @@ const StudentQuizAnalytics = () => {
                 إحصائيات عامة
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: "grey.100" }}>
-                    <Typography variant="body2" color="textSecondary">
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 2, textAlign: "center" }}>
+                    <Typography variant="h6" gutterBottom>
                       متوسط الدرجات
                     </Typography>
-                    <Typography variant="h4">
-                      {analytics.averageScore}%
+                    <Typography variant="h4" color="primary">
+                      {analytics.averageScore.toFixed(1)}%
                     </Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: "grey.100" }}>
-                    <Typography variant="body2" color="textSecondary">
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 2, textAlign: "center" }}>
+                    <Typography variant="h6" gutterBottom>
                       نسبة النجاح
                     </Typography>
-                    <Typography variant="h4">{analytics.passRate}%</Typography>
+                    <Typography variant="h4" color="primary">
+                      {(
+                        (analytics.completedQuizzes.filter(
+                          (quiz) => quiz.percentage >= 60
+                        ).length /
+                          analytics.completedQuizzes.length) *
+                        100
+                      ).toFixed(1)}
+                      %
+                    </Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: "grey.100" }}>
-                    <Typography variant="body2" color="textSecondary">
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 2, textAlign: "center" }}>
+                    <Typography variant="h6" gutterBottom>
                       عدد المحاولات
                     </Typography>
-                    <Typography variant="h4">
-                      {analytics.totalAttempts}
+                    <Typography variant="h4" color="primary">
+                      {analytics.completedQuizzes.length}
                     </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: "grey.100" }}>
-                    <Typography variant="body2" color="textSecondary">
-                      متوسط الوقت
-                    </Typography>
-                    <Typography variant="h4">
-                      {analytics.averageTime} دقيقة
-                    </Typography>
-                  </Paper>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* نقاط القوة والضعف */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                نقاط القوة والضعف
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: "success.light" }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      نقاط القوة
-                    </Typography>
-                    {analytics.strengths.map((strength, index) => (
-                      <Typography key={index} variant="body2">
-                        • {strength}
-                      </Typography>
-                    ))}
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: "error.light" }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      نقاط تحتاج تحسين
-                    </Typography>
-                    {analytics.weaknesses.map((weakness, index) => (
-                      <Typography key={index} variant="body2">
-                        • {weakness}
-                      </Typography>
-                    ))}
                   </Paper>
                 </Grid>
               </Grid>

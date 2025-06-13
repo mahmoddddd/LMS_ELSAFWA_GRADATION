@@ -23,6 +23,7 @@ import { protectEducator } from "../middlewares/authMiddleware.js";
 import multer from "multer";
 import cloudinary from "cloudinary";
 import Quiz from "../models/Quiz.js";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 // Configure Cloudinary
 cloudinary.v2.config({
@@ -177,14 +178,33 @@ router.get("/student/:studentId/analytics", async (req, res) => {
     const { studentId } = req.params;
     const quizzes = await Quiz.find({
       "submissions.student": studentId,
-    })
-      .populate("course", "title")
-      .populate("instructor", "firstName lastName");
+    }).populate({
+      path: "course",
+      select: "courseTitle educator",
+    });
 
     const completedQuizzes = [];
     let totalScore = 0;
     let totalMarks = 0;
     let passedQuizzes = 0;
+
+    // Get unique instructor IDs
+    const instructorIds = [...new Set(quizzes.map((quiz) => quiz.instructor))];
+
+    // Fetch instructor details from Clerk
+    const instructorDetails = {};
+    for (const id of instructorIds) {
+      try {
+        const user = await clerkClient.users.getUser(id);
+        instructorDetails[id] = {
+          firstName: user.firstName,
+          lastName: user.lastName,
+        };
+      } catch (error) {
+        console.error(`Error fetching instructor ${id}:`, error);
+        instructorDetails[id] = { firstName: "غير محدد", lastName: "" };
+      }
+    }
 
     quizzes.forEach((quiz) => {
       const submission = quiz.submissions.find(
@@ -193,8 +213,13 @@ router.get("/student/:studentId/analytics", async (req, res) => {
       if (submission) {
         const quizData = {
           title: quiz.title,
-          course: quiz.course,
-          instructor: quiz.instructor,
+          course: {
+            title: quiz.course?.courseTitle || "غير محدد",
+          },
+          instructor: instructorDetails[quiz.instructor] || {
+            firstName: "غير محدد",
+            lastName: "",
+          },
           score: submission.score,
           totalMarks: quiz.totalMarks,
           percentage: (submission.score / quiz.totalMarks) * 100,
@@ -220,7 +245,7 @@ router.get("/student/:studentId/analytics", async (req, res) => {
 
         totalScore += submission.score;
         totalMarks += quiz.totalMarks;
-        if (submission.status === "passed") {
+        if (submission.status === "ناجح") {
           passedQuizzes++;
         }
       }
