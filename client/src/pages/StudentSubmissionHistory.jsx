@@ -16,6 +16,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -26,6 +33,8 @@ const StudentSubmissionHistory = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submissions, setSubmissions] = useState([]);
+  const [quizTitle, setQuizTitle] = useState("");
+  const [totalMarks, setTotalMarks] = useState(0);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -44,6 +53,8 @@ const StudentSubmissionHistory = () => {
           }
         );
         setSubmissions(response.data.submissions);
+        setQuizTitle(response.data.quizTitle);
+        setTotalMarks(response.data.totalMarks);
       } catch (err) {
         setError(err.response?.data?.message || "حدث خطأ في جلب سجل التقديمات");
       } finally {
@@ -57,6 +68,23 @@ const StudentSubmissionHistory = () => {
   const handleViewSubmission = (submission) => {
     setSelectedSubmission(submission);
     setDialogOpen(true);
+  };
+
+  const getGradeColor = (gradeText) => {
+    switch (gradeText) {
+      case "ممتاز":
+        return "success";
+      case "جيد جداً":
+        return "info";
+      case "جيد":
+        return "primary";
+      case "مقبول":
+        return "warning";
+      case "راسب":
+        return "error";
+      default:
+        return "default";
+    }
   };
 
   if (loading) {
@@ -83,52 +111,61 @@ const StudentSubmissionHistory = () => {
   return (
     <Box p={3}>
       <Typography variant="h4" component="h1" gutterBottom>
-        سجل التقديمات
+        {quizTitle} - سجل التقديمات
       </Typography>
 
-      <Grid container spacing={3}>
-        {submissions.map((submission) => (
-          <Grid item xs={12} key={submission._id}>
-            <Card>
-              <CardContent>
-                <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  mb={2}
-                >
-                  <Typography variant="h6">
-                    تقديم بتاريخ{" "}
-                    {format(new Date(submission.submittedAt), "PPP", {
-                      locale: ar,
-                    })}
-                  </Typography>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>التاريخ</TableCell>
+              <TableCell>الدرجة</TableCell>
+              <TableCell>النسبة المئوية</TableCell>
+              <TableCell>التقدير</TableCell>
+              <TableCell>الحالة</TableCell>
+              <TableCell>الإجراءات</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {submissions.map((submission) => (
+              <TableRow key={submission._id}>
+                <TableCell>
+                  {format(new Date(submission.submittedAt), "PPP", {
+                    locale: ar,
+                  })}
+                </TableCell>
+                <TableCell>
+                  {submission.score} من {submission.totalMarks}
+                </TableCell>
+                <TableCell>{submission.percentage}%</TableCell>
+                <TableCell>
                   <Chip
-                    label={`الدرجة: ${submission.score}%`}
-                    color={submission.score >= 60 ? "success" : "error"}
+                    label={submission.gradeText}
+                    color={getGradeColor(submission.gradeText)}
+                    size="small"
                   />
-                </Box>
-
-                <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
-                  <Typography variant="body2" color="textSecondary">
-                    عدد الأسئلة: {submission.answers.length}
-                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={submission.status}
+                    color={submission.status === "ناجح" ? "success" : "error"}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
                   <Button
                     variant="outlined"
+                    size="small"
                     onClick={() => handleViewSubmission(submission)}
                   >
                     عرض التفاصيل
                   </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Dialog
         open={dialogOpen}
@@ -147,30 +184,67 @@ const StudentSubmissionHistory = () => {
             <DialogContent>
               <Box mb={2}>
                 <Typography variant="h6" gutterBottom>
+                  ملخص التقديم
+                </Typography>
+                <Grid container spacing={2} mb={3}>
+                  <Grid item xs={6}>
+                    <Typography variant="body1">
+                      الدرجة: {selectedSubmission.score} من{" "}
+                      {selectedSubmission.totalMarks}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body1">
+                      النسبة المئوية: {selectedSubmission.percentage}%
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body1">
+                      التقدير: {selectedSubmission.gradeText}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body1">
+                      الحالة: {selectedSubmission.status}
+                    </Typography>
+                  </Grid>
+                </Grid>
+
+                <Typography variant="h6" gutterBottom>
                   الإجابات
                 </Typography>
                 {selectedSubmission.answers.map((answer, index) => (
-                  <Box key={index} mb={2}>
+                  <Box
+                    key={index}
+                    mb={2}
+                    p={2}
+                    border="1px solid #eee"
+                    borderRadius={1}
+                  >
                     <Typography variant="subtitle1" gutterBottom>
-                      السؤال {index + 1}
+                      السؤال {index + 1}: {answer.questionText}
                     </Typography>
-                    {answer.fileUrl ? (
-                      <Box>
-                        <Typography variant="body2" color="textSecondary">
-                          تم رفع ملف: {answer.fileName}
-                        </Typography>
-                        <Button
-                          href={answer.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          size="small"
-                        >
-                          عرض الملف
-                        </Button>
-                      </Box>
-                    ) : (
-                      <Typography variant="body1">{answer.answer}</Typography>
-                    )}
+                    <Box mb={1}>
+                      <Typography variant="body2" color="textSecondary">
+                        الإجابة:{" "}
+                        {answer.answer.textAnswer ||
+                          answer.answer.selectedOption}
+                      </Typography>
+                    </Box>
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography variant="body2" color="textSecondary">
+                        الدرجة: {answer.score} من {answer.maxScore}
+                      </Typography>
+                      <Chip
+                        label={answer.isCorrect ? "إجابة صحيحة" : "إجابة خاطئة"}
+                        color={answer.isCorrect ? "success" : "error"}
+                        size="small"
+                      />
+                    </Box>
                     {answer.feedback && (
                       <Typography
                         variant="body2"
@@ -180,21 +254,6 @@ const StudentSubmissionHistory = () => {
                         ملاحظات المدرس: {answer.feedback}
                       </Typography>
                     )}
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      mt={1}
-                    >
-                      <Typography variant="body2" color="textSecondary">
-                        الدرجة: {answer.score}
-                      </Typography>
-                      <Chip
-                        label={answer.isCorrect ? "إجابة صحيحة" : "إجابة خاطئة"}
-                        color={answer.isCorrect ? "success" : "error"}
-                        size="small"
-                      />
-                    </Box>
                   </Box>
                 ))}
               </Box>

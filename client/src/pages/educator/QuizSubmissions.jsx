@@ -37,6 +37,27 @@ const QuizSubmissions = () => {
   const navigate = useNavigate();
   const { getToken } = useAuth();
   const { user } = useUser();
+
+  const getGradeColor = (gradeText) => {
+    console.log("Grade Text received:", gradeText);
+    if (!gradeText) return "default";
+    switch (gradeText) {
+      case "ممتاز":
+        return "success";
+      case "جيد جداً":
+        return "info";
+      case "جيد":
+        return "primary";
+      case "مقبول":
+        return "warning";
+      case "راسب":
+        return "error";
+      default:
+        console.log("Default case for grade:", gradeText);
+        return "default";
+    }
+  };
+
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -76,10 +97,12 @@ const QuizSubmissions = () => {
         }
       );
 
-      console.log("Response:", response.data);
+      console.log("Full Response:", response.data);
 
       if (response.data.success && response.data.statistics) {
         const submissionsData = response.data.statistics.submissions || [];
+        console.log("Submissions Data:", submissionsData);
+
         setSubmissions(submissionsData);
         setQuiz(response.data.statistics.quiz);
 
@@ -108,6 +131,7 @@ const QuizSubmissions = () => {
         }
         setStudentNames(names);
       } else {
+        console.log("No statistics data in response");
         setSubmissions([]);
       }
     } catch (err) {
@@ -124,6 +148,8 @@ const QuizSubmissions = () => {
       setError(null);
       const token = await getToken();
 
+      console.log("Viewing submission:", submission); // Debug log
+
       const response = await axios.get(
         `http://localhost:4000/api/quiz/${quizId}/submissions/${submission.student}`,
         {
@@ -134,8 +160,39 @@ const QuizSubmissions = () => {
         }
       );
 
+      console.log("Submission details response:", response.data); // Debug log
+
       if (response.data.success) {
-        setSubmissionDetails(response.data.submission);
+        const submissionData = response.data.submission;
+        console.log("Processing submission data:", submissionData); // Debug log
+
+        // Calculate percentage if not already present
+        if (!submissionData.percentage) {
+          submissionData.percentage =
+            (submissionData.score / submissionData.totalMarks) * 100;
+        }
+        // Determine grade text if not already present
+        if (!submissionData.gradeText) {
+          if (submissionData.percentage >= 90) {
+            submissionData.gradeText = "ممتاز";
+          } else if (submissionData.percentage >= 80) {
+            submissionData.gradeText = "جيد جداً";
+          } else if (submissionData.percentage >= 70) {
+            submissionData.gradeText = "جيد";
+          } else if (submissionData.percentage >= 60) {
+            submissionData.gradeText = "مقبول";
+          } else {
+            submissionData.gradeText = "راسب";
+          }
+        }
+        // Set status if not already present
+        if (!submissionData.status) {
+          submissionData.status =
+            submissionData.percentage >= 60 ? "ناجح" : "راسب";
+        }
+
+        console.log("Final submission data:", submissionData); // Debug log
+        setSubmissionDetails(submissionData);
         setViewDialogOpen(true);
       } else {
         setError(response.data.message || "حدث خطأ في جلب تفاصيل التقديم");
@@ -322,252 +379,304 @@ const QuizSubmissions = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        تقديمات الاختبار
+      <Typography variant="h4" component="h1" gutterBottom>
+        {quiz?.title} - تقديمات الاختبار
       </Typography>
 
-      {loading ? (
-        <Box display="flex" justifyContent="center" mt={4}>
-          <CircularProgress />
-        </Box>
-      ) : error ? (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {error}
-        </Alert>
-      ) : (
-        <>
-          <TableContainer component={Paper} sx={{ mt: 2 }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>الطالب</TableCell>
-                  <TableCell>الإجراءات</TableCell>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>الطالب</TableCell>
+              <TableCell>الدرجة</TableCell>
+              <TableCell>النسبة المئوية</TableCell>
+              <TableCell>التقدير</TableCell>
+              <TableCell>الحالة</TableCell>
+              <TableCell>الإجراءات</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {submissions.map((submission) => {
+              console.log("Rendering submission row:", submission); // Debug log
+              return (
+                <TableRow key={submission.student}>
+                  <TableCell>
+                    {studentNames[submission.student] || "طالب غير معروف"}
+                  </TableCell>
+                  <TableCell>
+                    {submission.score} من {submission.totalMarks}
+                  </TableCell>
+                  <TableCell>{submission.percentage}%</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={submission.gradeText || "غير محدد"}
+                      color={getGradeColor(submission.gradeText)}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={submission.status || "غير محدد"}
+                      color={submission.status === "ناجح" ? "success" : "error"}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => handleViewSubmission(submission)}
+                      startIcon={<VisibilityIcon />}
+                    >
+                      عرض التفاصيل
+                    </Button>
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {submissions.map((submission) => (
-                  <TableRow key={submission.student}>
-                    <TableCell>
-                      {studentNames[submission.student] || "جاري التحميل..."}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        startIcon={<VisibilityIcon />}
-                        onClick={() => handleViewSubmission(submission)}
-                      >
-                        عرض
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-          <Dialog
-            open={viewDialogOpen}
-            onClose={() => setViewDialogOpen(false)}
-            maxWidth="md"
-            fullWidth
-          >
-            <DialogTitle>تفاصيل التقديم</DialogTitle>
-            <DialogContent>
-              <Box sx={{ p: 2 }}>
-                {submissionDetails && (
-                  <div
-                    className="submission-details"
-                    style={{
-                      maxWidth: "800px",
-                      margin: "0 auto",
-                      padding: "20px",
-                      backgroundColor: "#fff",
-                      borderRadius: "8px",
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+      <Dialog
+        open={viewDialogOpen}
+        onClose={() => setViewDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            bgcolor: "primary.main",
+            color: "white",
+            py: 2,
+            textAlign: "center",
+            fontSize: "1.5rem",
+            fontWeight: "bold",
+          }}
+        >
+          تفاصيل التقديم
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {submissionDetails && (
+            <Box>
+              <Box
+                sx={{
+                  mb: 4,
+                  p: 2,
+                  bgcolor: "background.paper",
+                  borderRadius: 2,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                }}
+              >
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{
+                    color: "primary.main",
+                    fontWeight: "bold",
+                    mb: 2,
+                    textAlign: "center",
+                  }}
+                >
+                  {submissionDetails.quizTitle}
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: "grey.50",
+                        borderRadius: 1,
+                        height: "100%",
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        معلومات الطالب
+                      </Typography>
+                      <Typography variant="body1" sx={{ mb: 1 }}>
+                        <strong>الاسم:</strong>{" "}
+                        {submissionDetails.student?.name || "غير معروف"}
+                      </Typography>
+                      <Typography variant="body1" sx={{ mb: 1 }}>
+                        <strong>تاريخ التقديم:</strong>{" "}
+                        {new Date(submissionDetails.submittedAt).toLocaleString(
+                          "ar-SA"
+                        )}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: "grey.50",
+                        borderRadius: 1,
+                        height: "100%",
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        النتيجة
+                      </Typography>
+                      <Typography variant="body1" sx={{ mb: 1 }}>
+                        <strong>الدرجة:</strong> {submissionDetails.score} من{" "}
+                        {submissionDetails.totalMarks}
+                      </Typography>
+                      <Typography variant="body1" sx={{ mb: 1 }}>
+                        <strong>النسبة المئوية:</strong>{" "}
+                        {submissionDetails.percentage}%
+                      </Typography>
+                      <Box
+                        sx={{ display: "flex", gap: 1, alignItems: "center" }}
+                      >
+                        <Typography variant="body1">
+                          <strong>التقدير:</strong>
+                        </Typography>
+                        <Chip
+                          label={submissionDetails.gradeText}
+                          color={getGradeColor(submissionDetails.gradeText)}
+                          size="small"
+                        />
+                      </Box>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 1,
+                          alignItems: "center",
+                          mt: 1,
+                        }}
+                      >
+                        <Typography variant="body1">
+                          <strong>الحالة:</strong>
+                        </Typography>
+                        <Chip
+                          label={submissionDetails.status}
+                          color={
+                            submissionDetails.status === "ناجح"
+                              ? "success"
+                              : "error"
+                          }
+                          size="small"
+                        />
+                      </Box>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {submissionDetails.answers &&
+                submissionDetails.answers.length > 0 && (
+                  <Box
+                    sx={{
+                      mt: 3,
+                      bgcolor: "background.paper",
+                      borderRadius: 2,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                     }}
                   >
-                    <h3
-                      style={{
-                        textAlign: "center",
-                        color: "#1976d2",
-                        marginBottom: "24px",
-                        fontSize: "24px",
-                        borderBottom: "2px solid #1976d2",
-                        paddingBottom: "12px",
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        p: 2,
+                        bgcolor: "primary.main",
+                        color: "white",
+                        borderRadius: "8px 8px 0 0",
                       }}
                     >
-                      تفاصيل التقديم
-                    </h3>
-
-                    <div
-                      className="student-info"
-                      style={{
-                        backgroundColor: "#f5f5f5",
-                        padding: "16px",
-                        borderRadius: "8px",
-                        marginBottom: "20px",
-                      }}
-                    >
-                      <p style={{ margin: "8px 0" }}>
-                        <strong style={{ color: "#1976d2" }}>الطالب:</strong>{" "}
-                        {submissionDetails.student?.name || "غير معروف"}
-                      </p>
-                      <p style={{ margin: "8px 0" }}>
-                        <strong style={{ color: "#1976d2" }}>
-                          البريد الإلكتروني:
-                        </strong>{" "}
-                        {submissionDetails.student?.email || "غير معروف"}
-                      </p>
-                      <p style={{ margin: "8px 0" }}>
-                        <strong style={{ color: "#1976d2" }}>
-                          تاريخ التقديم:
-                        </strong>{" "}
-                        {submissionDetails.submittedAt
-                          ? new Date(
-                              submissionDetails.submittedAt
-                            ).toLocaleString("ar-SA")
-                          : "غير معروف"}
-                      </p>
-                    </div>
-
-                    <div
-                      className="score-info"
-                      style={{
-                        backgroundColor: "#e3f2fd",
-                        padding: "16px",
-                        borderRadius: "8px",
-                        marginBottom: "20px",
-                        textAlign: "center",
-                      }}
-                    >
-                      <p style={{ margin: "8px 0", fontSize: "18px" }}>
-                        <strong style={{ color: "#1976d2" }}>الدرجة:</strong>{" "}
-                        {submissionDetails.score || 0} من{" "}
-                        {submissionDetails.totalMarks || 0}
-                      </p>
-                      <p style={{ margin: "8px 0", fontSize: "18px" }}>
-                        <strong style={{ color: "#1976d2" }}>
-                          النسبة المئوية:
-                        </strong>{" "}
-                        {submissionDetails.percentage
-                          ? submissionDetails.percentage.toFixed(1)
-                          : 0}
-                        %
-                      </p>
-                      <p style={{ margin: "8px 0", fontSize: "18px" }}>
-                        <strong style={{ color: "#1976d2" }}>التقدير:</strong>{" "}
-                        {submissionDetails.gradeText || "لم يتم التقدير"}
-                      </p>
-                      <p style={{ margin: "8px 0", fontSize: "18px" }}>
-                        <strong style={{ color: "#1976d2" }}>الحالة:</strong>{" "}
-                        <span
-                          className={`status ${
-                            submissionDetails.status === "تم التقدير"
-                              ? "success"
-                              : ""
-                          }`}
-                          style={{
-                            backgroundColor:
-                              submissionDetails.status === "تم التقدير"
-                                ? "#4caf50"
-                                : "#f44336",
-                            color: "white",
-                            padding: "4px 12px",
-                            borderRadius: "16px",
-                            fontSize: "14px",
+                      الإجابات
+                    </Typography>
+                    <List sx={{ p: 2 }}>
+                      {submissionDetails.answers.map((answer, index) => (
+                        <ListItem
+                          key={index}
+                          sx={{
+                            mb: 2,
+                            bgcolor: "grey.50",
+                            borderRadius: 1,
+                            flexDirection: "column",
+                            alignItems: "flex-start",
                           }}
                         >
-                          {submissionDetails.status || "لم يتم التقدير"}
-                        </span>
-                      </p>
-                    </div>
-
-                    {submissionDetails.answers &&
-                      submissionDetails.answers.length > 0 && (
-                        <div
-                          className="answers-section"
-                          style={{
-                            backgroundColor: "#f5f5f5",
-                            padding: "16px",
-                            borderRadius: "8px",
-                          }}
-                        >
-                          <h4
-                            style={{
-                              textAlign: "center",
-                              color: "#1976d2",
-                              marginBottom: "20px",
-                              fontSize: "20px",
-                              borderBottom: "2px solid #1976d2",
-                              paddingBottom: "8px",
+                          <Typography
+                            variant="subtitle1"
+                            sx={{
+                              color: "primary.main",
+                              mb: 1,
+                              fontWeight: "bold",
                             }}
                           >
-                            الإجابات
-                          </h4>
-                          {submissionDetails.answers.map((answer, index) => (
-                            <div
-                              key={answer.questionId}
-                              className="answer-item"
-                              style={{
-                                backgroundColor: "white",
-                                padding: "16px",
-                                borderRadius: "8px",
-                                marginBottom: "16px",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                              }}
-                            >
-                              <p style={{ margin: "8px 0", fontSize: "16px" }}>
-                                <strong style={{ color: "#1976d2" }}>
-                                  السؤال {index + 1}:
-                                </strong>{" "}
-                                {answer.questionText}
-                              </p>
-                              <p style={{ margin: "8px 0", fontSize: "16px" }}>
-                                <strong style={{ color: "#1976d2" }}>
-                                  إجابة الطالب:
-                                </strong>{" "}
-                                {answer.answer?.selectedOption ||
-                                  answer.answer?.textAnswer ||
-                                  "لم يتم الإجابة"}
-                              </p>
-                              <p style={{ margin: "8px 0", fontSize: "16px" }}>
-                                <strong style={{ color: "#1976d2" }}>
-                                  الإجابة الصحيحة:
-                                </strong>{" "}
-                                {answer.correctAnswer}
-                              </p>
-                              <p style={{ margin: "8px 0", fontSize: "16px" }}>
-                                <strong style={{ color: "#1976d2" }}>
-                                  الدرجة:
-                                </strong>{" "}
-                                {answer.score || 0} من {answer.maxScore || 0}
-                              </p>
-                              {answer.feedback && (
-                                <p
-                                  style={{ margin: "8px 0", fontSize: "16px" }}
-                                >
-                                  <strong style={{ color: "#1976d2" }}>
-                                    التغذية الراجعة:
-                                  </strong>{" "}
-                                  {answer.feedback}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                  </div>
+                            السؤال {index + 1}
+                          </Typography>
+                          <Typography variant="body1" sx={{ mb: 1 }}>
+                            {answer.questionText}
+                          </Typography>
+                          <Box
+                            sx={{
+                              width: "100%",
+                              p: 1,
+                              bgcolor: "white",
+                              borderRadius: 1,
+                              border: "1px solid",
+                              borderColor: "divider",
+                            }}
+                          >
+                            <Typography variant="body2" sx={{ mb: 1 }}>
+                              <strong>الإجابة:</strong>{" "}
+                              {typeof answer.answer === "object"
+                                ? answer.answer.selectedOption ||
+                                  answer.answer.textAnswer ||
+                                  "لم يتم الإجابة"
+                                : answer.answer || "لم يتم الإجابة"}
+                            </Typography>
+                            <Typography variant="body2" sx={{ mb: 1 }}>
+                              <strong>الدرجة:</strong> {answer.score} من{" "}
+                              {answer.maxScore}
+                            </Typography>
+                            {answer.feedback && (
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "text.secondary",
+                                  fontStyle: "italic",
+                                }}
+                              >
+                                <strong>التغذية الراجعة:</strong>{" "}
+                                {answer.feedback}
+                              </Typography>
+                            )}
+                          </Box>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
                 )}
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setViewDialogOpen(false)}>إغلاق</Button>
-              <Button onClick={handlePrint} startIcon={<PrintIcon />}>
-                طباعة
-              </Button>
-            </DialogActions>
-          </Dialog>
-        </>
-      )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, bgcolor: "grey.50" }}>
+          <Button
+            onClick={() => setViewDialogOpen(false)}
+            variant="contained"
+            sx={{
+              borderRadius: 2,
+              px: 3,
+            }}
+          >
+            إغلاق
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
