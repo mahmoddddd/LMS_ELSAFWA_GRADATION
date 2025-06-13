@@ -34,8 +34,9 @@ const LoadingMyEnrollments = () => {
         );
 
         // Call the backend to handle successful payment
-        const { data } = await axios.get(
-          `${backendUrl}/user/handle-successful-payment?session_id=${sessionId}`,
+        const { data } = await axios.post(
+          `${backendUrl}/user/handle-payment-success`,
+          { session_id: sessionId },
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -46,20 +47,26 @@ const LoadingMyEnrollments = () => {
 
         if (data.success) {
           console.log("✅ Payment processed successfully");
+          // Show success message and wait a bit before redirecting
           toast.success("Payment completed successfully!");
-          // Redirect to my enrollments with refresh parameter
-          navigate("/my-enrollments?refresh=true");
+          setTimeout(() => {
+            navigate("/my-enrollments?refresh=true");
+          }, 1500);
         } else {
           console.error("❌ Failed to process payment:", data.message);
           toast.error(data.message || "Failed to process payment");
-          navigate("/my-enrollments");
+          setTimeout(() => {
+            navigate("/my-enrollments");
+          }, 1500);
         }
       } catch (error) {
         console.error("❌ Error processing payment:", error);
         toast.error(
           error.response?.data?.message || "Failed to process payment"
         );
-        navigate("/my-enrollments");
+        setTimeout(() => {
+          navigate("/my-enrollments");
+        }, 1500);
       } finally {
         setLoading(false);
       }

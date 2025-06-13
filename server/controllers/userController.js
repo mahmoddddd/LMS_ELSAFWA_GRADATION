@@ -255,7 +255,7 @@ export const purchaseCourse = async (req, res) => {
 // Add new endpoint to handle successful payment
 export const handleSuccessfulPayment = async (req, res) => {
   try {
-    const { session_id } = req.query;
+    const { session_id } = req.body;
 
     if (!session_id) {
       return res.status(400).json({
@@ -263,6 +263,8 @@ export const handleSuccessfulPayment = async (req, res) => {
         message: "Session ID is required",
       });
     }
+
+    console.log("🔄 Processing payment success for session:", session_id);
 
     const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripeInstance.checkout.sessions.retrieve(session_id);

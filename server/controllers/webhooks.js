@@ -235,9 +235,14 @@ const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 // ===== Stripe webhook handler =====
 export const stripeWebhooks = async (req, res) => {
+  console.log("🔔 Stripe webhook received");
+  console.log("Headers:", req.headers);
+  console.log("Raw body:", req.body);
+
   const sig = req.headers["stripe-signature"];
 
   if (!sig) {
+    console.error("❌ Missing stripe signature");
     return res.status(400).json({
       success: false,
       message: "Missing stripe signature",
@@ -246,12 +251,21 @@ export const stripeWebhooks = async (req, res) => {
 
   let event;
   try {
+    console.log("🔐 Verifying webhook signature");
+    console.log(
+      "Webhook secret:",
+      process.env.STRIPE_WEBHOOK_SECRET ? "Present" : "Missing"
+    );
     event = stripeInstance.webhooks.constructEvent(
       req.body,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
+    console.log("✅ Webhook signature verified");
+    console.log("📦 Event type:", event.type);
+    console.log("📦 Event data:", JSON.stringify(event.data.object, null, 2));
   } catch (err) {
+    console.error("❌ Webhook signature verification failed:", err.message);
     return res.status(400).json({
       success: false,
       message: `Webhook Error: ${err.message}`,
@@ -263,6 +277,7 @@ export const stripeWebhooks = async (req, res) => {
       console.log("🔄 Processing checkout.session.completed event");
       const session = event.data.object;
       console.log("Session data:", JSON.stringify(session, null, 2));
+      console.log("Session metadata:", session.metadata);
 
       const { purchaseId, clerkUserId, courseId } = session.metadata;
       console.log("Extracted metadata:", { purchaseId, clerkUserId, courseId });
