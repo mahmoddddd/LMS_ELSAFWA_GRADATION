@@ -376,14 +376,14 @@ export const AppContextProvider = ({ children }) => {
 
   // Function to calculate the total duration of a course
   const calculateCourseDuration = (course) => {
-    if (!course?.courseContent) return "0h 0m";
+    if (!course?.courseContent) return 0;
     let totalDuration = 0;
     course.courseContent.forEach((chapter) => {
       chapter.chapterContent.forEach((lecture) => {
         totalDuration += lecture.lectureDuration;
       });
     });
-    return humanizeDuration(totalDuration * 60 * 1000, { units: ["h", "m"] });
+    return totalDuration;
   };
 
   // Function to calculate the total duration of a chapter

@@ -323,7 +323,10 @@ const CourseDetails = () => {
                     </span>
                   </div>
                   <div className="text-sm text-gray-600">
-                    {totalLectures} lectures • {courseDuration}
+                    {totalLectures} lectures •{" "}
+                    {humanizeDuration(courseDuration * 60 * 1000, {
+                      units: ["h", "m"],
+                    })}
                   </div>
                 </div>
               </div>
@@ -433,10 +436,8 @@ const CourseDetails = () => {
                                   </div>
                                   <span className="text-sm text-gray-500">
                                     {humanizeDuration(
-                                      lecture.lectureDuration * 1000,
-                                      {
-                                        language: "ar",
-                                      }
+                                      lecture.lectureDuration * 60 * 1000,
+                                      { units: ["h", "m"] }
                                     )}
                                   </span>
                                 </div>
