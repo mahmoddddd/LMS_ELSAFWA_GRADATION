@@ -224,6 +224,12 @@ export const submitQuiz = async (req, res) => {
     const { answers } = req.body;
     const studentId = getClerkId(req);
 
+    console.log("Received submission request:", {
+      quizId,
+      studentId,
+      answers,
+    });
+
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
       return res.status(404).json({
@@ -259,7 +265,10 @@ export const submitQuiz = async (req, res) => {
         const question = quiz.questions.find(
           (q) => q._id.toString() === answer.questionId
         );
-        if (!question) return null;
+        if (!question) {
+          console.log("Question not found for answer:", answer);
+          return null;
+        }
 
         let score = 0;
         let isCorrect = false;
@@ -299,6 +308,9 @@ export const submitQuiz = async (req, res) => {
       })
       .filter(Boolean);
 
+    console.log("Graded answers:", gradedAnswers);
+    console.log("Total score:", totalScore);
+
     // Calculate percentage and grade
     const percentage = (totalScore / quiz.totalMarks) * 100;
     let gradeText = "راسب";
@@ -319,9 +331,13 @@ export const submitQuiz = async (req, res) => {
       submittedAt: new Date(),
     };
 
+    console.log("Created submission:", submission);
+
     // Add submission to quiz
     quiz.submissions.push(submission);
     await quiz.save();
+
+    console.log("Saved submission to database");
 
     res.json({
       success: true,

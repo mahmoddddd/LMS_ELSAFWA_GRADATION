@@ -23,6 +23,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { AppContext } from "../../../context/AppContext";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DownloadIcon from "@mui/icons-material/Download";
+import NavigationButtons from "../../../components/NavigationButtons";
 
 const TakeQuiz = () => {
   const { quizId } = useParams();
@@ -121,7 +122,7 @@ const TakeQuiz = () => {
       const token = await getToken();
 
       if (quiz.isFileQuiz) {
-        // إذا كان الامتحان ملف، قم بإنشاء FormData
+        // Handle file quiz submission
         const formData = new FormData();
         formData.append("quizId", quizId);
         formData.append("answerFile", answerFile);
@@ -141,18 +142,20 @@ const TakeQuiz = () => {
           navigate("/my-quizzes");
         }
       } else {
-        // إذا كان الامتحان عادي
-        const formattedAnswers = Object.entries(answers)
-          .map(([questionId, answer]) => {
-            const question = quiz.questions.find((q) => q._id === questionId);
+        // Handle regular quiz submission
+        const formattedAnswers = quiz.questions
+          .map((question) => {
+            const answer = answers[question._id];
+            if (!answer) return null;
+
             if (question.questionType === "multiple_choice") {
               return {
-                questionId,
+                questionId: question._id,
                 selectedOption: answer.answer,
               };
             } else if (question.questionType === "text") {
               return {
-                questionId,
+                questionId: question._id,
                 textAnswer: answer.answer,
               };
             }
@@ -160,7 +163,7 @@ const TakeQuiz = () => {
           })
           .filter(Boolean);
 
-        console.log("Sending answers:", formattedAnswers); // للتأكد من صحة البيانات
+        console.log("Sending answers:", formattedAnswers);
 
         const response = await axios.post(
           `${backendUrl}/api/quiz/${quizId}/submit`,
@@ -176,12 +179,13 @@ const TakeQuiz = () => {
         );
 
         if (response.data.success) {
-          console.log("Submission response:", response.data); // للتأكد من استجابة الخادم
+          console.log("Submission response:", response.data);
           navigate("/my-quizzes");
         }
       }
     } catch (error) {
-      setError("حدث خطأ أثناء تقديم الإجابات");
+      console.error("Error submitting quiz:", error);
+      setError(error.response?.data?.message || "حدث خطأ أثناء تقديم الإجابات");
     } finally {
       setSubmitting(false);
     }
@@ -380,16 +384,15 @@ const TakeQuiz = () => {
           </Box>
         )}
 
-        <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSubmit}
-            disabled={submitting}
-          >
-            {submitting ? <CircularProgress size={24} /> : "تقديم الإجابات"}
-          </Button>
-        </Box>
+        <NavigationButtons
+          backPath="/my-quizzes"
+          forwardPath={null}
+          backText="العودة للاختبارات"
+          showHome={true}
+          onForwardClick={handleSubmit}
+          forwardText="تقديم الاختبار"
+          disabled={submitting}
+        />
       </Paper>
     </Container>
   );
