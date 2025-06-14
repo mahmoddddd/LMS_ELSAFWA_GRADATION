@@ -19,6 +19,7 @@ const CourseDetails = () => {
   const [playerData, setPlayerData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [quizCount, setQuizCount] = useState(0);
 
   const {
     allCourses,
@@ -44,6 +45,18 @@ const CourseDetails = () => {
       }
     } catch (error) {
       toast.error(error.message);
+    }
+  };
+
+  const fetchQuizCount = async () => {
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/quiz/course/${id}`);
+      if (data.success) {
+        setQuizCount(data.quizzes.length);
+      }
+    } catch (error) {
+      console.error("Error fetching quiz count:", error);
+      setQuizCount(0);
     }
   };
 
@@ -117,6 +130,13 @@ const CourseDetails = () => {
       setIsAlreadyEnrolled(isEnrolled);
     }
   }, [userData, courseData, enrolledCourses]);
+
+  // Add useEffect to fetch quiz count when course data is loaded
+  useEffect(() => {
+    if (courseData) {
+      fetchQuizCount();
+    }
+  }, [courseData]);
 
   // Modified enroll function with better error handling
   const enrollCourse = async () => {
@@ -507,27 +527,29 @@ const CourseDetails = () => {
                           </svg>
                           Continue Learning
                         </button>
-                        <button
-                          onClick={() =>
-                            navigate(`/course/${courseData._id}/quizzes`)
-                          }
-                          className="w-full bg-white text-gray-900 border border-gray-300 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 font-medium"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        {quizCount > 0 && (
+                          <button
+                            onClick={() =>
+                              navigate(`/course/${courseData._id}/quizzes`)
+                            }
+                            className="w-full bg-white text-gray-900 border border-gray-300 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 font-medium"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                            />
-                          </svg>
-                          Take Quizzes
-                        </button>
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                              />
+                            </svg>
+                            Take Quizzes ({quizCount})
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <button

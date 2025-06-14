@@ -85,6 +85,37 @@ const StudentQuizAnalytics = () => {
     );
   }
 
+  // Check if there are no completed quizzes
+  const hasCompletedQuizzes = analytics?.completedQuizzes && analytics.completedQuizzes.length > 0;
+
+  if (!hasCompletedQuizzes) {
+    return (
+      <Box p={3}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          تحليلات الاختبارات
+        </Typography>
+        <Card>
+          <CardContent>
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              justifyContent="center"
+              py={8}
+            >
+              <Typography variant="h6" color="textSecondary" gutterBottom>
+                لا توجد اختبارات مكتملة بعد
+              </Typography>
+              <Typography variant="body1" color="textSecondary" textAlign="center">
+                عندما تقوم بإجراء اختبارات في الدورات المسجلة، ستظهر تحليلاتك هنا
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+    );
+  }
+
   return (
     <Box p={3}>
       <Typography variant="h4" component="h1" gutterBottom>
