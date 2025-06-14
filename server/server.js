@@ -19,7 +19,13 @@ import quizRouter from "./routes/quiz.js";
 const app = express();
 // https://lms-backend-omega-two.vercel.app/
 // Enable CORS first
-app.use(cors()
+
+// تفعيل CORS لأي دومين
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 
 // تسجيل الطلبات للدباج
 app.use((req, res, next) => {
