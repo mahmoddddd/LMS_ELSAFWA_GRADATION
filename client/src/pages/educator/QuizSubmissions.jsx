@@ -25,6 +25,8 @@ import {
   Grid,
   Container,
   Chip,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/clerk-react";
@@ -37,6 +39,9 @@ const QuizSubmissions = () => {
   const navigate = useNavigate();
   const { getToken } = useAuth();
   const { user } = useUser();
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const getGradeColor = (gradeText) => {
     console.log("Grade Text received:", gradeText);
@@ -410,18 +415,18 @@ const QuizSubmissions = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Container maxWidth="lg" sx={{ mt: 4, p: isMobile ? 1 : 3 }}>
+      <Typography variant={isMobile ? "h5" : "h4"} component="h1" gutterBottom>
         {quiz?.title} - تقديمات الاختبار
       </Typography>
 
       <TableContainer component={Paper}>
-        <Table>
+        <Table size={isMobile ? "small" : "medium"}>
           <TableHead>
             <TableRow>
               <TableCell>الطالب</TableCell>
-              <TableCell>الدرجة</TableCell>
-              <TableCell>النسبة المئوية</TableCell>
+              {!isMobile && <TableCell>الدرجة</TableCell>}
+              {!isMobile && <TableCell>النسبة المئوية</TableCell>}
               <TableCell>التقدير</TableCell>
               <TableCell>الحالة</TableCell>
               <TableCell>الإجراءات</TableCell>
@@ -429,38 +434,44 @@ const QuizSubmissions = () => {
           </TableHead>
           <TableBody>
             {submissions.map((submission) => {
-              console.log("Rendering submission row:", submission); // Debug log
+              console.log("Rendering submission row:", submission);
               return (
                 <TableRow key={submission.student}>
                   <TableCell>
                     {studentNames[submission.student] || "طالب غير معروف"}
                   </TableCell>
-                  <TableCell>
-                    {submission.score} من {submission.totalMarks}
-                  </TableCell>
-                  <TableCell>{submission.percentage}%</TableCell>
+                  {!isMobile && (
+                    <TableCell>
+                      {submission.score} من {submission.totalMarks}
+                    </TableCell>
+                  )}
+                  {!isMobile && <TableCell>{submission.percentage}%</TableCell>}
                   <TableCell>
                     <Chip
                       label={submission.gradeText || "غير محدد"}
                       color={getGradeColor(submission.gradeText)}
-                      size="small"
+                      size={isMobile ? "small" : "medium"}
                     />
                   </TableCell>
                   <TableCell>
                     <Chip
                       label={submission.status || "غير محدد"}
                       color={submission.status === "ناجح" ? "success" : "error"}
-                      size="small"
+                      size={isMobile ? "small" : "medium"}
                     />
                   </TableCell>
                   <TableCell>
                     <Button
                       variant="outlined"
-                      size="small"
+                      size={isMobile ? "small" : "medium"}
                       onClick={() => handleViewSubmission(submission)}
-                      startIcon={<VisibilityIcon />}
+                      startIcon={
+                        <VisibilityIcon
+                          fontSize={isMobile ? "small" : "medium"}
+                        />
+                      }
                     >
-                      عرض التفاصيل
+                      {isMobile ? "عرض" : "عرض التفاصيل"}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -475,9 +486,10 @@ const QuizSubmissions = () => {
         onClose={() => setViewDialogOpen(false)}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
         PaperProps={{
           sx: {
-            borderRadius: 2,
+            borderRadius: isMobile ? 0 : 2,
             boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
           },
         }}
@@ -486,43 +498,43 @@ const QuizSubmissions = () => {
           sx={{
             bgcolor: "#2196f3",
             color: "white",
-            py: 2,
+            py: isMobile ? 1 : 2,
             textAlign: "center",
-            fontSize: "1.5rem",
+            fontSize: isMobile ? "1.2rem" : "1.5rem",
             fontWeight: "bold",
           }}
         >
           تفاصيل التقديم
         </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
+        <DialogContent sx={{ p: isMobile ? 1 : 3 }}>
           {submissionDetails && (
             <Box>
               <Box
                 sx={{
-                  mb: 4,
-                  p: 2,
+                  mb: isMobile ? 2 : 4,
+                  p: isMobile ? 1 : 2,
                   bgcolor: "#f5f5f5",
                   borderRadius: 2,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                 }}
               >
                 <Typography
-                  variant="h5"
+                  variant={isMobile ? "h6" : "h5"}
                   gutterBottom
                   sx={{
                     color: "#2196f3",
                     fontWeight: "bold",
-                    mb: 2,
+                    mb: isMobile ? 1 : 2,
                     textAlign: "center",
                   }}
                 >
                   {submissionDetails.quizTitle}
                 </Typography>
-                <Grid container spacing={2}>
+                <Grid container spacing={isMobile ? 1 : 2}>
                   <Grid item xs={12} md={6}>
                     <Box
                       sx={{
-                        p: 2,
+                        p: isMobile ? 1 : 2,
                         bgcolor: "white",
                         borderRadius: 1,
                         height: "100%",
@@ -558,7 +570,7 @@ const QuizSubmissions = () => {
                   <Grid item xs={12} md={6}>
                     <Box
                       sx={{
-                        p: 2,
+                        p: isMobile ? 1 : 2,
                         bgcolor: "white",
                         borderRadius: 1,
                         height: "100%",
@@ -592,7 +604,7 @@ const QuizSubmissions = () => {
                         <Chip
                           label={submissionDetails.gradeText}
                           color={getGradeColor(submissionDetails.gradeText)}
-                          size="small"
+                          size={isMobile ? "small" : "medium"}
                           sx={{ fontWeight: "bold" }}
                         />
                       </Box>
@@ -614,7 +626,7 @@ const QuizSubmissions = () => {
                               ? "success"
                               : "error"
                           }
-                          size="small"
+                          size={isMobile ? "small" : "medium"}
                           sx={{ fontWeight: "bold" }}
                         />
                       </Box>
@@ -627,16 +639,16 @@ const QuizSubmissions = () => {
                 submissionDetails.answers.length > 0 && (
                   <Box
                     sx={{
-                      mt: 3,
+                      mt: isMobile ? 1 : 3,
                       bgcolor: "#f5f5f5",
                       borderRadius: 2,
                       boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                     }}
                   >
                     <Typography
-                      variant="h6"
+                      variant={isMobile ? "subtitle1" : "h6"}
                       sx={{
-                        p: 2,
+                        p: isMobile ? 1 : 2,
                         bgcolor: "#2196f3",
                         color: "white",
                         borderRadius: "8px 8px 0 0",
@@ -645,17 +657,18 @@ const QuizSubmissions = () => {
                     >
                       الإجابات
                     </Typography>
-                    <List sx={{ p: 2 }}>
+                    <List sx={{ p: isMobile ? 0 : 2 }}>
                       {submissionDetails.answers.map((answer, index) => (
                         <ListItem
                           key={index}
                           sx={{
-                            mb: 2,
+                            mb: isMobile ? 1 : 2,
                             bgcolor: "white",
                             borderRadius: 1,
                             flexDirection: "column",
                             alignItems: "flex-start",
                             border: "1px solid #e0e0e0",
+                            p: isMobile ? 1 : 2,
                           }}
                         >
                           <Typography
@@ -664,14 +677,21 @@ const QuizSubmissions = () => {
                               color: "#2196f3",
                               mb: 1,
                               fontWeight: "bold",
+                              fontSize: isMobile ? "0.9rem" : "1rem",
                             }}
                           >
                             السؤال {index + 1}
                           </Typography>
-                          <Typography variant="body1" sx={{ mb: 1 }}>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              mb: 1,
+                              fontSize: isMobile ? "0.8rem" : "0.9rem",
+                            }}
+                          >
                             {answer.questionText}
                           </Typography>
-                          <Grid container spacing={2}>
+                          <Grid container spacing={isMobile ? 0.5 : 2}>
                             <Grid item xs={12} md={6}>
                               <Box
                                 sx={{
@@ -688,11 +708,18 @@ const QuizSubmissions = () => {
                                     color: "#2196f3",
                                     mb: 1,
                                     fontWeight: "bold",
+                                    fontSize: isMobile ? "0.8rem" : "0.9rem",
                                   }}
                                 >
                                   إجابة الطالب
                                 </Typography>
-                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    mb: 1,
+                                    fontSize: isMobile ? "0.8rem" : "0.9rem",
+                                  }}
+                                >
                                   {typeof answer.answer === "object"
                                     ? answer.answer.selectedOption ||
                                       answer.answer.textAnswer ||
@@ -706,6 +733,7 @@ const QuizSubmissions = () => {
                                       ? "#4caf50"
                                       : "#f44336",
                                     fontWeight: "bold",
+                                    fontSize: isMobile ? "0.8rem" : "0.9rem",
                                   }}
                                 >
                                   {answer.isCorrect
@@ -730,11 +758,18 @@ const QuizSubmissions = () => {
                                     color: "#2196f3",
                                     mb: 1,
                                     fontWeight: "bold",
+                                    fontSize: isMobile ? "0.8rem" : "0.9rem",
                                   }}
                                 >
                                   الإجابة الصحيحة
                                 </Typography>
-                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    mb: 1,
+                                    fontSize: isMobile ? "0.8rem" : "0.9rem",
+                                  }}
+                                >
                                   {answer.correctAnswer || "غير متوفر"}
                                 </Typography>
                                 <Typography
@@ -742,6 +777,7 @@ const QuizSubmissions = () => {
                                   sx={{
                                     color: "#757575",
                                     fontStyle: "italic",
+                                    fontSize: isMobile ? "0.8rem" : "0.9rem",
                                   }}
                                 >
                                   الدرجة: {answer.score} من {answer.maxScore}
@@ -765,6 +801,7 @@ const QuizSubmissions = () => {
                                 sx={{
                                   color: "#2196f3",
                                   fontStyle: "italic",
+                                  fontSize: isMobile ? "0.8rem" : "0.9rem",
                                 }}
                               >
                                 <strong>التغذية الراجعة:</strong>{" "}
@@ -780,18 +817,19 @@ const QuizSubmissions = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, bgcolor: "#f5f5f5", gap: 2 }}>
+        <DialogActions sx={{ p: isMobile ? 1 : 2, bgcolor: "#f5f5f5", gap: 1 }}>
           <Button
             variant="contained"
-            startIcon={<PrintIcon />}
-            onClick={() => window.print()}
+            startIcon={<PrintIcon fontSize={isMobile ? "small" : "medium"} />}
+            onClick={handlePrint}
             sx={{
               borderRadius: 2,
-              px: 3,
+              px: isMobile ? 1 : 3,
               bgcolor: "#2196f3",
               "&:hover": {
                 bgcolor: "#1976d2",
               },
+              fontSize: isMobile ? "0.8rem" : "0.9rem",
             }}
           >
             طباعة
@@ -801,11 +839,12 @@ const QuizSubmissions = () => {
             variant="contained"
             sx={{
               borderRadius: 2,
-              px: 3,
+              px: isMobile ? 1 : 3,
               bgcolor: "#2196f3",
               "&:hover": {
                 bgcolor: "#1976d2",
               },
+              fontSize: isMobile ? "0.8rem" : "0.9rem",
             }}
           >
             إغلاق

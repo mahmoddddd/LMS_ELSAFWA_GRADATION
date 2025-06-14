@@ -48,9 +48,12 @@ const EditCourse = () => {
   const fetchCourseData = async () => {
     try {
       const token = await getToken();
-      const { data } = await axios.get(`${backendUrl}/api/educator/course/${courseId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const { data } = await axios.get(
+        `${backendUrl}/api/educator/course/${courseId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (data.success) {
         const courseData = data.course;
@@ -58,25 +61,29 @@ const EditCourse = () => {
         setCourseTitle(courseData.courseTitle);
         setCoursePrice(courseData.coursePrice);
         setDiscount(courseData.discount);
-        
+
         // Set chapters with collapsed state
-        const chaptersWithCollapsed = courseData.courseContent.map(chapter => ({
-          ...chapter,
-          collapsed: false
-        }));
+        const chaptersWithCollapsed = courseData.courseContent.map(
+          (chapter) => ({
+            ...chapter,
+            collapsed: false,
+          })
+        );
         setChapters(chaptersWithCollapsed);
-        
+
         // Set description in Quill editor if it's already initialized
         if (quillRef.current) {
           quillRef.current.root.innerHTML = courseData.courseDescription;
         }
       } else {
         toast.error(data.message);
-        navigate('/educator/my-courses');
+        navigate("/educator/my-courses");
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to fetch course data");
-      navigate('/educator/my-courses');
+      toast.error(
+        error.response?.data?.message || "Failed to fetch course data"
+      );
+      navigate("/educator/my-courses");
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +96,7 @@ const EditCourse = () => {
 
     if (!user) {
       toast.error("Please sign in to edit a course");
-      navigate('/educator/my-courses');
+      navigate("/educator/my-courses");
       return;
     }
   }, [isUserLoaded, isAuthLoaded, user, navigate]);
@@ -100,7 +107,7 @@ const EditCourse = () => {
       quillRef.current = new Quill(editorRef.current, {
         theme: "snow",
       });
-      
+
       // Set the content if course data is already loaded
       if (course && course.courseDescription) {
         quillRef.current.root.innerHTML = course.courseDescription;
@@ -239,7 +246,9 @@ const EditCourse = () => {
     }
 
     if (!quillRef.current) {
-      toast.error("Editor not initialized. Please refresh the page and try again.");
+      toast.error(
+        "Editor not initialized. Please refresh the page and try again."
+      );
       return;
     }
 
@@ -284,13 +293,16 @@ const EditCourse = () => {
 
       if (data.success) {
         toast.success(data.message);
-        navigate('/educator/my-courses');
+        navigate("/educator/my-courses");
       } else {
         throw new Error(data.message || "Failed to update course");
       }
     } catch (error) {
       console.error("Error updating course:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to update course. Please try again.";
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to update course. Please try again.";
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -302,60 +314,68 @@ const EditCourse = () => {
   }
 
   return (
-    <div className="flex md:flex-row flex-col-reverse gap-10 relative items-start justify-between md:px-36 px-8 md:pt-20 pt-10">
+    <div className="flex md:flex-row flex-col-reverse gap-10 relative items-start justify-between md:px-36 px-4 md:pt-20 pt-4">
       {/* Form Section */}
-      <div className="max-w-xl w-full text-gray-700 border border-gray-300 p-6 rounded-lg shadow-md bg-white">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">Edit Course</h2>
+      <div className="max-w-xl w-full text-gray-700 border border-gray-300 p-4 md:p-6 rounded-lg shadow-md bg-white">
+        <div className="flex items-center justify-between mb-4 md:mb-6">
+          <h2 className="text-lg md:text-xl font-semibold">Edit Course</h2>
           <button
-            onClick={() => navigate('/educator/my-courses')}
-            className="text-gray-500 hover:text-gray-700"
+            onClick={() => navigate("/educator/my-courses")}
+            className="text-gray-500 hover:text-gray-700 text-sm md:text-base"
           >
             ← Back to My Courses
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 md:gap-5">
           {/* Course Title */}
           <div>
-            <label className="font-medium">Course Title</label>
+            <label className="font-medium text-sm md:text-base">
+              Course Title
+            </label>
             <input
               type="text"
               value={courseTitle}
               onChange={(e) => setCourseTitle(e.target.value)}
               placeholder="Type here"
-              className="w-full outline-none py-2 px-3 rounded border border-gray-400 mt-1"
+              className="w-full outline-none py-2 px-3 rounded border border-gray-400 mt-1 text-sm md:text-base"
               required
             />
           </div>
 
           {/* Course Description */}
           <div>
-            <label className="font-medium">Course Description</label>
+            <label className="font-medium text-sm md:text-base">
+              Course Description
+            </label>
             <div
               ref={editorRef}
-              className="border border-gray-400 rounded p-2"
+              className="border border-gray-400 rounded p-2 h-40 md:h-auto"
             ></div>
           </div>
 
           {/* Course Price & Thumbnail */}
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             {/* Course Price */}
             <div className="flex flex-col">
-              <label className="font-medium">Course Price</label>
+              <label className="font-medium text-sm md:text-base">
+                Course Price
+              </label>
               <input
                 type="number"
                 value={coursePrice}
                 onChange={(e) => setCoursePrice(e.target.value)}
                 placeholder="0"
-                className="outline-none py-2 px-3 rounded border border-gray-400 w-32"
+                className="outline-none py-2 px-3 rounded border border-gray-400 w-full md:w-32 text-sm md:text-base"
                 required
               />
             </div>
 
             {/* Course Thumbnail */}
             <div>
-              <label className="font-medium">Course Thumbnail</label>
+              <label className="font-medium text-sm md:text-base">
+                Course Thumbnail
+              </label>
               <label
                 htmlFor="thumbnailImage"
                 className="flex items-center gap-3 cursor-pointer"
@@ -363,7 +383,7 @@ const EditCourse = () => {
                 <img
                   src={assets.file_upload_icon}
                   alt="upload icon"
-                  className="p-3 bg-blue-500 rounded-lg hover:bg-blue-600 transition"
+                  className="p-2 md:p-3 bg-blue-500 rounded-lg hover:bg-blue-600 transition w-10 h-10"
                 />
                 <input
                   type="file"
@@ -374,13 +394,13 @@ const EditCourse = () => {
                 />
                 {image ? (
                   <img
-                    className="h-10 rounded-md"
+                    className="h-8 md:h-10 rounded-md"
                     src={URL.createObjectURL(image)}
                     alt="Thumbnail preview"
                   />
                 ) : course?.courseThumbnail ? (
                   <img
-                    className="h-10 rounded-md"
+                    className="h-8 md:h-10 rounded-md"
                     src={course.courseThumbnail}
                     alt="Current thumbnail"
                   />
@@ -392,7 +412,9 @@ const EditCourse = () => {
           {/* Discount Input */}
           <div>
             <div>
-              <label className="font-medium">Discount %</label>
+              <label className="font-medium text-sm md:text-base">
+                Discount %
+              </label>
             </div>
 
             <input
@@ -402,7 +424,7 @@ const EditCourse = () => {
               placeholder="0"
               min={0}
               max={100}
-              className="outline-none py-2 px-3 rounded border border-gray-400 w-28"
+              className="outline-none py-2 px-3 rounded border border-gray-400 w-full md:w-28 text-sm md:text-base"
               required
             />
           </div>
@@ -414,8 +436,8 @@ const EditCourse = () => {
                 key={chapterIndex}
                 className="bg-white border rounded-lg mb-4"
               >
-                <div className="flex justify-between items-center p-4 border-b">
-                  <div className="flex items-center">
+                <div className="flex justify-between items-center p-3 md:p-4 border-b">
+                  <div className="flex items-center overflow-hidden">
                     <img
                       onClick={() => handleChapter("toggle", chapter.chapterId)}
                       src={assets.dropdown_icon}
@@ -424,30 +446,34 @@ const EditCourse = () => {
                       className={`mr-2 cursor-pointer transition-all ${chapter.collapsed &&
                         "-rotate-90"}`}
                     />
-                    <span className="font-semibold">
+                    <span className="font-semibold text-sm md:text-base truncate">
                       {chapterIndex + 1}. {chapter.chapterTitle}
                     </span>
                   </div>
-                  <span className="text-gray-500">
-                    {chapter.chapterContent.length} Lectures
-                  </span>
-                  <img
-                    onClick={() => handleChapter("remove", chapter.chapterId)}
-                    src={assets.cross_icon}
-                    alt="cross icon"
-                    className="cursor-pointer"
-                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 text-xs md:text-sm">
+                      {chapter.chapterContent.length} Lectures
+                    </span>
+                    <img
+                      onClick={() => handleChapter("remove", chapter.chapterId)}
+                      src={assets.cross_icon}
+                      alt="cross icon"
+                      className="cursor-pointer w-4 h-4"
+                    />
+                  </div>
                 </div>
                 {!chapter.collapsed && (
-                  <div className="p-4">
+                  <div className="p-3 md:p-4">
                     {chapter.chapterContent.map((lecture, lectureIndex) => (
                       <div
                         key={lectureIndex}
-                        className="flex justify-between items-center mb-2"
+                        className="flex justify-between items-center mb-2 text-xs md:text-sm"
                       >
-                        <span>
-                          {lectureIndex + 1}. {lecture.lectureTitle} -{" "}
-                          {lecture.lectureDuration} mins -{" "}
+                        <div className="flex-1 truncate pr-2">
+                          <span className="font-medium">
+                            {lectureIndex + 1}. {lecture.lectureTitle}
+                          </span>{" "}
+                          - {lecture.lectureDuration} mins -{" "}
                           <a
                             href={lecture.lectureUrl}
                             target="_blank"
@@ -457,7 +483,7 @@ const EditCourse = () => {
                             Video
                           </a>{" "}
                           - {lecture.isPreviewfree ? "Free preview" : "Paid"}
-                        </span>
+                        </div>
                         <img
                           src={assets.cross_icon}
                           alt="cross icon"
@@ -468,13 +494,13 @@ const EditCourse = () => {
                               lectureIndex
                             )
                           }
-                          className="cursor-pointer"
+                          className="cursor-pointer w-4 h-4"
                         />
                       </div>
                     ))}
                     <button
                       type="button"
-                      className="bg-gray-100 p-2 rounded mt-2 hover:bg-gray-200 transition"
+                      className="bg-gray-100 p-2 rounded mt-2 hover:bg-gray-200 transition w-full text-sm md:text-base"
                       onClick={() => handleLecture("add", chapter.chapterId)}
                     >
                       + Add Lectures
@@ -485,7 +511,7 @@ const EditCourse = () => {
             ))}
             <button
               type="button"
-              className="w-full bg-blue-100 p-2 rounded-lg hover:bg-blue-200 transition"
+              className="w-full bg-blue-100 p-2 rounded-lg hover:bg-blue-200 transition text-sm md:text-base"
               onClick={() => handleChapter("add")}
             >
               + Add Chapter
@@ -494,15 +520,17 @@ const EditCourse = () => {
 
           {/* Popup Modal */}
           {showPopup && (
-            <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
-              <div className="bg-white text-gray-700 p-5 rounded-lg shadow-lg w-full max-w-sm relative">
-                <h2 className="text-lg font-semibold mb-4">Add Lecture</h2>
+            <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50 p-4">
+              <div className="bg-white text-gray-700 p-4 md:p-5 rounded-lg shadow-lg w-full max-w-sm relative">
+                <h2 className="text-lg font-semibold mb-3">Add Lecture</h2>
 
-                <div className="mb-2">
-                  <label className="font-medium">Lecture Title</label>
+                <div className="mb-3">
+                  <label className="font-medium text-sm md:text-base">
+                    Lecture Title
+                  </label>
                   <input
                     type="text"
-                    className="mt-1 block w-full border rounded py-1 px-2"
+                    className="mt-1 block w-full border rounded py-1 px-2 text-sm md:text-base"
                     value={lectureDetails.lectureTitle}
                     onChange={(e) =>
                       setLectureDetails({
@@ -513,11 +541,13 @@ const EditCourse = () => {
                   />
                 </div>
 
-                <div className="mb-2">
-                  <label className="font-medium">Duration (minutes)</label>
+                <div className="mb-3">
+                  <label className="font-medium text-sm md:text-base">
+                    Duration (minutes)
+                  </label>
                   <input
                     type="number"
-                    className="mt-1 block w-full border rounded py-1 px-2"
+                    className="mt-1 block w-full border rounded py-1 px-2 text-sm md:text-base"
                     value={lectureDetails.lectureDuration}
                     onChange={(e) =>
                       setLectureDetails({
@@ -528,14 +558,16 @@ const EditCourse = () => {
                   />
                 </div>
 
-                <div className="mb-2">
-                  <label className="font-medium">Lecture Video</label>
+                <div className="mb-3">
+                  <label className="font-medium text-sm md:text-base">
+                    Lecture Video
+                  </label>
                   <div className="mt-1 flex items-center gap-3">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <img
                         src={assets.file_upload_icon}
                         alt="upload icon"
-                        className="p-3 bg-blue-500 rounded-lg hover:bg-blue-600 transition"
+                        className="p-2 md:p-3 bg-blue-500 rounded-lg hover:bg-blue-600 transition w-10 h-10"
                       />
                       <input
                         type="file"
@@ -549,7 +581,7 @@ const EditCourse = () => {
                         hidden
                       />
                       {lectureDetails.lectureVideo && (
-                        <span className="text-sm text-gray-600">
+                        <span className="text-xs md:text-sm text-gray-600 truncate max-w-xs">
                           {lectureDetails.lectureVideo.name}
                         </span>
                       )}
@@ -557,8 +589,10 @@ const EditCourse = () => {
                   </div>
                 </div>
 
-                <div className="mb-2 flex items-center">
-                  <label className="font-medium mr-2">Is Preview Free?</label>
+                <div className="mb-4 flex items-center">
+                  <label className="font-medium mr-2 text-sm md:text-base">
+                    Is Preview Free?
+                  </label>
                   <input
                     type="checkbox"
                     checked={lectureDetails.isPreviewFree}
@@ -568,23 +602,23 @@ const EditCourse = () => {
                         isPreviewFree: e.target.checked,
                       })
                     }
-                    className="scale-125"
+                    className="scale-110 md:scale-125"
                   />
                 </div>
 
                 <button
-                  className="w-full bg-blue-400 text-white px-4 py-2 rounded disabled:bg-gray-400"
+                  className="w-full bg-blue-400 text-white px-4 py-2 rounded disabled:bg-gray-400 text-sm md:text-base"
                   onClick={addLecture}
                   disabled={uploadingVideo}
                 >
-                  {uploadingVideo ? "Uploading..." : "Add"}
+                  {uploadingVideo ? "Uploading..." : "Add Lecture"}
                 </button>
 
                 <img
                   onClick={() => setShowPopup(false)}
                   src={assets.cross_icon}
                   alt="cross icon"
-                  className="absolute top-4 right-4 w-5 cursor-pointer"
+                  className="absolute top-3 right-3 w-4 md:w-5 cursor-pointer"
                 />
               </div>
             </div>
@@ -592,7 +626,7 @@ const EditCourse = () => {
 
           {/* Submit Button */}
           <button
-            className="bg-black text-white w-max py-2.5 px-8 rounded my-4 disabled:bg-gray-400"
+            className="bg-black text-white w-full md:w-max py-2 px-6 rounded my-4 disabled:bg-gray-400 text-sm md:text-base"
             disabled={isSubmitting || !user || !isUserLoaded || !isAuthLoaded}
           >
             {isSubmitting ? "Updating Course..." : "UPDATE COURSE"}
@@ -603,4 +637,4 @@ const EditCourse = () => {
   );
 };
 
-export default EditCourse; 
+export default EditCourse;

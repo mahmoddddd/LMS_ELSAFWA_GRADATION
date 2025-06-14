@@ -3,9 +3,6 @@ import { AppContext } from "../../context/AppContext";
 import { NavLink } from "react-router-dom";
 import { assets } from "../../assets/assets";
 import QuizIcon from "@mui/icons-material/Quiz";
-import AssessmentIcon from "@mui/icons-material/Assessment";
-import GradingIcon from "@mui/icons-material/Grading";
-import AnalyticsIcon from "@mui/icons-material/Analytics";
 
 const SideBar = () => {
   const { isEducator } = useContext(AppContext);
@@ -29,26 +26,44 @@ const SideBar = () => {
 
   return (
     isEducator && (
-      <div className="md:w-64 w-16 border-r min-h-screen text-base border-gray=500 py-2 flex flex-col">
+      <div
+        className="
+          w-full md:w-64 
+          border-gray-300 
+          border-t md:border-t-0 md:border-r 
+          min-h-[60px] md:min-h-screen 
+          py-2 md:py-4 
+          flex flex-row md:flex-col 
+          bg-white 
+          transition-all duration-300
+          "
+      >
         {menuItems.map((item) => (
           <NavLink
             to={item.path}
             key={item.name}
             end={item.path === "/educator"}
             className={({ isActive }) =>
-              `flex items-center md:flex-row flex-col md:justify-start justify-center py-3.5 md:px-10 gap-3 ${
-                isActive
-                  ? "bg-indigo-50 border-r-[6px] border-indigo-500/90"
-                  : "hover:bg-gray-100/90 border-r-[6px] border-white hover:border-gray-100/90"
-              }`
+              `flex items-center 
+               md:flex-row flex-col 
+               md:justify-start justify-center 
+               py-2 px-4 md:py-3.5 md:px-6 
+               gap-1 md:gap-3
+               text-gray-600 text-xs md:text-base
+               ${
+                 isActive
+                   ? "bg-indigo-50 border-b-4 border-indigo-500 font-medium md:border-b-0 md:border-r-4"
+                   : "hover:bg-gray-100 border-b-4 border-transparent hover:border-gray-300 md:border-b-0 md:border-r-4"
+               }
+               `
             }
           >
             {typeof item.icon === "string" ? (
-              <img src={item.icon} alt="" className="w-6 h-6" />
+              <img src={item.icon} alt="" className="w-5 h-5 md:w-6 md:h-6" />
             ) : (
-              <div className="w-6 h-6">{item.icon}</div>
+              <div className="w-5 h-5 md:w-6 md:h-6">{item.icon}</div>
             )}
-            <p className="md:block hidden text-center">{item.name}</p>
+            <p className="hidden md:block truncate">{item.name}</p>
           </NavLink>
         ))}
       </div>

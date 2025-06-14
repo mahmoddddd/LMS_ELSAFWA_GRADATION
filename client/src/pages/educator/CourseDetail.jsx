@@ -43,7 +43,6 @@ const CourseDetail = () => {
         setLoading(true);
         const token = await getToken();
 
-        // Fetch course details
         const courseResponse = await axios.get(
           `${backendUrl}/api/courses/${courseId}`,
           {
@@ -56,7 +55,6 @@ const CourseDetail = () => {
         if (courseResponse.data.success) {
           setCourse(courseResponse.data.course);
 
-          // Fetch course quizzes
           const quizzesResponse = await axios.get(
             `${backendUrl}/api/courses/${courseId}/quizzes`,
             {
@@ -113,7 +111,7 @@ const CourseDetail = () => {
 
   if (error) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: 4, px: { xs: 2, md: 4 } }}>
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
@@ -127,8 +125,7 @@ const CourseDetail = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
-      {/* Top Navigation Buttons */}
+    <Container maxWidth="lg" sx={{ mt: 4, px: { xs: 2, md: 4 } }}>
       <NavigationButtons
         backPath="/educator/courses"
         forwardPath={`/educator/courses/${courseId}/edit`}
@@ -152,14 +149,18 @@ const CourseDetail = () => {
                 <Chip
                   label={course?.isPublished ? "منشور" : "مسودة"}
                   color={course?.isPublished ? "success" : "default"}
-                  sx={{ mr: 1 }}
+                  sx={{ mr: 1, mb: 1 }}
                 />
                 <Chip
                   label={`${course?.enrolledStudents?.length || 0} طالب مسجل`}
                   color="primary"
-                  sx={{ mr: 1 }}
+                  sx={{ mr: 1, mb: 1 }}
                 />
-                <Chip label={`${course?.coursePrice} ريال`} color="secondary" />
+                <Chip
+                  label={`${course?.coursePrice} ريال`}
+                  color="secondary"
+                  sx={{ mb: 1 }}
+                />
               </Box>
             </Grid>
             <Grid item xs={12} md={4}>
@@ -172,6 +173,8 @@ const CourseDetail = () => {
                     width: "100%",
                     height: "auto",
                     borderRadius: 1,
+                    maxHeight: 250,
+                    objectFit: "cover",
                   }}
                 />
               )}
@@ -213,6 +216,8 @@ const CourseDetail = () => {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 2,
               mb: 2,
             }}
           >
@@ -228,7 +233,13 @@ const CourseDetail = () => {
           <List>
             {quizzes.map((quiz, index) => (
               <React.Fragment key={quiz._id}>
-                <ListItem>
+                <ListItem
+                  sx={{
+                    flexDirection: { xs: "column", sm: "row" },
+                    alignItems: { xs: "flex-start", sm: "center" },
+                    gap: 1,
+                  }}
+                >
                   <ListItemIcon>
                     <QuizIcon />
                   </ListItemIcon>

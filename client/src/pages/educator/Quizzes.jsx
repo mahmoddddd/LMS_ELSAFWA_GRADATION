@@ -19,7 +19,7 @@ import NavigationButtons from "../../components/NavigationButtons";
 // ... existing code ...
 
 return (
-  <Container maxWidth="lg" sx={{ mt: 4 }}>
+  <Container maxWidth="lg" sx={{ mt: 4, px: { xs: 2, md: 4 } }}>
     <NavigationButtons
       backPath="/dashboard"
       forwardPath="/educator/create-quiz"
@@ -45,4 +45,5 @@ return (
     )}
   </Container>
 );
-// ... existing code ... 
+
+// ... existing code ...

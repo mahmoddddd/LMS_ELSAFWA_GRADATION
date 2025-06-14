@@ -21,12 +21,10 @@ const Navbar = () => {
 
   const isCourselistPage = location.pathname.includes("/course-list");
 
-  // ✅ useEffect للتأكد من الـ educator state عند تحميل الكومبوننت
   useEffect(() => {
     const checkEducatorStatus = async () => {
       if (user?.id) {
         try {
-          // تحقق من Clerk metadata أولاً
           const clerkRole = user.publicMetadata?.role;
           console.log("🔍 Navbar - Clerk role:", clerkRole);
 
@@ -35,7 +33,6 @@ const Navbar = () => {
             setIsEducator(true);
           }
 
-          // تحقق من الداتابيز كمان
           const token = await getToken();
           const { data } = await axios.get(backendUrl + "/api/user/data", {
             headers: { Authorization: `Bearer ${token}` },
@@ -66,12 +63,10 @@ const Navbar = () => {
   const becomeEducator = async () => {
     try {
       if (isEducator) {
-        console.log("🎓 Already educator - navigating to dashboard");
         navigate("/educator");
         return;
       }
 
-      console.log("🔄 Converting user to educator...");
       const token = await getToken();
       const { data } = await axios.get(
         backendUrl + "/api/educator/update-role",
@@ -83,9 +78,6 @@ const Navbar = () => {
       if (data.success) {
         setIsEducator(true);
         toast.success(data.message);
-        console.log("✅ Successfully became educator");
-
-        // انتظار قليل ثم الانتقال للداشبورد
         setTimeout(() => {
           navigate("/educator");
         }, 1000);
@@ -93,7 +85,6 @@ const Navbar = () => {
         toast.error(data.message);
       }
     } catch (error) {
-      console.error("❌ Error becoming educator:", error);
       toast.error(error.message || "Failed to become educator");
     }
   };
@@ -104,6 +95,7 @@ const Navbar = () => {
         isCourselistPage ? "bg-white" : "bg-200"
       }`}
     >
+      {/* Logo */}
       <img
         onClick={() => navigate("/")}
         src={assets.logo}
@@ -111,6 +103,7 @@ const Navbar = () => {
         className="w-16 lg:w-20 cursor-pointer"
       />
 
+      {/* Desktop View */}
       <div className="hidden md:flex items-center gap-5 text-gray-500">
         <div className="flex items-center gap-4">
           {user && (
@@ -142,7 +135,6 @@ const Navbar = () => {
         </div>
         {user ? (
           <div className="flex items-center gap-2">
-            {/* ✅ إضافة مؤشر لحالة الـ educator */}
             {isEducator && (
               <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
                 Educator
@@ -160,53 +152,53 @@ const Navbar = () => {
         )}
       </div>
 
-      {/* Mobile view */}
-      <div className="md:hidden flex items-center gap-2 sm:gap-5 text-gray-500">
-        <div className="flex items-center gap-1 sm:gap-2 max-sm:text-xs">
+      {/* Mobile View */}
+      <div className="md:hidden flex flex-col items-end gap-2 text-gray-500 text-sm pr-2">
+        <div className="flex flex-wrap justify-end gap-2 w-full">
           {user && (
             <>
               <button
                 onClick={becomeEducator}
-                className={`transition-colors ${
+                className={`transition-colors text-xs ${
                   isEducator
                     ? "text-green-600 hover:text-green-800 font-medium"
                     : "text-blue-600 hover:text-blue-800"
                 }`}
               >
-                {isEducator ? "Dashboard" : "Become Educator"}
+                {isEducator ? "Dashboard" : "Become"}
               </button>
-              <span className="mx-2">|</span>
               <Link
                 to="/my-enrollments"
-                className="text-gray-600 hover:text-gray-800 transition-colors"
+                className="text-gray-600 hover:text-gray-800 transition-colors text-xs"
               >
                 Enrollments
               </Link>
               <Link
                 to="/my-quizzes"
-                className="text-gray-600 hover:text-gray-800 transition-colors"
+                className="text-gray-600 hover:text-gray-800 transition-colors text-xs"
               >
                 Quizzes
               </Link>
             </>
           )}
         </div>
-        {user ? (
-          <div className="flex items-center gap-1">
-            {/* ✅ مؤشر للموبايل */}
-            {isEducator && (
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            )}
-            <UserButton />
-          </div>
-        ) : (
-          <button
-            onClick={() => openSignIn()}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <img src={assets.user_icon} alt="user icon" className="w-6 h-6" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {user ? (
+            <>
+              {isEducator && (
+                <div className="w-2 h-2 bg-green-500 rounded-full" />
+              )}
+              <UserButton />
+            </>
+          ) : (
+            <button
+              onClick={() => openSignIn()}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <img src={assets.user_icon} alt="user icon" className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -12,7 +12,6 @@ import {
   RadioGroup,
   FormControlLabel,
   FormControl,
-  FormLabel,
   TextField,
   Alert,
   CircularProgress,
@@ -22,8 +21,6 @@ import {
   DialogActions,
   LinearProgress,
 } from "@mui/material";
-import { format } from "date-fns";
-import { ar } from "date-fns/locale";
 
 const QuizDetail = () => {
   const { courseId, quizId } = useParams();
@@ -180,23 +177,40 @@ const QuizDetail = () => {
   };
 
   return (
-    <Box p={3}>
-      <Paper elevation={3} sx={{ p: 3 }}>
+    <Box p={{ xs: 2, sm: 3 }}>
+      <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
         <Box
           display="flex"
+          flexDirection={{ xs: "column", sm: "row" }}
           justifyContent="space-between"
-          alignItems="center"
+          alignItems={{ xs: "flex-start", sm: "center" }}
           mb={3}
+          gap={1}
         >
-          <Typography variant="h4" component="h1">
+          <Typography
+            variant="h4"
+            component="h1"
+            fontSize={{ xs: "1.5rem", sm: "2rem" }}
+            noWrap
+            sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+          >
             {quiz.title}
           </Typography>
-          <Typography variant="h6" color="primary">
-            الوقت المتبقي: {formatTimeLeft(timeLeft)}
+          <Typography
+            variant="h6"
+            color="primary"
+            fontSize={{ xs: "1rem", sm: "1.25rem" }}
+          >
+            الوقت المتبقي:{" "}
+            {timeLeft > 0 ? formatTimeLeft(timeLeft) : "انتهى الوقت"}
           </Typography>
         </Box>
 
-        <Typography variant="body1" paragraph>
+        <Typography
+          variant="body1"
+          paragraph
+          fontSize={{ xs: "0.9rem", sm: "1rem" }}
+        >
           {quiz.description}
         </Typography>
 
@@ -213,11 +227,27 @@ const QuizDetail = () => {
         <Grid container spacing={3}>
           {quiz.questions.map((question, index) => (
             <Grid item xs={12} key={question._id}>
-              <Paper elevation={2} sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom>
+              <Paper
+                elevation={2}
+                sx={{
+                  p: { xs: 2, sm: 3 },
+                  wordBreak: "break-word",
+                  overflowWrap: "break-word",
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  fontSize={{ xs: "1rem", sm: "1.25rem" }}
+                >
                   السؤال {index + 1}
                 </Typography>
-                <Typography variant="body1" paragraph>
+                <Typography
+                  variant="body1"
+                  paragraph
+                  fontSize={{ xs: "0.875rem", sm: "1rem" }}
+                  sx={{ whiteSpace: "pre-line" }}
+                >
                   {question.questionText}
                 </Typography>
 
@@ -251,11 +281,13 @@ const QuizDetail = () => {
                       handleAnswerChange(question._id, e.target.value)
                     }
                     placeholder="اكتب إجابتك هنا..."
+                    size="small"
+                    sx={{ mt: 1 }}
                   />
                 )}
 
                 {question.questionType === "file" && (
-                  <Box>
+                  <Box mt={1}>
                     <input
                       type="file"
                       accept={`.${question.fileType}`}
@@ -266,7 +298,7 @@ const QuizDetail = () => {
                       id={`file-upload-${question._id}`}
                     />
                     <label htmlFor={`file-upload-${question._id}`}>
-                      <Button variant="outlined" component="span">
+                      <Button variant="outlined" component="span" size="small">
                         اختر ملف
                       </Button>
                     </label>
@@ -280,7 +312,7 @@ const QuizDetail = () => {
 
                 <Typography
                   variant="body2"
-                  color="textSecondary"
+                  color="text.secondary"
                   sx={{ mt: 1 }}
                 >
                   الدرجة: {question.marks}
@@ -290,12 +322,19 @@ const QuizDetail = () => {
           ))}
         </Grid>
 
-        <Box mt={3} display="flex" justifyContent="flex-end">
+        <Box
+          mt={3}
+          display="flex"
+          justifyContent="flex-end"
+          flexWrap="wrap"
+          gap={1}
+        >
           <Button
             variant="contained"
             color="primary"
             onClick={() => setConfirmDialog(true)}
             disabled={submitting || timeLeft <= 0}
+            sx={{ minWidth: { xs: "100%", sm: "auto" } }}
           >
             {submitting ? <CircularProgress size={24} /> : "تقديم الاختبار"}
           </Button>

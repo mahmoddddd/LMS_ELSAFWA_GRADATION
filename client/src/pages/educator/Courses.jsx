@@ -1,26 +1,5 @@
-import React, { useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import {
-  Box,
-  Container,
-  Grid,
-  Card,
-  CardContent,
-  CardMedia,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-} from "@mui/material";
-import { useAuth } from "@clerk/clerk-react";
-import { AppContext } from "../../context/AppContext";
-import NavigationButtons from "../../components/NavigationButtons";
-
-// ... existing code ...
-
 return (
-  <Container maxWidth="lg" sx={{ mt: 4 }}>
+  <Container maxWidth="lg" sx={{ mt: 4, px: { xs: 2, md: 0 } }}>
     <NavigationButtons
       backPath="/dashboard"
       forwardPath="/educator/create-course"
@@ -40,10 +19,37 @@ return (
     ) : (
       <Grid container spacing={4}>
         {courses.map((course) => (
-          // ... existing course card code ...
+          <Grid item key={course._id} xs={12} sm={6} md={4}>
+            <Card>
+              {course.courseThumbnail && (
+                <CardMedia
+                  component="img"
+                  height="140"
+                  image={course.courseThumbnail}
+                  alt={course.courseTitle}
+                />
+              )}
+              <CardContent>
+                <Typography gutterBottom variant="h6" component="div">
+                  {course.courseTitle}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {course.courseDescription}
+                </Typography>
+              </CardContent>
+              <Box sx={{ p: 2 }}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={() => navigate(`/educator/courses/${course._id}`)}
+                >
+                  عرض التفاصيل
+                </Button>
+              </Box>
+            </Card>
+          </Grid>
         ))}
       </Grid>
     )}
   </Container>
 );
-// ... existing code ... 

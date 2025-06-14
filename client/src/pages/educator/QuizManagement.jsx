@@ -16,6 +16,8 @@ import {
   TableRow,
   Paper,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/clerk-react";
@@ -35,12 +37,15 @@ const QuizManagement = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   useEffect(() => {
     if (user?.id) {
-      console.log("User ID from Clerk:", user.id); // Debug log
+      console.log("User ID from Clerk:", user.id);
       fetchQuizzes();
     } else {
-      console.log("No user ID available"); // Debug log
+      console.log("No user ID available");
       setLoading(false);
       setError("لم يتم العثور على معرف المستخدم");
     }
@@ -50,10 +55,10 @@ const QuizManagement = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log("Fetching quizzes for user:", user.id); // Debug log
+      console.log("Fetching quizzes for user:", user.id);
 
       const token = await getToken();
-      console.log("Token received:", token ? "Yes" : "No"); // Debug log
+      console.log("Token received:", token ? "Yes" : "No");
 
       const response = await axios.get(
         `http://localhost:4000/api/quiz/instructor/${user.id}`,
@@ -65,7 +70,7 @@ const QuizManagement = () => {
         }
       );
 
-      console.log("Response received:", response.data); // Debug log
+      console.log("Response received:", response.data);
 
       if (response.data.success && response.data.quizzes) {
         setQuizzes(response.data.quizzes);
@@ -74,7 +79,7 @@ const QuizManagement = () => {
         setQuizzes([]);
       }
     } catch (err) {
-      console.error("Error details:", err.response || err); // Debug log
+      console.error("Error details:", err.response || err);
       setError(
         err.response?.data?.message ||
           err.message ||
@@ -158,20 +163,23 @@ const QuizManagement = () => {
   }
 
   return (
-    <Box p={3}>
+    <Box p={isMobile ? 2 : 3}>
       <Box
         display="flex"
+        flexDirection={isMobile ? "column" : "row"}
         justifyContent="space-between"
-        alignItems="center"
+        alignItems={isMobile ? "flex-start" : "center"}
         mb={3}
+        gap={isMobile ? 2 : 0}
       >
-        <Typography variant="h4" component="h1">
+        <Typography variant={isMobile ? "h5" : "h4"} component="h1">
           إدارة الاختبارات
         </Typography>
         <Button
           variant="contained"
           color="primary"
           onClick={() => navigate("/educator/add-quiz")}
+          size={isMobile ? "small" : "medium"}
         >
           إضافة اختبار جديد
         </Button>
@@ -187,19 +195,20 @@ const QuizManagement = () => {
             color="primary"
             onClick={() => navigate("/educator/add-quiz")}
             sx={{ mt: 2 }}
+            size={isMobile ? "small" : "medium"}
           >
             إضافة اختبار جديد
           </Button>
         </Box>
       ) : (
         <TableContainer component={Paper}>
-          <Table>
+          <Table size={isMobile ? "small" : "medium"}>
             <TableHead>
               <TableRow>
                 <TableCell>عنوان الاختبار</TableCell>
-                <TableCell>الوصف</TableCell>
+                {!isMobile && <TableCell>الوصف</TableCell>}
                 <TableCell>تاريخ الاستحقاق</TableCell>
-                <TableCell>الدرجة الكلية</TableCell>
+                {!isMobile && <TableCell>الدرجة الكلية</TableCell>}
                 <TableCell>الإجراءات</TableCell>
               </TableRow>
             </TableHead>
@@ -207,19 +216,20 @@ const QuizManagement = () => {
               {quizzes.map((quiz) => (
                 <TableRow key={quiz._id}>
                   <TableCell>{quiz.title}</TableCell>
-                  <TableCell>{quiz.description}</TableCell>
+                  {!isMobile && <TableCell>{quiz.description}</TableCell>}
                   <TableCell>
                     {new Date(quiz.dueDate).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>{quiz.totalMarks}</TableCell>
+                  {!isMobile && <TableCell>{quiz.totalMarks}</TableCell>}
                   <TableCell>
                     <IconButton
                       onClick={() =>
                         navigate(`/educator/edit-quiz/${quiz._id}`)
                       }
                       color="primary"
+                      size={isMobile ? "small" : "medium"}
                     >
-                      <EditIcon />
+                      <EditIcon fontSize={isMobile ? "small" : "medium"} />
                     </IconButton>
                     <IconButton
                       onClick={() => {
@@ -227,20 +237,27 @@ const QuizManagement = () => {
                         setDeleteDialogOpen(true);
                       }}
                       color="error"
+                      size={isMobile ? "small" : "medium"}
                     >
-                      <DeleteIcon />
+                      <DeleteIcon fontSize={isMobile ? "small" : "medium"} />
                     </IconButton>
                     <IconButton
                       onClick={() => handleViewSubmissions(quiz._id)}
                       color="info"
+                      size={isMobile ? "small" : "medium"}
                     >
-                      <VisibilityIcon />
+                      <VisibilityIcon
+                        fontSize={isMobile ? "small" : "medium"}
+                      />
                     </IconButton>
                     <IconButton
                       onClick={() => handleViewAnalytics(quiz._id)}
                       color="success"
+                      size={isMobile ? "small" : "medium"}
                     >
-                      <AssessmentIcon />
+                      <AssessmentIcon
+                        fontSize={isMobile ? "small" : "medium"}
+                      />
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -253,6 +270,7 @@ const QuizManagement = () => {
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
+        fullScreen={isMobile}
       >
         <DialogTitle>تأكيد الحذف</DialogTitle>
         <DialogContent>هل أنت متأكد من حذف هذا الاختبار؟</DialogContent>
@@ -262,6 +280,7 @@ const QuizManagement = () => {
             onClick={() => handleDeleteQuiz(selectedQuiz._id)}
             color="error"
             variant="contained"
+            size={isMobile ? "small" : "medium"}
           >
             حذف
           </Button>

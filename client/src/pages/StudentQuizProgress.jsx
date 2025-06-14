@@ -12,6 +12,8 @@ import {
   LinearProgress,
   Card,
   CardContent,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 
 const StudentQuizProgress = () => {
@@ -20,6 +22,9 @@ const StudentQuizProgress = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState(null);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -68,17 +73,17 @@ const StudentQuizProgress = () => {
   }
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Box p={isMobile ? 2 : 3}>
+      <Typography variant={isMobile ? "h5" : "h4"} component="h1" gutterBottom>
         تقدمي في الاختبارات
       </Typography>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={isMobile ? 2 : 3}>
         {/* ملخص التقدم */}
         <Grid item xs={12} md={4}>
           <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
+            <CardContent sx={{ padding: isMobile ? "16px" : "24px" }}>
+              <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom>
                 ملخص التقدم
               </Typography>
               <Box mb={2}>
@@ -90,7 +95,10 @@ const StudentQuizProgress = () => {
                   value={progress.averageScore}
                   sx={{ height: 10, borderRadius: 5 }}
                 />
-                <Typography variant="body1" sx={{ mt: 1 }}>
+                <Typography
+                  variant={isMobile ? "body2" : "body1"}
+                  sx={{ mt: 1 }}
+                >
                   {progress.averageScore}%
                 </Typography>
               </Box>
@@ -103,7 +111,10 @@ const StudentQuizProgress = () => {
                   value={progress.completionRate}
                   sx={{ height: 10, borderRadius: 5 }}
                 />
-                <Typography variant="body1" sx={{ mt: 1 }}>
+                <Typography
+                  variant={isMobile ? "body2" : "body1"}
+                  sx={{ mt: 1 }}
+                >
                   {progress.completionRate}%
                 </Typography>
               </Box>
@@ -114,38 +125,42 @@ const StudentQuizProgress = () => {
         {/* إحصائيات مفصلة */}
         <Grid item xs={12} md={8}>
           <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
+            <CardContent sx={{ padding: isMobile ? "16px" : "24px" }}>
+              <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom>
                 إحصائيات مفصلة
               </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
+              <Grid container spacing={isMobile ? 1 : 2}>
+                <Grid item xs={6} sm={6}>
                   <Typography variant="body2" color="textSecondary">
                     عدد الاختبارات المكتملة
                   </Typography>
-                  <Typography variant="h4">
+                  <Typography variant={isMobile ? "h5" : "h4"}>
                     {progress.completedQuizzes}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={6} sm={6}>
                   <Typography variant="body2" color="textSecondary">
                     عدد الاختبارات المتبقية
                   </Typography>
-                  <Typography variant="h4">
+                  <Typography variant={isMobile ? "h5" : "h4"}>
                     {progress.remainingQuizzes}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={6} sm={6}>
                   <Typography variant="body2" color="textSecondary">
                     أعلى درجة
                   </Typography>
-                  <Typography variant="h4">{progress.highestScore}%</Typography>
+                  <Typography variant={isMobile ? "h5" : "h4"}>
+                    {progress.highestScore}%
+                  </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={6} sm={6}>
                   <Typography variant="body2" color="textSecondary">
                     أدنى درجة
                   </Typography>
-                  <Typography variant="h4">{progress.lowestScore}%</Typography>
+                  <Typography variant={isMobile ? "h5" : "h4"}>
+                    {progress.lowestScore}%
+                  </Typography>
                 </Grid>
               </Grid>
             </CardContent>
@@ -155,18 +170,20 @@ const StudentQuizProgress = () => {
         {/* آخر التقديمات */}
         <Grid item xs={12}>
           <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
+            <CardContent sx={{ padding: isMobile ? "16px" : "24px" }}>
+              <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom>
                 آخر التقديمات
               </Typography>
               {progress.recentSubmissions.map((submission) => (
                 <Box key={submission._id} mb={2}>
                   <Box
                     display="flex"
+                    flexDirection={isMobile ? "column" : "row"}
                     justifyContent="space-between"
-                    alignItems="center"
+                    alignItems={isMobile ? "flex-start" : "center"}
+                    gap={isMobile ? 1 : 0}
                   >
-                    <Typography variant="subtitle1">
+                    <Typography variant={isMobile ? "body1" : "subtitle1"}>
                       {submission.quiz.title}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
@@ -175,7 +192,12 @@ const StudentQuizProgress = () => {
                       )}
                     </Typography>
                   </Box>
-                  <Box display="flex" alignItems="center" gap={2}>
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    gap={2}
+                    mt={isMobile ? 1 : 0}
+                  >
                     <LinearProgress
                       variant="determinate"
                       value={submission.score}

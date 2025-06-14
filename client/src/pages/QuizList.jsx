@@ -12,6 +12,8 @@ import {
   Box,
   CircularProgress,
   Alert,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -23,6 +25,9 @@ const QuizList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userRole, setUserRole] = useState(null);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -70,14 +75,16 @@ const QuizList = () => {
   }
 
   return (
-    <Box p={3}>
+    <Box p={isMobile ? 2 : 3}>
       <Box
         display="flex"
+        flexDirection={isMobile ? "column" : "row"}
         justifyContent="space-between"
-        alignItems="center"
+        alignItems={isMobile ? "flex-start" : "center"}
         mb={3}
+        gap={isMobile ? 2 : 0}
       >
-        <Typography variant="h4" component="h1">
+        <Typography variant={isMobile ? "h5" : "h4"} component="h1">
           الاختبارات
         </Typography>
         {userRole === "educator" && (
@@ -86,21 +93,36 @@ const QuizList = () => {
             to={`/courses/${courseId}/quizzes/create`}
             variant="contained"
             color="primary"
+            size={isMobile ? "small" : "medium"}
           >
             إنشاء اختبار جديد
           </Button>
         )}
       </Box>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={isMobile ? 2 : 3}>
         {quizzes.map((quiz) => (
-          <Grid item xs={12} md={6} lg={4} key={quiz._id}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+          <Grid item xs={12} sm={6} md={6} lg={4} key={quiz._id}>
+            <Card sx={{ height: "100%" }}>
+              <CardContent sx={{ padding: isMobile ? "16px" : "24px" }}>
+                <Typography
+                  variant={isMobile ? "subtitle1" : "h6"}
+                  gutterBottom
+                >
                   {quiz.title}
                 </Typography>
-                <Typography color="textSecondary" paragraph>
+                <Typography
+                  color="textSecondary"
+                  paragraph
+                  sx={{
+                    fontSize: isMobile ? "0.875rem" : "1rem",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                  }}
+                >
                   {quiz.description}
                 </Typography>
                 <Box
@@ -108,6 +130,9 @@ const QuizList = () => {
                   justifyContent="space-between"
                   alignItems="center"
                   mb={2}
+                  flexDirection={isMobile ? "column" : "row"}
+                  gap={isMobile ? 1 : 0}
+                  alignItems={isMobile ? "flex-start" : "center"}
                 >
                   <Typography variant="body2">
                     الدرجة الكلية: {quiz.totalMarks}
@@ -115,10 +140,14 @@ const QuizList = () => {
                   <Chip
                     label={quiz.isActive ? "نشط" : "غير نشط"}
                     color={quiz.isActive ? "success" : "default"}
-                    size="small"
+                    size={isMobile ? "small" : "medium"}
                   />
                 </Box>
-                <Typography variant="body2" color="textSecondary">
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  sx={{ fontSize: isMobile ? "0.75rem" : "0.875rem" }}
+                >
                   تاريخ التسليم:{" "}
                   {format(new Date(quiz.dueDate), "PPP", { locale: ar })}
                 </Typography>
@@ -128,6 +157,7 @@ const QuizList = () => {
                     to={`/courses/${courseId}/quizzes/${quiz._id}`}
                     variant="outlined"
                     fullWidth
+                    size={isMobile ? "small" : "medium"}
                   >
                     {userRole === "educator" ? "عرض التفاصيل" : "بدء الاختبار"}
                   </Button>

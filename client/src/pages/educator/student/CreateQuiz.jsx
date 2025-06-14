@@ -18,6 +18,8 @@ import {
   Select,
   MenuItem,
   FormHelperText,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -31,6 +33,9 @@ const CreateQuiz = () => {
   const { getToken, userId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [quizData, setQuizData] = useState({
     title: "",
@@ -118,8 +123,19 @@ const CreateQuiz = () => {
   };
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Box
+      p={isMobile ? 2 : 3}
+      sx={{
+        maxWidth: 900,
+        margin: "auto",
+      }}
+    >
+      <Typography
+        variant={isMobile ? "h5" : "h4"}
+        component="h1"
+        gutterBottom
+        sx={{ textAlign: isMobile ? "center" : "left" }}
+      >
         إنشاء اختبار جديد
       </Typography>
 
@@ -130,7 +146,7 @@ const CreateQuiz = () => {
       )}
 
       <form onSubmit={handleSubmit}>
-        <Grid container spacing={3}>
+        <Grid container spacing={isMobile ? 2 : 3}>
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -140,6 +156,7 @@ const CreateQuiz = () => {
                 setQuizData({ ...quizData, title: e.target.value })
               }
               required
+              size={isMobile ? "small" : "medium"}
             />
           </Grid>
 
@@ -147,12 +164,13 @@ const CreateQuiz = () => {
             <TextField
               fullWidth
               multiline
-              rows={3}
+              rows={isMobile ? 2 : 3}
               label="وصف الاختبار"
               value={quizData.description}
               onChange={(e) =>
                 setQuizData({ ...quizData, description: e.target.value })
               }
+              size={isMobile ? "small" : "medium"}
             />
           </Grid>
 
@@ -164,7 +182,13 @@ const CreateQuiz = () => {
                 onChange={(newValue) =>
                   setQuizData({ ...quizData, dueDate: newValue })
                 }
-                renderInput={(params) => <TextField {...params} fullWidth />}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    fullWidth
+                    size={isMobile ? "small" : "medium"}
+                  />
+                )}
               />
             </LocalizationProvider>
           </Grid>
@@ -179,26 +203,41 @@ const CreateQuiz = () => {
                 setQuizData({ ...quizData, totalScore: Number(e.target.value) })
               }
               required
+              size={isMobile ? "small" : "medium"}
+              inputProps={{ min: 0 }}
             />
           </Grid>
 
           {quizData.questions.map((question, questionIndex) => (
             <Grid item xs={12} key={questionIndex}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" justifyContent="space-between" mb={2}>
-                    <Typography variant="h6">
+              <Card
+                variant="outlined"
+                sx={{
+                  p: isMobile ? 1 : 2,
+                  mb: isMobile ? 2 : 3,
+                }}
+              >
+                <CardContent sx={{ p: isMobile ? 1 : 2 }}>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mb={2}
+                  >
+                    <Typography variant={isMobile ? "subtitle1" : "h6"}>
                       السؤال {questionIndex + 1}
                     </Typography>
                     <IconButton
                       color="error"
                       onClick={() => removeQuestion(questionIndex)}
+                      size={isMobile ? "small" : "medium"}
+                      aria-label="حذف السؤال"
                     >
-                      <DeleteIcon />
+                      <DeleteIcon fontSize={isMobile ? "small" : "medium"} />
                     </IconButton>
                   </Box>
 
-                  <Grid container spacing={2}>
+                  <Grid container spacing={isMobile ? 1 : 2}>
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
@@ -212,11 +251,15 @@ const CreateQuiz = () => {
                           )
                         }
                         required
+                        size={isMobile ? "small" : "medium"}
                       />
                     </Grid>
 
                     <Grid item xs={12} md={6}>
-                      <FormControl fullWidth>
+                      <FormControl
+                        fullWidth
+                        size={isMobile ? "small" : "medium"}
+                      >
                         <InputLabel>نوع السؤال</InputLabel>
                         <Select
                           value={question.type}
@@ -227,6 +270,7 @@ const CreateQuiz = () => {
                               e.target.value
                             )
                           }
+                          label="نوع السؤال"
                         >
                           <MenuItem value="multiple_choice">
                             اختيار من متعدد
@@ -251,6 +295,8 @@ const CreateQuiz = () => {
                           )
                         }
                         required
+                        size={isMobile ? "small" : "medium"}
+                        inputProps={{ min: 0 }}
                       />
                     </Grid>
 
@@ -270,12 +316,17 @@ const CreateQuiz = () => {
                                 )
                               }
                               required
+                              size={isMobile ? "small" : "medium"}
                             />
                           </Grid>
                         ))}
 
                         <Grid item xs={12}>
-                          <FormControl fullWidth>
+                          <FormControl
+                            fullWidth
+                            size={isMobile ? "small" : "medium"}
+                            sx={{ mt: 1 }}
+                          >
                             <InputLabel>الإجابة الصحيحة</InputLabel>
                             <Select
                               value={question.correctAnswer}
@@ -286,6 +337,7 @@ const CreateQuiz = () => {
                                   e.target.value
                                 )
                               }
+                              label="الإجابة الصحيحة"
                             >
                               {question.options.map((_, index) => (
                                 <MenuItem key={index} value={index}>
@@ -312,19 +364,26 @@ const CreateQuiz = () => {
               onClick={addQuestion}
               variant="outlined"
               fullWidth
+              size={isMobile ? "small" : "medium"}
             >
               إضافة سؤال
             </Button>
           </Grid>
 
           <Grid item xs={12}>
-            <Box display="flex" gap={2}>
+            <Box
+              display="flex"
+              gap={isMobile ? 1 : 2}
+              flexDirection={isMobile ? "column" : "row"}
+            >
               <Button
                 type="submit"
                 variant="contained"
                 color="primary"
                 disabled={loading}
                 fullWidth
+                size={isMobile ? "medium" : "large"}
+                sx={{ mb: isMobile ? 1 : 0 }}
               >
                 {loading ? <CircularProgress size={24} /> : "إنشاء الاختبار"}
               </Button>
@@ -332,6 +391,7 @@ const CreateQuiz = () => {
                 variant="outlined"
                 onClick={() => navigate(`/courses/${courseId}/quizzes`)}
                 fullWidth
+                size={isMobile ? "medium" : "large"}
               >
                 إلغاء
               </Button>

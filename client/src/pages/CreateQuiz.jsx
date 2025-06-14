@@ -1,3 +1,9 @@
+// أهم التعديلات:
+// - استخدمت `xs={12}` دايمًا بحيث كل عنصر يحتل العرض كامل على الموبايل.
+// - حافظت على `md={6}` للعناصر اللي عايزينها نص عرض على الشاشات الكبيرة.
+// - ضفت gap (فجوات) بين عناصر الـ Box لما يكون فيه أكثر من زر.
+// - أضفت maxWidth و margin أو padding متناسق عشان يبقى العرض مريح على الموبايل.
+
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -143,8 +149,8 @@ const CreateQuiz = () => {
   };
 
   return (
-    <Box p={3}>
-      <Paper elevation={3} sx={{ p: 3 }}>
+    <Box p={{ xs: 2, sm: 3 }} maxWidth="900px" mx="auto">
+      <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 } }}>
         <Typography variant="h4" component="h1" gutterBottom>
           إنشاء اختبار جديد
         </Typography>
@@ -156,7 +162,7 @@ const CreateQuiz = () => {
         )}
 
         <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
+          <Grid container spacing={2}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -208,6 +214,7 @@ const CreateQuiz = () => {
                 value={quizData.totalMarks}
                 onChange={handleInputChange}
                 required
+                inputProps={{ min: 0 }}
               />
             </Grid>
 
@@ -219,14 +226,17 @@ const CreateQuiz = () => {
                     justifyContent="space-between"
                     alignItems="center"
                     mb={2}
+                    flexWrap="wrap"
+                    gap={1}
                   >
-                    <Typography variant="h6">
+                    <Typography variant="h6" flexGrow={1}>
                       السؤال {questionIndex + 1}
                     </Typography>
                     <IconButton
                       color="error"
                       onClick={() => removeQuestion(questionIndex)}
                       disabled={quizData.questions.length === 1}
+                      size="small"
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -286,6 +296,7 @@ const CreateQuiz = () => {
                           )
                         }
                         required
+                        inputProps={{ min: 0 }}
                       />
                     </Grid>
 
@@ -293,7 +304,12 @@ const CreateQuiz = () => {
                       <>
                         {question.options.map((option, optionIndex) => (
                           <Grid item xs={12} key={optionIndex}>
-                            <Box display="flex" alignItems="center" gap={1}>
+                            <Box
+                              display="flex"
+                              alignItems="center"
+                              gap={1}
+                              flexWrap="wrap"
+                            >
                               <TextField
                                 fullWidth
                                 label={`الخيار ${optionIndex + 1}`}
@@ -321,6 +337,7 @@ const CreateQuiz = () => {
                                     !option.isCorrect
                                   )
                                 }
+                                sx={{ whiteSpace: "nowrap" }}
                               >
                                 {option.isCorrect
                                   ? "إجابة صحيحة"
@@ -332,6 +349,7 @@ const CreateQuiz = () => {
                                   removeOption(questionIndex, optionIndex)
                                 }
                                 disabled={question.options.length === 2}
+                                size="small"
                               >
                                 <DeleteIcon />
                               </IconButton>
@@ -343,6 +361,7 @@ const CreateQuiz = () => {
                             startIcon={<AddIcon />}
                             onClick={() => addOption(questionIndex)}
                             disabled={question.options.length >= 4}
+                            fullWidth={false}
                           >
                             إضافة خيار
                           </Button>
@@ -391,13 +410,18 @@ const CreateQuiz = () => {
             </Grid>
 
             <Grid item xs={12}>
-              <Box display="flex" gap={2}>
+              <Box
+                display="flex"
+                gap={2}
+                flexDirection={{ xs: "column", sm: "row" }}
+              >
                 <Button
                   type="submit"
                   variant="contained"
                   color="primary"
                   disabled={loading}
                   fullWidth
+                  sx={{ mb: { xs: 1, sm: 0 } }}
                 >
                   {loading ? <CircularProgress size={24} /> : "إنشاء الاختبار"}
                 </Button>

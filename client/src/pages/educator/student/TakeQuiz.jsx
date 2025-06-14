@@ -47,7 +47,6 @@ const TakeQuiz = () => {
         setLoading(true);
         const token = await getToken();
 
-        // First check eligibility
         const eligibilityResponse = await axios.get(
           `${backendUrl}/api/quiz/${quizId}/check-eligibility`,
           {
@@ -68,7 +67,6 @@ const TakeQuiz = () => {
           return;
         }
 
-        // Fetch quiz data
         const quizResponse = await axios.get(
           `${backendUrl}/api/quiz/${quizId}`,
           {
@@ -80,7 +78,6 @@ const TakeQuiz = () => {
 
         if (quizResponse.data.success) {
           setQuiz(quizResponse.data.quiz);
-          // Initialize answers object
           const initialAnswers = {};
           quizResponse.data.quiz.questions.forEach((question) => {
             initialAnswers[question._id] = {
@@ -122,7 +119,6 @@ const TakeQuiz = () => {
       const token = await getToken();
 
       if (quiz.isFileQuiz) {
-        // Handle file quiz submission
         const formData = new FormData();
         formData.append("quizId", quizId);
         formData.append("answerFile", answerFile);
@@ -142,7 +138,6 @@ const TakeQuiz = () => {
           navigate("/my-quizzes");
         }
       } else {
-        // Handle regular quiz submission
         const formattedAnswers = quiz.questions
           .map((question) => {
             const answer = answers[question._id];
@@ -163,8 +158,6 @@ const TakeQuiz = () => {
           })
           .filter(Boolean);
 
-        console.log("Sending answers:", formattedAnswers);
-
         const response = await axios.post(
           `${backendUrl}/api/quiz/${quizId}/submit`,
           {
@@ -179,12 +172,10 @@ const TakeQuiz = () => {
         );
 
         if (response.data.success) {
-          console.log("Submission response:", response.data);
           navigate("/my-quizzes");
         }
       }
     } catch (error) {
-      console.error("Error submitting quiz:", error);
       setError(error.response?.data?.message || "حدث خطأ أثناء تقديم الإجابات");
     } finally {
       setSubmitting(false);
@@ -206,7 +197,7 @@ const TakeQuiz = () => {
 
   if (error) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Container maxWidth="sm" sx={{ mt: 4 }}>
         <Alert severity="error">{error}</Alert>
       </Container>
     );
@@ -217,12 +208,19 @@ const TakeQuiz = () => {
   }
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
-        <Typography variant="h4" gutterBottom>
+    <Container
+      maxWidth="sm"
+      sx={{
+        mt: 4,
+        px: { xs: 2, sm: 3 },
+        mb: 6,
+      }}
+    >
+      <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 } }}>
+        <Typography variant="h5" gutterBottom sx={{ fontWeight: "bold" }}>
           {quiz.title}
         </Typography>
-        <Typography variant="body1" paragraph>
+        <Typography variant="body1" paragraph sx={{ whiteSpace: "pre-line" }}>
           {quiz.description}
         </Typography>
 
@@ -233,7 +231,13 @@ const TakeQuiz = () => {
             </Typography>
             {quiz.quizFile && (
               <Box
-                sx={{ mb: 3, p: 2, border: "1px solid #ddd", borderRadius: 1 }}
+                sx={{
+                  mb: 3,
+                  p: 2,
+                  border: "1px solid #ddd",
+                  borderRadius: 1,
+                  wordBreak: "break-word",
+                }}
               >
                 <Typography variant="subtitle1" gutterBottom>
                   معلومات ملف الكويز:
@@ -241,7 +245,15 @@ const TakeQuiz = () => {
                 <Typography variant="body2" color="text.secondary">
                   نوع الملف: {quiz.quizFile.fileType || "PDF"}
                 </Typography>
-                <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
+                <Box
+                  sx={{
+                    mt: 2,
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 2,
+                    justifyContent: "flex-start",
+                  }}
+                >
                   <Button
                     variant="contained"
                     component="a"
@@ -249,10 +261,10 @@ const TakeQuiz = () => {
                     target="_blank"
                     onClick={(e) => {
                       e.preventDefault();
-                      // فتح الملف في نافذة جديدة
                       window.open(quiz.quizFile.fileUrl, "_blank");
                     }}
                     startIcon={<DownloadIcon />}
+                    sx={{ minWidth: 130 }}
                   >
                     عرض الملف
                   </Button>
@@ -265,7 +277,6 @@ const TakeQuiz = () => {
                     }.${quiz.quizFile.fileType?.split("/")[1] || "pdf"}`}
                     onClick={(e) => {
                       e.preventDefault();
-                      // تحميل الملف مباشرة
                       const link = document.createElement("a");
                       link.href = quiz.quizFile.fileUrl;
                       link.download = `quiz_${
@@ -276,6 +287,7 @@ const TakeQuiz = () => {
                       document.body.removeChild(link);
                     }}
                     startIcon={<DownloadIcon />}
+                    sx={{ minWidth: 130 }}
                   >
                     تحميل الملف
                   </Button>
@@ -284,7 +296,7 @@ const TakeQuiz = () => {
                   <Typography
                     variant="caption"
                     color="text.secondary"
-                    sx={{ mt: 1, display: "block" }}
+                    sx={{ mt: 1, display: "block", wordBreak: "break-all" }}
                   >
                     رابط الملف: {quiz.quizFile.fileUrl}
                   </Typography>
@@ -297,6 +309,7 @@ const TakeQuiz = () => {
                 component="label"
                 startIcon={<CloudUploadIcon />}
                 fullWidth
+                sx={{ minHeight: 48 }}
               >
                 رفع ملف الإجابة
                 <input
@@ -313,6 +326,7 @@ const TakeQuiz = () => {
                     p: 2,
                     border: "1px solid #ddd",
                     borderRadius: 1,
+                    wordBreak: "break-word",
                   }}
                 >
                   <Typography variant="subtitle1" gutterBottom>
@@ -339,7 +353,11 @@ const TakeQuiz = () => {
                   <Typography variant="h6" gutterBottom>
                     السؤال {index + 1}
                   </Typography>
-                  <Typography variant="body1" paragraph>
+                  <Typography
+                    variant="body1"
+                    paragraph
+                    sx={{ whiteSpace: "pre-line" }}
+                  >
                     {question.questionText}
                   </Typography>
                   <Typography variant="subtitle2" color="text.secondary">
@@ -360,6 +378,10 @@ const TakeQuiz = () => {
                             value={option.text}
                             control={<Radio />}
                             label={option.text}
+                            sx={{
+                              whiteSpace: "normal",
+                              wordBreak: "break-word",
+                            }}
                           />
                         ))}
                       </RadioGroup>
@@ -392,6 +414,7 @@ const TakeQuiz = () => {
           onForwardClick={handleSubmit}
           forwardText="تقديم الاختبار"
           disabled={submitting}
+          sx={{ mt: 2 }}
         />
       </Paper>
     </Container>

@@ -1,17 +1,20 @@
-// src/pages/AboutLMS.jsx
-
 import React from "react";
 
 const AboutLMS = () => {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold text-gray-800 mb-4">About Our LMS</h1>
-      <p className="text-gray-600 mb-3">
-        Our Learning Management System (LMS) provides a modern, flexible platform to help students and educators achieve their goals.
+    <div className="max-w-4xl mx-auto px-4 py-10 sm:px-6 md:px-8">
+      <h1 className="text-3xl font-bold text-gray-800 mb-4 sm:text-4xl">
+        About Our LMS
+      </h1>
+      <p className="text-gray-600 mb-3 text-base sm:text-lg leading-relaxed">
+        Our Learning Management System (LMS) provides a modern, flexible
+        platform to help students and educators achieve their goals.
       </p>
 
-      <h2 className="text-xl font-semibold text-gray-700 mt-6">Key Features:</h2>
-      <ul className="list-disc pl-5 text-gray-600 space-y-1 mt-2">
+      <h2 className="text-xl font-semibold text-gray-700 mt-6 sm:text-2xl">
+        Key Features:
+      </h2>
+      <ul className="list-disc pl-5 text-gray-600 space-y-1 mt-2 text-sm sm:text-base">
         <li>Course creation and management</li>
         <li>Student enrollment and progress tracking</li>
         <li>Integrated payments and certification</li>
@@ -20,8 +23,9 @@ const AboutLMS = () => {
         <li>Responsive design for all devices</li>
       </ul>
 
-      <p className="text-gray-600 mt-6">
-        Built with ❤️ by Elsafwa Team – We Can and We Will. Led by Mahmod Elsherif.
+      <p className="text-gray-600 mt-6 text-sm sm:text-base">
+        Built with ❤️ by Elsafwa Team – We Can and We Will. Led by Mahmod
+        Elsherif.
       </p>
     </div>
   );

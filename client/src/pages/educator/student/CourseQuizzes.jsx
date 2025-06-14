@@ -11,7 +11,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   CircularProgress,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
@@ -93,13 +92,28 @@ const CourseQuizzes = () => {
   }
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Box
+      p={{ xs: 2, sm: 3, md: 3 }}
+      sx={{
+        maxWidth: "100%",
+        overflowX: "hidden",
+      }}
+    >
+      <Typography
+        variant="h4"
+        component="h1"
+        gutterBottom
+        sx={{ fontSize: { xs: "1.5rem", md: "2rem" } }}
+      >
         اختبارات المقرر
       </Typography>
 
       {error && (
-        <Typography color="error" mb={2}>
+        <Typography
+          color="error"
+          mb={2}
+          sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}
+        >
           {error}
         </Typography>
       )}
@@ -111,10 +125,19 @@ const CourseQuizzes = () => {
             <Grid item xs={12} md={6} key={quiz._id}>
               <Card>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{ fontSize: { xs: "1.1rem", md: "1.25rem" } }}
+                  >
                     {quiz.title}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    paragraph
+                    sx={{ fontSize: { xs: "0.85rem", md: "1rem" } }}
+                  >
                     {quiz.description}
                   </Typography>
                   <Box
@@ -123,7 +146,10 @@ const CourseQuizzes = () => {
                     alignItems="center"
                     mb={2}
                   >
-                    <Typography variant="body2">
+                    <Typography
+                      variant="body2"
+                      sx={{ fontSize: { xs: "0.85rem", md: "1rem" } }}
+                    >
                       تاريخ الاستحقاق:{" "}
                       {format(new Date(quiz.dueDate), "PPP", { locale: ar })}
                     </Typography>
@@ -138,11 +164,17 @@ const CourseQuizzes = () => {
                     justifyContent="space-between"
                     alignItems="center"
                   >
-                    <Typography variant="body2">
+                    <Typography
+                      variant="body2"
+                      sx={{ fontSize: { xs: "0.85rem", md: "1rem" } }}
+                    >
                       الدرجة الكلية: {quiz.totalMarks}
                     </Typography>
                     {quiz.submission ? (
-                      <Typography variant="body2">
+                      <Typography
+                        variant="body2"
+                        sx={{ fontSize: { xs: "0.85rem", md: "1rem" } }}
+                      >
                         درجتك: {quiz.submission.grade || "قيد التقدير"}
                       </Typography>
                     ) : (
@@ -151,6 +183,10 @@ const CourseQuizzes = () => {
                         color="primary"
                         onClick={() => handleStartQuiz(quiz)}
                         disabled={status.color === "error"}
+                        sx={{
+                          fontSize: { xs: "0.85rem", md: "1rem" },
+                          padding: { xs: "6px 12px", md: "8px 16px" },
+                        }}
                       >
                         ابدأ الاختبار
                       </Button>

@@ -6,9 +6,7 @@ import { Link } from "react-router-dom";
 const CourseCart = ({ course }) => {
   const { currency, calculateRating } = useContext(AppContext);
 
-  if (!course) {
-    return null;
-  }
+  if (!course) return null;
 
   const educatorName = course.educator?.name || "Unknown Educator";
   const rating = calculateRating(course);
@@ -19,22 +17,22 @@ const CourseCart = ({ course }) => {
     <Link
       to={"/course/" + course._id}
       onClick={() => window.scrollTo(0, 0)}
-      className="border border-gray-300 rounded-lg shadow-md hover:shadow-lg transition-all overflow-hidden bg-white"
+      className="w-full sm:w-[48%] md:w-[31%] lg:w-[23%] bg-white border border-gray-300 rounded-lg shadow-md hover:shadow-lg transition-all overflow-hidden"
     >
       <img
-        className="w-full h-48 object-cover"
+        className="w-full h-40 sm:h-44 md:h-48 object-cover"
         src={course.courseThumbnail || assets.defaultThumbnail}
         alt={course.courseTitle || "Course thumbnail"}
       />
 
-      <div className="p-4 space-y-2">
-        <h3 className="text-lg font-semibold text-gray-900">
+      <div className="p-3 sm:p-4 space-y-2">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2">
           {course.courseTitle || "Untitled Course"}
         </h3>
+
         <p className="text-gray-600 text-sm">{educatorName}</p>
 
-        {/* Centered Rating Section */}
-        <div className="flex items-center justify-center space-x-2">
+        <div className="flex items-center justify-center sm:justify-start space-x-2">
           <p className="text-sm font-medium text-gray-700">{rating}</p>
           <div className="flex space-x-0.5">
             {[...Array(5)].map((_, i) => (

@@ -86,20 +86,25 @@ const StudentQuizAnalytics = () => {
   }
 
   return (
-    <Box p={3}>
+    <Box
+      p={{ xs: 2, sm: 3 }}
+      sx={{
+        overflowX: "auto", // فقط للموبايل عشان الجداول الواسعة تعمل scroll
+      }}
+    >
       <Typography variant="h4" component="h1" gutterBottom>
         تحليلات الاختبارات
       </Typography>
 
       <Grid container spacing={3}>
-        {/* عرض الكويزات التي تم إجراؤها */}
+        {/* جدول الكويزات التي تم إجراؤها */}
         <Grid item xs={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 الكويزات التي تم إجراؤها
               </Typography>
-              <TableContainer>
+              <TableContainer sx={{ maxWidth: "100%", overflowX: "auto" }}>
                 <Table>
                   <TableHead>
                     <TableRow>

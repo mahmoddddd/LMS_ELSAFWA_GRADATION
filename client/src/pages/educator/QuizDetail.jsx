@@ -39,7 +39,7 @@ const QuizDetail = () => {
   }, [quizId]);
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, px: { xs: 2, md: 4 } }}>
       <NavigationButtons
         backPath="/educator/quizzes"
         forwardPath={`/educator/quizzes/${quizId}/edit`}

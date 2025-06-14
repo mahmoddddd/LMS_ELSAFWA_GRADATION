@@ -52,7 +52,7 @@ const MyCourses = () => {
 
       if (data.success) {
         toast.success("Course deleted successfully");
-        await fetchEducatorCourses(); // Refresh the course list
+        await fetchEducatorCourses();
       }
     } catch (error) {
       console.error("Error deleting course:", error);
@@ -74,7 +74,7 @@ const MyCourses = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 className="text-2xl font-semibold">My Courses</h1>
         <button
           onClick={() => navigate("/educator/add-course")}
@@ -91,7 +91,7 @@ const MyCourses = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {educatorCourses.map((course) => (
             <div
               key={course._id}
@@ -107,7 +107,9 @@ const MyCourses = () => {
                   {course.courseTitle}
                 </h3>
                 <p className="text-gray-600 text-sm mb-4">
-                  {course.courseDescription}
+                  {course.courseDescription.length > 100
+                    ? course.courseDescription.slice(0, 100) + "..."
+                    : course.courseDescription}
                 </p>
                 <div className="flex justify-between items-center">
                   <span className="text-blue-600 font-medium">

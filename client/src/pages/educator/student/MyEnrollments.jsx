@@ -78,36 +78,41 @@ const MyEnrollments = () => {
 
   return (
     <>
-      <div className="md:px-36 px-6 pt-10">
+      {/* Container padding */}
+      <div className="md:px-36 px-4 pt-10">
         <h1 className="text-2xl font-semibold mb-6">My Enrollments</h1>
 
         <div className="overflow-x-auto bg-white shadow-md rounded-lg">
           <table className="w-full table-auto border border-gray-300 rounded-lg overflow-hidden">
-            <thead className="text-gray-900 bg-gray-100 text-sm md:text-base">
+            <thead className="text-gray-900 bg-gray-100 text-xs sm:text-sm md:text-base">
               <tr className="border-b border-gray-300">
-                <th className="px-4 py-3 text-left font-semibold">Course</th>
-                <th className="px-4 py-3 text-left font-semibold max-sm:hidden">
+                <th className="px-3 sm:px-4 py-2 text-left font-semibold">
+                  Course
+                </th>
+                <th className="px-3 sm:px-4 py-2 text-left font-semibold max-sm:hidden">
                   Duration
                 </th>
-                <th className="px-4 py-3 text-left font-semibold max-sm:hidden">
+                <th className="px-3 sm:px-4 py-2 text-left font-semibold max-sm:hidden">
                   Completed
                 </th>
-                <th className="px-4 py-3 text-center font-semibold">Status</th>
+                <th className="px-3 sm:px-4 py-2 text-center font-semibold">
+                  Status
+                </th>
               </tr>
             </thead>
 
-            <tbody className="text-gray-700 divide-y divide-gray-300">
+            <tbody className="text-gray-700 divide-y divide-gray-300 text-xs sm:text-sm md:text-base">
               {enrolledCourses.map((course, index) => (
                 <tr key={index} className="hover:bg-gray-50 transition">
                   {/* Course Column */}
-                  <td className="flex items-center space-x-4 px-4 py-4">
+                  <td className="flex items-center space-x-3 sm:space-x-4 px-3 sm:px-4 py-3">
                     <img
                       src={course.courseThumbnail}
                       alt="Course Thumbnail"
-                      className="w-14 sm:w-20 md:w-24 h-auto rounded-lg"
+                      className="w-12 sm:w-16 md:w-24 h-auto rounded-lg"
                     />
-                    <div className="flex-1">
-                      <p className="font-medium md:text-base text-sm">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">
                         {course.courseTitle}
                       </p>
                       <div className="h-2 bg-gray-300 rounded-full w-full mt-1 relative">
@@ -126,12 +131,12 @@ const MyEnrollments = () => {
                   </td>
 
                   {/* Duration Column */}
-                  <td className="px-4 py-4 max-sm:hidden text-sm text-gray-600">
+                  <td className="px-3 sm:px-4 py-3 max-sm:hidden text-gray-600 whitespace-nowrap">
                     {calculateCourseDuration(course)}
                   </td>
 
                   {/* Completed Lectures Column */}
-                  <td className="px-4 py-4 max-sm:hidden text-sm text-gray-600">
+                  <td className="px-3 sm:px-4 py-3 max-sm:hidden text-gray-600 whitespace-nowrap">
                     {progressArray[index] && (
                       <span>
                         {progressArray[index].lectureCompleted} /{" "}
@@ -141,9 +146,9 @@ const MyEnrollments = () => {
                   </td>
 
                   {/* Status Button Column */}
-                  <td className="px-4 py-4 text-center">
+                  <td className="px-3 sm:px-4 py-3 text-center whitespace-nowrap">
                     <button
-                      className={`px-4 sm:px-6 py-2 text-white text-xs sm:text-sm font-medium rounded-lg shadow-md transition 
+                      className={`px-3 sm:px-6 py-1.5 sm:py-2 text-white text-xs sm:text-sm font-medium rounded-lg shadow-md transition 
                   ${
                     progressArray[index] &&
                     progressArray[index].lectureCompleted /

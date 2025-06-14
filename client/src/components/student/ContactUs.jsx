@@ -68,44 +68,53 @@ const ContactUs = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-10 px-6 md:px-20">
-      <h1 className="text-3xl font-bold text-gray-800 text-center">Contact Us</h1>
-      <p className="mt-4 text-gray-600 text-center max-w-2xl mx-auto">
-        Have any questions or need support? Get in touch with us using the form below.
+    <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-20">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 text-center">
+        Contact Us
+      </h1>
+      <p className="mt-4 text-sm sm:text-base text-gray-600 text-center max-w-2xl mx-auto">
+        Have any questions or need support? Get in touch with us using the form
+        below.
       </p>
-      <div className="max-w-2xl mx-auto bg-white shadow-lg p-6 rounded-lg mt-6">
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium">Name</label>
+      <div className="max-w-2xl mx-auto bg-white shadow-lg p-4 sm:p-6 rounded-lg mt-6 w-full">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Name
+            </label>
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded mt-1 text-sm"
               placeholder="Your Name"
               disabled={loading}
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium">Email</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded mt-1 text-sm"
               placeholder="Your Email"
               disabled={loading}
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 font-medium">Message</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Message
+            </label>
             <textarea
               name="message"
               value={formData.message}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded mt-1 text-sm"
               rows="4"
               placeholder="Your Message"
               disabled={loading}
@@ -113,7 +122,7 @@ const ContactUs = () => {
           </div>
           <button
             type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
             disabled={loading}
           >
             {loading ? "Sending..." : "Send Message"}

@@ -20,7 +20,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  LinearProgress,
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -55,7 +54,7 @@ const QuizDetail = () => {
 
         if (response.data.success) {
           setQuiz(response.data.quiz);
-          // تهيئة الإجابات
+          // initialize answers
           const initialAnswers = {};
           response.data.quiz.questions.forEach((q) => {
             initialAnswers[q._id] = q.type === "multiple_choice" ? "" : "";
@@ -178,6 +177,7 @@ const QuizDetail = () => {
   }
 
   const formatTimeLeft = (ms) => {
+    if (!ms) return "00:00:00";
     const hours = Math.floor(ms / (1000 * 60 * 60));
     const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((ms % (1000 * 60)) / 1000);
@@ -187,17 +187,33 @@ const QuizDetail = () => {
   };
 
   return (
-    <Box p={3}>
+    <Box
+      p={3}
+      sx={{
+        // Responsive padding for mobile, keep desktop same
+        paddingLeft: { xs: 2, sm: 3 },
+        paddingRight: { xs: 2, sm: 3 },
+      }}
+    >
       <Box
         display="flex"
         justifyContent="space-between"
         alignItems="center"
         mb={3}
+        sx={{
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: { xs: 1, sm: 0 },
+        }}
       >
-        <Typography variant="h4" component="h1">
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ fontSize: { xs: "1.5rem", sm: "2rem" } }}
+        >
           {quiz.title}
         </Typography>
-        <Typography variant="h6" color="error">
+        <Typography variant="h6" color="error" sx={{ mt: { xs: 1, sm: 0 } }}>
           الوقت المتبقي: {formatTimeLeft(timeLeft)}
         </Typography>
       </Box>
@@ -266,6 +282,7 @@ const QuizDetail = () => {
                       onChange={(e) =>
                         handleFileChange(question._id, e.target.files[0])
                       }
+                      style={{ marginTop: 8 }}
                     />
                     {answers[question._id] && (
                       <Typography
@@ -291,6 +308,7 @@ const QuizDetail = () => {
           onClick={() => setConfirmDialog(true)}
           disabled={submitting}
           fullWidth
+          size="large"
         >
           {submitting ? <CircularProgress size={24} /> : "تقديم الاختبار"}
         </Button>

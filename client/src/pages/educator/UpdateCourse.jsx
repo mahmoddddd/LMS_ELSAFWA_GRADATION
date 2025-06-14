@@ -123,109 +123,113 @@ const UpdateCourse = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
       <h1 className="text-2xl font-semibold mb-6">Update Course</h1>
-      <form onSubmit={handleSubmit} className="max-w-2xl">
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
-            Course Title
-          </label>
-          <input
-            type="text"
-            name="courseTitle"
-            value={formData.courseTitle}
-            onChange={handleChange}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            required
-          />
-        </div>
 
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
-            Course Description
-          </label>
-          <textarea
-            name="courseDescription"
-            value={formData.courseDescription}
-            onChange={handleChange}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            rows="4"
-            required
-          />
-        </div>
+      {/* هذا ال div خاص فقط لجعل العرض responsive على الموبايل */}
+      <div className="max-w-full sm:max-w-none mx-auto px-2">
+        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              Course Title
+            </label>
+            <input
+              type="text"
+              name="courseTitle"
+              value={formData.courseTitle}
+              onChange={handleChange}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
 
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
-            Course Price
-          </label>
-          <input
-            type="number"
-            name="coursePrice"
-            value={formData.coursePrice}
-            onChange={handleChange}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            required
-            min="0"
-            step="0.01"
-          />
-        </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              Course Description
+            </label>
+            <textarea
+              name="courseDescription"
+              value={formData.courseDescription}
+              onChange={handleChange}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              rows="4"
+              required
+            />
+          </div>
 
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
-            Course Thumbnail
-          </label>
-          {currentThumbnail && (
-            <div className="mb-2">
-              <p className="text-sm text-gray-600 mb-2">Current Thumbnail:</p>
-              <img
-                src={currentThumbnail}
-                alt="Current thumbnail"
-                className="w-32 h-32 object-cover rounded"
-              />
-            </div>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleThumbnailChange}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          />
-          <p className="text-sm text-gray-500 mt-1">
-            Leave empty to keep current thumbnail
-          </p>
-        </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              Course Price
+            </label>
+            <input
+              type="number"
+              name="coursePrice"
+              value={formData.coursePrice}
+              onChange={handleChange}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+              min="0"
+              step="0.01"
+            />
+          </div>
 
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
-            Course Video
-          </label>
-          <input
-            type="file"
-            accept="video/*"
-            onChange={handleVideoChange}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          />
-          <p className="text-sm text-gray-500 mt-1">
-            Leave empty to keep current video
-          </p>
-        </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              Course Thumbnail
+            </label>
+            {currentThumbnail && (
+              <div className="mb-2">
+                <p className="text-sm text-gray-600 mb-2">Current Thumbnail:</p>
+                <img
+                  src={currentThumbnail}
+                  alt="Current thumbnail"
+                  className="w-32 h-32 object-cover rounded"
+                />
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailChange}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Leave empty to keep current thumbnail
+            </p>
+          </div>
 
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => navigate("/educator/my-courses")}
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Update Course
-          </button>
-        </div>
-      </form>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">
+              Course Video
+            </label>
+            <input
+              type="file"
+              accept="video/*"
+              onChange={handleVideoChange}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Leave empty to keep current video
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => navigate("/educator/my-courses")}
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Update Course
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

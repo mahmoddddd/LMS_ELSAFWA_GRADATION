@@ -23,6 +23,8 @@ import {
   CircularProgress,
   Radio,
   Divider,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -64,6 +66,9 @@ const AddQuiz = () => {
       },
     ],
   });
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -126,14 +131,6 @@ const AddQuiz = () => {
     fetchCourses();
     fetchQuiz();
   }, [quizId]);
-
-  useEffect(() => {
-    console.log("Current courses state:", courses);
-    console.log(
-      "Course titles in state:",
-      courses.map((course) => course.title || course.courseTitle)
-    );
-  }, [courses]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -218,11 +215,9 @@ const AddQuiz = () => {
 
   const handleCorrectAnswerChange = (questionIndex, optionIndex) => {
     const newQuestions = [...quiz.questions];
-    // Reset all options to false
     newQuestions[questionIndex].options.forEach(
       (opt) => (opt.isCorrect = false)
     );
-    // Set the selected option to true
     newQuestions[questionIndex].options[optionIndex].isCorrect = true;
     setQuiz({ ...quiz, questions: newQuestions });
   };
@@ -284,9 +279,9 @@ const AddQuiz = () => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
-        <Typography variant="h4" gutterBottom>
+    <Container maxWidth="md" sx={{ mt: isMobile ? 2 : 4, mb: 4 }}>
+      <Paper elevation={3} sx={{ p: isMobile ? 2 : 4 }}>
+        <Typography variant={isMobile ? "h5" : "h4"} gutterBottom>
           {quizId ? "تعديل الكويز" : "إضافة كويز جديد"}
         </Typography>
 
@@ -297,7 +292,7 @@ const AddQuiz = () => {
         )}
 
         <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
+          <Grid container spacing={isMobile ? 1 : 3}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -305,6 +300,7 @@ const AddQuiz = () => {
                 value={quiz.title}
                 onChange={(e) => setQuiz({ ...quiz, title: e.target.value })}
                 required
+                size={isMobile ? "small" : "medium"}
               />
             </Grid>
 
@@ -312,18 +308,23 @@ const AddQuiz = () => {
               <TextField
                 fullWidth
                 multiline
-                rows={3}
+                rows={isMobile ? 2 : 3}
                 label="وصف الكويز"
                 value={quiz.description}
                 onChange={(e) =>
                   setQuiz({ ...quiz, description: e.target.value })
                 }
                 required
+                size={isMobile ? "small" : "medium"}
               />
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
+              <FormControl
+                fullWidth
+                required
+                size={isMobile ? "small" : "medium"}
+              >
                 <InputLabel>المقرر</InputLabel>
                 <Select
                   value={quiz.courseId}
@@ -361,7 +362,13 @@ const AddQuiz = () => {
                   onChange={(newValue) =>
                     setQuiz({ ...quiz, dueDate: newValue })
                   }
-                  renderInput={(params) => <TextField {...params} fullWidth />}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      fullWidth
+                      size={isMobile ? "small" : "medium"}
+                    />
+                  )}
                 />
               </LocalizationProvider>
             </Grid>
@@ -374,6 +381,7 @@ const AddQuiz = () => {
                     onChange={(e) =>
                       setQuiz({ ...quiz, isFileQuiz: e.target.checked })
                     }
+                    size={isMobile ? "small" : "medium"}
                   />
                 }
                 label="رفع الكويز كملف"
@@ -387,6 +395,7 @@ const AddQuiz = () => {
                   component="label"
                   startIcon={<CloudUploadIcon />}
                   fullWidth
+                  size={isMobile ? "small" : "medium"}
                 >
                   رفع ملف الكويز
                   <input
@@ -425,6 +434,7 @@ const AddQuiz = () => {
                         href={quiz.quizFile.fileUrl}
                         target="_blank"
                         sx={{ mt: 1 }}
+                        size={isMobile ? "small" : "medium"}
                       >
                         عرض الملف
                       </Button>
@@ -444,18 +454,19 @@ const AddQuiz = () => {
                       setQuiz({ ...quiz, totalMarks: e.target.value })
                     }
                     required
+                    size={isMobile ? "small" : "medium"}
                   />
                 </Grid>
 
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }} />
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant={isMobile ? "h6" : "h5"} gutterBottom>
                     الأسئلة
                   </Typography>
                   {quiz.questions.map((question, index) => (
                     <Card key={index} sx={{ mb: 2 }}>
                       <CardContent>
-                        <Grid container spacing={2}>
+                        <Grid container spacing={isMobile ? 1 : 2}>
                           <Grid item xs={12}>
                             <TextField
                               fullWidth
@@ -469,11 +480,15 @@ const AddQuiz = () => {
                                 )
                               }
                               required
+                              size={isMobile ? "small" : "medium"}
                             />
                           </Grid>
 
                           <Grid item xs={12} md={6}>
-                            <FormControl fullWidth>
+                            <FormControl
+                              fullWidth
+                              size={isMobile ? "small" : "medium"}
+                            >
                               <InputLabel>نوع السؤال</InputLabel>
                               <Select
                                 value={question.questionType}
@@ -507,6 +522,7 @@ const AddQuiz = () => {
                                 )
                               }
                               required
+                              size={isMobile ? "small" : "medium"}
                             />
                           </Grid>
 
@@ -532,6 +548,7 @@ const AddQuiz = () => {
                                         optionIndex
                                       )
                                     }
+                                    size={isMobile ? "small" : "medium"}
                                   />
                                   <TextField
                                     fullWidth
@@ -545,6 +562,7 @@ const AddQuiz = () => {
                                       )
                                     }
                                     required
+                                    size={isMobile ? "small" : "medium"}
                                   />
                                 </Box>
                               ))}
@@ -565,6 +583,7 @@ const AddQuiz = () => {
                                   )
                                 }
                                 required
+                                size={isMobile ? "small" : "medium"}
                               />
                             </Grid>
                           )}
@@ -575,6 +594,7 @@ const AddQuiz = () => {
                               color="error"
                               startIcon={<DeleteIcon />}
                               onClick={() => handleRemoveQuestion(index)}
+                              size={isMobile ? "small" : "medium"}
                             >
                               حذف السؤال
                             </Button>
@@ -589,6 +609,7 @@ const AddQuiz = () => {
                     startIcon={<AddIcon />}
                     onClick={handleAddQuestion}
                     sx={{ mt: 2 }}
+                    size={isMobile ? "small" : "medium"}
                   >
                     إضافة سؤال
                   </Button>
@@ -603,6 +624,7 @@ const AddQuiz = () => {
                 color="primary"
                 fullWidth
                 disabled={loading}
+                size={isMobile ? "medium" : "large"}
               >
                 {loading ? (
                   <CircularProgress size={24} />
