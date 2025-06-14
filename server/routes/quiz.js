@@ -19,7 +19,7 @@ import {
   gradeSubmission,
   getSubmissionDetails,
 } from "../controllers/QuizController.js";
-import { protectEducator } from "../middlewares/authMiddleware.js";
+import { protectEducator } from "../middlewares/authMiddleWare.js";
 import multer from "multer";
 import cloudinary from "cloudinary";
 import Quiz from "../models/Quiz.js";
