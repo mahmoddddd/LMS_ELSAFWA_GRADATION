@@ -18,6 +18,7 @@ const MyEnrollments = () => {
   } = useContext(AppContext);
 
   const [progressArray, setProgressArray] = useState([]);
+  const [quizProgressArray, setQuizProgressArray] = useState([]);
   const [searchParams] = useSearchParams();
   const shouldRefresh = searchParams.get("refresh") === "true";
 
@@ -49,6 +50,62 @@ const MyEnrollments = () => {
     }
   };
 
+  const getQuizProgress = async () => {
+    try {
+      const token = await getToken();
+
+      const tempQuizProgressArray = await Promise.all(
+        enrolledCourses.map(async (course) => {
+          try {
+            const { data } = await axios.get(
+              `${backendUrl}/api/quiz/course/${course._id}/progress`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+
+            if (data.success) {
+              return {
+                totalQuizzes: data.progress.totalQuizzes,
+                completedQuizzes: data.progress.completedQuizzes,
+                averageScore: data.progress.averageScore,
+                hasQuizzes: data.progress.totalQuizzes > 0,
+              };
+            } else {
+              return {
+                totalQuizzes: 0,
+                completedQuizzes: 0,
+                averageScore: 0,
+                hasQuizzes: false,
+              };
+            }
+          } catch (error) {
+            // If there's an error (like no quizzes), return default values
+            return {
+              totalQuizzes: 0,
+              completedQuizzes: 0,
+              averageScore: 0,
+              hasQuizzes: false,
+            };
+          }
+        })
+      );
+
+      setQuizProgressArray(tempQuizProgressArray);
+    } catch (error) {
+      console.error("Error fetching quiz progress:", error);
+      // Set default values if there's an error
+      setQuizProgressArray(
+        enrolledCourses.map(() => ({
+          totalQuizzes: 0,
+          completedQuizzes: 0,
+          averageScore: 0,
+          hasQuizzes: false,
+        }))
+      );
+    }
+  };
+
   useEffect(() => {
     if (userData) {
       fetchUserEnrolledCourses();
@@ -58,6 +115,7 @@ const MyEnrollments = () => {
   useEffect(() => {
     if (enrolledCourses.length > 0) {
       getCourseProgress();
+      getQuizProgress();
     }
   }, [enrolledCourses]);
 
@@ -90,7 +148,10 @@ const MyEnrollments = () => {
                   Duration
                 </th>
                 <th className="px-4 py-3 text-left font-semibold max-sm:hidden">
-                  Completed
+                  Course Progress
+                </th>
+                <th className="px-4 py-3 text-left font-semibold max-sm:hidden">
+                  Quiz Progress
                 </th>
                 <th className="px-4 py-3 text-center font-semibold">Status</th>
               </tr>
@@ -130,7 +191,7 @@ const MyEnrollments = () => {
                     {calculateCourseDuration(course)}
                   </td>
 
-                  {/* Completed Lectures Column */}
+                  {/* Course Progress Column */}
                   <td className="px-4 py-4 max-sm:hidden text-sm text-gray-600">
                     {progressArray[index] && (
                       <span>
@@ -140,10 +201,42 @@ const MyEnrollments = () => {
                     )}
                   </td>
 
+                  {/* Quiz Progress Column */}
+                  <td className="px-4 py-4 max-sm:hidden text-sm text-gray-600">
+                    {quizProgressArray[index] && quizProgressArray[index].hasQuizzes ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span>
+                            {quizProgressArray[index].completedQuizzes} /{" "}
+                            {quizProgressArray[index].totalQuizzes} Quizzes
+                          </span>
+                        </div>
+                        <div className="h-2 bg-gray-300 rounded-full w-full relative">
+                          <div
+                            className="h-full bg-green-600 rounded-full transition-all"
+                            style={{
+                              width: `${(quizProgressArray[index].completedQuizzes /
+                                quizProgressArray[index].totalQuizzes) *
+                                100}%`,
+                            }}
+                          ></div>
+                        </div>
+                        {quizProgressArray[index].completedQuizzes > 0 && (
+                          <div className="text-xs text-green-600">
+                            Avg: {quizProgressArray[index].averageScore.toFixed(1)}%
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">No quizzes</span>
+                    )}
+                  </td>
+
                   {/* Status Button Column */}
                   <td className="px-4 py-4 text-center">
-                    <button
-                      className={`px-4 sm:px-6 py-2 text-white text-xs sm:text-sm font-medium rounded-lg shadow-md transition 
+                    <div className="space-y-2">
+                      <button
+                        className={`px-4 sm:px-6 py-2 text-white text-xs sm:text-sm font-medium rounded-lg shadow-md transition 
                   ${
                     progressArray[index] &&
                     progressArray[index].lectureCompleted /
@@ -152,15 +245,28 @@ const MyEnrollments = () => {
                       ? "bg-green-600 hover:bg-green-700"
                       : "bg-blue-600 hover:bg-blue-700"
                   }`}
-                      onClick={() => navigate("/player/" + course._id)}
-                    >
-                      {progressArray[index] &&
-                        (progressArray[index].lectureCompleted /
-                          progressArray[index].totalLectures ===
-                        1
-                          ? "Completed"
-                          : "Ongoing")}
-                    </button>
+                        onClick={() => navigate("/player/" + course._id)}
+                      >
+                        {progressArray[index] &&
+                          (progressArray[index].lectureCompleted /
+                            progressArray[index].totalLectures ===
+                          1
+                            ? "Completed"
+                            : "Continue")}
+                      </button>
+                      
+                      {/* Quiz Button - Only show if course has quizzes */}
+                      {quizProgressArray[index] && quizProgressArray[index].hasQuizzes && (
+                        <button
+                          className="w-full px-4 sm:px-6 py-2 text-white text-xs sm:text-sm font-medium rounded-lg shadow-md transition bg-purple-600 hover:bg-purple-700"
+                          onClick={() => navigate(`/course/${course._id}/quizzes`)}
+                        >
+                          {quizProgressArray[index].completedQuizzes > 0
+                            ? "View Quizzes"
+                            : "Take Quizzes"}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -26,7 +26,7 @@ import QuizAnalytics from "./pages/educator/QuizAnalytics";
 import AddQuiz from "./pages/educator/AddQuiz";
 import CourseQuizzes from "./pages/educator/student/CourseQuizzes";
 import TakeQuiz from "./pages/educator/student/TakeQuiz";
-import StudentQuizAnalytics from "./pages/StudentQuizAnalytics";
+import StudentQuizAnalytics from "./pages/educator/student/StudentQuizAnalytics";
 
 const App = () => {
   const isEducatorRoute = useMatch("/educator/*");
