@@ -171,7 +171,6 @@ export const getCourseQuizzes = async (req, res) => {
         message: "A valid course ID is required",
       });
     }
-
     const quizzes = await Quiz.find({ course: courseId })
       .populate("course", "title")
       .sort({ createdAt: -1 });
@@ -757,7 +756,6 @@ export const getStudentAnalytics = async (req, res) => {
   try {
     const clerkId = getClerkId(req);
     const { courseId } = req.params;
-
     // Get all quizzes in the course
     const quizzes = await Quiz.find({ course: courseId });
 

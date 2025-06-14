@@ -93,7 +93,7 @@ const NavigationButtons = ({
           </Button>
         )}
       </Box>
-      {forwardPath && (
+      {(forwardPath || onForwardClick) && (
         <Button
           variant="contained"
           endIcon={<ArrowForwardIcon />}
