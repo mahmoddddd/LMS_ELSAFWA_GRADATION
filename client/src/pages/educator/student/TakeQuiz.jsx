@@ -23,7 +23,6 @@ import { useAuth } from "@clerk/clerk-react";
 import { AppContext } from "../../../context/AppContext";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DownloadIcon from "@mui/icons-material/Download";
-import NavigationButtons from "../../../components/NavigationButtons";
 
 const TakeQuiz = () => {
   const { quizId } = useParams();
@@ -384,15 +383,16 @@ const TakeQuiz = () => {
           </Box>
         )}
 
-        <NavigationButtons
-          backPath="/my-quizzes"
-          forwardPath={null}
-          backText="العودة للاختبارات"
-          showHome={true}
-          onForwardClick={handleSubmit}
-          forwardText="تقديم الاختبار"
-          disabled={submitting}
-        />
+        <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? <CircularProgress size={24} /> : "تقديم الإجابات"}
+          </Button>
+        </Box>
       </Paper>
     </Container>
   );

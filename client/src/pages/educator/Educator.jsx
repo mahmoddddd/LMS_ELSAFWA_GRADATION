@@ -10,10 +10,8 @@ const Educator = () => {
       <NavBar />
       <div className="flex">
         <SideBar />
-        <div className="flex-1 p-4">
-          <div className="max-w-7xl mx-auto">
-            <Outlet />
-          </div>
+        <div className="flex-1">
+          <Outlet />
         </div>
       </div>
       <Footer />

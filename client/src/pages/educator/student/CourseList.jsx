@@ -5,7 +5,6 @@ import { useParams } from "react-router-dom";
 import CourseCart from "../../../components/student/CourseCart";
 import { assets } from "../../../assets/assets";
 import Footer from "../../../components/student/Footer";
-import NavigationButtons from "../../../components/NavigationButtons";
 
 const CourseList = () => {
   const { navigate, allCourses } = useContext(AppContext);
@@ -29,15 +28,9 @@ const CourseList = () => {
   return (
     <>
       <div className="relative md:px-36 px-8 pt-20 text-left">
-        <NavigationButtons
-          backPath="/"
-          backText="العودة للرئيسية"
-          showHome={true}
-        />
-
         <div className="flex md:flex-row flex-col justify-between items-center gap-6 items-start w-full">
           <div>
-            <h1 className="text-4xl font-semibold text-gray-800">
+            <h1 className=" text-4xl font-semibold text-gray-800">
               Course List{" "}
             </h1>
             <p className="text-gray-500">
