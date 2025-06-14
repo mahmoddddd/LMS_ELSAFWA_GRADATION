@@ -68,9 +68,11 @@ app.get("/", (req, res) => {
   res.send("Your API Is Working");
 });
 
-const port = 4000;
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
-// لا تستخدم app.listen في Vercel
-// export default app;
+export default app;
+
+// const port = 4000;
+// app.listen(port, () => {
+//   console.log(`Example app listening on port ${port}`);
+// });
+// // لا تستخدم app.listen في Vercel
+// // export default app;
