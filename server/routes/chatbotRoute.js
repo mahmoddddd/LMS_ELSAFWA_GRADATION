@@ -72,7 +72,7 @@ const getOpenRouterResponse = async (userMessage) => {
     throw error;
   }
 };
-
+//
 // Fallback responses for when OpenRouter is not available
 const FALLBACK_RESPONSES = {
   course: [
