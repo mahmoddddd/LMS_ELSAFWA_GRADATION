@@ -17,9 +17,9 @@ import quizRouter from "./routes/quiz.js";
 // import assignmentRouter from "./routes/assignment.js";
 
 const app = express();
-
+// https://lms-backend-omega-two.vercel.app/
 // Enable CORS first
-app.use(cors({ origin: "*" }));
+app.use(cors()
 
 // تسجيل الطلبات للدباج
 app.use((req, res, next) => {
@@ -67,7 +67,7 @@ app.use("/api/quiz", quizRouter);
 app.get("/", (req, res) => {
   res.send("Your API Is Working");
 });
-
+console.log(process.env.MONGODB_URI);
 export default app;
 
 // const port = 4000;

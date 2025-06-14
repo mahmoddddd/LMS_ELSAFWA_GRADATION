@@ -86,9 +86,9 @@ const QuizSubmissions = () => {
       setError(null);
       const token = await getToken();
       console.log("Fetching submissions for quiz:", quizId);
-
+      const backendUrl = "https://lms-backend-omega-two.vercel.app";
       const response = await axios.get(
-        `http://localhost:4000/api/quiz/${quizId}/statistics`,
+        `${backendUrl}/api/quiz/${quizId}/statistics`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -110,8 +110,9 @@ const QuizSubmissions = () => {
         const names = {};
         for (const submission of submissionsData) {
           try {
+            const backendUrl = "https://lms-backend-omega-two.vercel.app";
             const studentResponse = await axios.get(
-              `http://localhost:4000/api/user/${submission.student}`,
+              `${backendUrl}/api/user/${submission.student}`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -152,9 +153,9 @@ const QuizSubmissions = () => {
       console.log("Submission object:", submission);
       console.log("Quiz ID:", quizId);
       console.log("Student ID:", submission.student);
-
+      const backendUrl = "https://lms-backend-omega-two.vercel.app";
       const response = await axios.get(
-        `http://localhost:4000/api/quiz/${quizId}/submissions/${submission.student}`,
+        `${backendUrl}/api/quiz/${quizId}/submissions/${submission.student}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -240,9 +241,9 @@ const QuizSubmissions = () => {
       setGradingLoading(true);
       setError(null);
       const token = await getToken();
-
+      const backendUrl = "https://lms-backend-omega-two.vercel.app";
       const response = await axios.post(
-        `http://localhost:4000/api/quiz/${quizId}/submissions/${selectedSubmission.student}/grade`,
+        `${backendUrl}/api/quiz/${quizId}/submissions/${selectedSubmission.student}/grade`,
         {
           grade: grade,
           feedback: feedback,

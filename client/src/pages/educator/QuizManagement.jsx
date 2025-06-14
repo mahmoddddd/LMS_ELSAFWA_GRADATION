@@ -54,9 +54,9 @@ const QuizManagement = () => {
 
       const token = await getToken();
       console.log("Token received:", token ? "Yes" : "No"); // Debug log
-
+      const backendUrl = "https://lms-backend-omega-two.vercel.app";
       const response = await axios.get(
-        `http://localhost:4000/api/quiz/instructor/${user.id}`,
+        `${backendUrl}/api/quiz/instructor/${user.id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -88,7 +88,8 @@ const QuizManagement = () => {
   const handleDeleteQuiz = async (quizId) => {
     try {
       const token = await getToken();
-      await axios.delete(`http://localhost:4000/api/quiz/${quizId}`, {
+      const backendUrl = "https://lms-backend-omega-two.vercel.app";
+      await axios.delete(`${backendUrl}/api/quiz/${quizId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

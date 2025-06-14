@@ -41,8 +41,9 @@ const QuizAnalytics = () => {
   const fetchAnalytics = async () => {
     try {
       const token = await getToken();
+      const backendUrl = "https://lms-backend-omega-two.vercel.app";
       const response = await axios.get(
-        `http://localhost:4000/api/quiz/${quizId}/statistics`,
+        `${backendUrl}/api/quiz/${quizId}/statistics`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

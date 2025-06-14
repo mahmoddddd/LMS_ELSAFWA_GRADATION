@@ -20,7 +20,8 @@ const Footer = () => {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:4000/api/subscribe", {
+      const backendUrl = "https://lms-backend-omega-two.vercel.app";
+      const res = await fetch(`${backendUrl}/api/subscribe`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -88,18 +89,37 @@ const Footer = () => {
           <div className="flex flex-col items-center md:items-start">
             <h2 className="font-semibold text-white mb-4">Company</h2>
             <ul className="space-y-2 text-sm text-white/80 text-start">
-              <li><a href="/" className="hover:text-white transition">Home</a></li>
-              <li><a href="/about" className="hover:text-white transition">About Us</a></li>
-              <li><a href="/contact" className="hover:text-white transition">Contact Us</a></li>
-              <li><a href="/policy" className="hover:text-white transition">Privacy Policy</a></li>
+              <li>
+                <a href="/" className="hover:text-white transition">
+                  Home
+                </a>
+              </li>
+              <li>
+                <a href="/about" className="hover:text-white transition">
+                  About Us
+                </a>
+              </li>
+              <li>
+                <a href="/contact" className="hover:text-white transition">
+                  Contact Us
+                </a>
+              </li>
+              <li>
+                <a href="/policy" className="hover:text-white transition">
+                  Privacy Policy
+                </a>
+              </li>
             </ul>
           </div>
 
           {/* Newsletter Subscription */}
           <div className="flex flex-col items-center md:items-start">
-            <h2 className="font-semibold text-white mb-4">Subscribe to our newsletter</h2>
+            <h2 className="font-semibold text-white mb-4">
+              Subscribe to our newsletter
+            </h2>
             <p className="text-sm text-white/80 text-center md:text-left">
-              Get the latest news, articles, and resources, sent to your inbox weekly.
+              Get the latest news, articles, and resources, sent to your inbox
+              weekly.
             </p>
             <div className="flex items-center gap-2 pt-4 w-full">
               <input

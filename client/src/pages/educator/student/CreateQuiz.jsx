@@ -88,8 +88,9 @@ const CreateQuiz = () => {
 
     try {
       const token = await getToken();
+      const backendUrl = "https://lms-backend-omega-two.vercel.app";
       const response = await axios.post(
-        `http://localhost:4000/api/quiz/course/${courseId}`,
+        `${backendUrl}/api/quiz/course/${courseId}`,
         {
           ...quizData,
           educatorId: userId,

@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+const backendUrl = "https://lms-backend-omega-two.vercel.app";
 
 const QuizList = () => {
   const { courseId } = useParams();
@@ -23,14 +24,13 @@ const QuizList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [quizzes, setQuizzes] = useState([]);
-
+ 
   useEffect(() => {
     const fetchQuizzes = async () => {
       try {
         const token = await getToken();
         const response = await axios.get(
-          `http://localhost:4000/api/quiz/course/${courseId}`,
-          {
+          `${backendUrl}/api/quiz/course/${courseId}`,
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",

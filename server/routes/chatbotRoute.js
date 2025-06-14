@@ -52,7 +52,7 @@ const getOpenRouterResponse = async (userMessage) => {
         headers: {
           Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://localhost:4000",
+          "HTTP-Referer": "https://lms-backend-omega-two.vercel.app",
           "X-Title": "LMS AI Assistant",
         },
         timeout: 30000, // 30 second timeout

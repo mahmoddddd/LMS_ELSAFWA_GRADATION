@@ -41,17 +41,15 @@ const QuizDetail = () => {
     const fetchQuiz = async () => {
       try {
         const token = await getToken();
-        const response = await axios.get(
-          `http://localhost:4000/api/quiz/${quizId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              Accept: "application/json",
-              "X-User-ID": userId,
-            },
-          }
-        );
+        const backendUrl = "https://lms-backend-omega-two.vercel.app";
+        const response = await axios.get(`${backendUrl}/api/quiz/${quizId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            "X-User-ID": userId,
+          },
+        });
 
         if (response.data.success) {
           setQuiz(response.data.quiz);
@@ -127,8 +125,9 @@ const QuizDetail = () => {
 
     try {
       const token = await getToken();
+      const backendUrl = "https://lms-backend-omega-two.vercel.app";
       const response = await axios.post(
-        `http://localhost:4000/api/quiz/${quizId}/submit`,
+        `${backendUrl}/api/quiz/${quizId}/submit`,
         {
           answers,
           userId,
