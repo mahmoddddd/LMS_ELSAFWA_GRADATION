@@ -14,6 +14,8 @@ import chatbotRouter from "./routes/chatbotRoute.js";
 import subscribeRoutes from "./routes/subscribeRoutes.js";
 import contactUs from "./routes/subscribeRoutes.js";
 import quizRouter from "./routes/quiz.js";
+import paymentRouter from "./routes/paymentRoutes.js";
+import handleSuccessfulPayment from "./controllers/paymentController.js";
 // import assignmentRouter from "./routes/assignment.js";
 
 const app = express();
@@ -72,11 +74,20 @@ app.use("/api/chatbot", chatbotRouter);
 app.use("/api/subscribe", subscribeRoutes);
 app.use("/api/cont", contactUs);
 app.use("/api/quiz", quizRouter);
+app.use("/api/payment", paymentRouter);
 
 // نقطة الدخول الرئيسية
 app.get("/", (req, res) => {
   res.send("Your API Is Working");
 });
+
+// Add payment success route
+app.post(
+  "/api/user/handle-payment-success",
+  express.json(),
+  handleSuccessfulPayment
+);
+
 console.log(process.env.MONGODB_URI);
 export default app;
 

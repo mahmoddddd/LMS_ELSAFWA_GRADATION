@@ -59,7 +59,7 @@ export const createPaymentSession = async (req, res) => {
     });
 
     // Get origin for success/cancel URLs
-    const origin = req.headers.origin || "http://localhost:3000";
+    const origin = req.headers.origin || "http://localhost:5173";
     console.log("🌐 Origin for URLs:", origin);
 
     // Create Stripe checkout session

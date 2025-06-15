@@ -10,25 +10,21 @@ const LoadingMyEnrollments = () => {
   const navigate = useNavigate();
   const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     const handlePaymentSuccess = async () => {
       try {
         const sessionId = searchParams.get("session_id");
-        console.log("Session ID from URL:", sessionId);
-
         if (!sessionId) {
           console.error("No session ID found in URL");
-          setError("No session ID found. Please try again.");
-          setTimeout(() => navigate("/my-enrollments"), 3000);
+          navigate("/my-enrollments");
           return;
         }
 
         const token = await getToken();
         if (!token) {
-          setError("Authentication failed. Please login again.");
-          setTimeout(() => navigate("/sign-in"), 3000);
+          toast.error("Authentication failed. Please login again.");
+          navigate("/sign-in");
           return;
         }
 
@@ -39,7 +35,7 @@ const LoadingMyEnrollments = () => {
 
         // Call the backend to handle successful payment
         const { data } = await axios.post(
-          `${backendUrl}/user/handle-payment-success`,
+          `${backendUrl}/api/user/handle-payment-success`,
           { session_id: sessionId },
           {
             headers: {
@@ -49,8 +45,6 @@ const LoadingMyEnrollments = () => {
           }
         );
 
-        console.log("Payment success response:", data);
-
         if (data.success) {
           console.log("✅ Payment processed successfully");
           toast.success("Payment completed successfully!");
@@ -58,19 +52,21 @@ const LoadingMyEnrollments = () => {
             navigate("/my-enrollments?refresh=true");
           }, 2000);
         } else {
-          console.error("Payment processing failed:", data.message);
-          setError(
-            data.message || "Failed to process payment. Please try again."
-          );
-          setTimeout(() => navigate("/my-enrollments"), 3000);
+          console.error("❌ Payment processing failed:", data.error);
+          toast.error(data.error || "Failed to process payment");
+          setTimeout(() => {
+            navigate("/my-enrollments");
+          }, 2000);
         }
       } catch (error) {
-        console.error("Error processing payment:", error);
-        setError(
-          error.response?.data?.message ||
-            "An error occurred while processing your payment. Please try again."
+        console.error("❌ Error processing payment:", error);
+        toast.error(
+          error.response?.data?.error ||
+            "Failed to process payment. Please try again."
         );
-        setTimeout(() => navigate("/my-enrollments"), 3000);
+        setTimeout(() => {
+          navigate("/my-enrollments");
+        }, 2000);
       } finally {
         setLoading(false);
       }
@@ -79,43 +75,13 @@ const LoadingMyEnrollments = () => {
     handlePaymentSuccess();
   }, [searchParams, navigate, getToken]);
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-          <div className="text-red-500 text-center mb-4">
-            <svg
-              className="w-16 h-16 mx-auto mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <h2 className="text-xl font-semibold mb-2">Error</h2>
-            <p>{error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold mb-2">Processing Payment</h2>
-          <p className="text-gray-600">
-            Please wait while we process your payment and enroll you in the
-            course...
-          </p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <p className="mt-4 text-gray-600">
+          {loading ? "Processing your payment..." : "Redirecting..."}
+        </p>
       </div>
     </div>
   );
