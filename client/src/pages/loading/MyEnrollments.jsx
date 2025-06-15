@@ -16,6 +16,8 @@ const LoadingMyEnrollments = () => {
     const handlePaymentSuccess = async () => {
       try {
         const sessionId = searchParams.get("session_id");
+        console.log("Session ID from URL:", sessionId);
+
         if (!sessionId) {
           console.error("No session ID found in URL");
           setError("No session ID found. Please try again.");
@@ -46,6 +48,8 @@ const LoadingMyEnrollments = () => {
             },
           }
         );
+
+        console.log("Payment success response:", data);
 
         if (data.success) {
           console.log("✅ Payment processed successfully");
