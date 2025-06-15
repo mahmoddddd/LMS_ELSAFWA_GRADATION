@@ -129,7 +129,7 @@ export const handleStripeWebhook = async (req, res) => {
     switch (event.type) {
       case "checkout.session.completed":
         const session = event.data.object;
-        await handleSuccessfulPayment(session);
+        await processSuccessfulPayment(session);
         break;
 
       case "payment_intent.payment_failed":
@@ -194,89 +194,127 @@ export const handleSuccessfulPayment = async (req, res) => {
       });
     }
 
-    // Get user and course
-    const user = await User.findOne({ clerkId: session.metadata.clerkUserId });
-    const course = await Course.findById(session.metadata.courseId);
-
-    if (!user || !course) {
-      console.error("❌ User or course not found:", {
-        userId: session.metadata.clerkUserId,
-        courseId: session.metadata.courseId,
-        userFound: !!user,
-        courseFound: !!course,
-      });
-      return res.status(404).json({
-        success: false,
-        message: "User or course not found",
-      });
-    }
+    // Start a transaction
+    const dbSession = await mongoose.startSession();
+    dbSession.startTransaction();
 
     try {
-      const dbSession = await mongoose.startSession();
-      dbSession.startTransaction();
-      console.log("🔄 Started MongoDB transaction");
+      // Update purchase status
+      purchase.status = "completed";
+      await purchase.save({ session: dbSession });
 
-      try {
-        // Add user to course's enrolled students if not already added
-        if (!course.enrolledStudents.includes(user.clerkId)) {
-          course.enrolledStudents.push(user.clerkId);
-          await course.save({ session: dbSession });
-          console.log("✅ Added user to course students:", {
-            userId: user._id,
-            clerkId: user.clerkId,
-            courseId: course._id,
-          });
-        }
+      // Get user and course
+      const user = await User.findOne({
+        clerkId: session.metadata.clerkUserId,
+      });
+      const course = await Course.findById(session.metadata.courseId);
 
-        // Add course to user's enrolled courses if not already added
-        if (!user.enrolledCourses.includes(course._id)) {
-          user.enrolledCourses.push(course._id);
-          await user.save({ session: dbSession });
-          console.log("✅ Added course to user enrollments:", {
-            userId: user._id,
-            clerkId: user.clerkId,
-            courseId: course._id,
-          });
-        }
-
-        // Update purchase status
-        purchase.status = "completed";
-        purchase.completedAt = new Date();
-        await purchase.save({ session: dbSession });
-        console.log("✅ Updated purchase status to completed");
-
-        await dbSession.commitTransaction();
-        console.log("✅ Successfully committed enrollment transaction");
-      } catch (error) {
-        console.error("❌ Error in transaction:", error);
-        await dbSession.abortTransaction();
-        throw error;
-      } finally {
-        dbSession.endSession();
-        console.log("🔄 Ended MongoDB session");
+      if (!user || !course) {
+        throw new Error("User or course not found");
       }
+
+      // Add course to user's enrolled courses if not already enrolled
+      if (!user.enrolledCourses.includes(course._id)) {
+        user.enrolledCourses.push(course._id);
+        await user.save({ session: dbSession });
+      }
+
+      // Add user to course's enrolled students if not already enrolled
+      if (!course.enrolledStudents.includes(user._id)) {
+        course.enrolledStudents.push(user._id);
+        await course.save({ session: dbSession });
+      }
+
+      // Commit the transaction
+      await dbSession.commitTransaction();
+      console.log("✅ Transaction committed successfully");
 
       res.json({
         success: true,
-        message: "Enrollment completed successfully",
+        message: "Payment processed successfully",
       });
     } catch (error) {
-      console.error("❌ Error in enrollment transaction:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to process enrollment",
-        error: error.message,
-      });
+      // If an error occurred, abort the transaction
+      await dbSession.abortTransaction();
+      throw error;
+    } finally {
+      dbSession.endSession();
     }
   } catch (error) {
-    console.error("❌ Error handling successful payment:", error);
+    console.error("❌ Error processing payment:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to handle successful payment",
+      message: "Failed to process payment",
       error: error.message,
     });
   }
 };
+
+// Helper function for webhook handler
+async function processSuccessfulPayment(session) {
+  try {
+    console.log("🔄 Processing successful payment from webhook:", {
+      sessionId: session.id,
+      metadata: session.metadata,
+    });
+
+    // Get purchase record
+    const purchase = await Purchase.findById(session.metadata.purchaseId);
+    if (!purchase) {
+      throw new Error(`Purchase not found: ${session.metadata.purchaseId}`);
+    }
+
+    if (purchase.status === "completed") {
+      console.log("ℹ️ Purchase already completed:", purchase._id);
+      return;
+    }
+
+    // Start a transaction
+    const dbSession = await mongoose.startSession();
+    dbSession.startTransaction();
+
+    try {
+      // Update purchase status
+      purchase.status = "completed";
+      await purchase.save({ session: dbSession });
+
+      // Get user and course
+      const user = await User.findOne({
+        clerkId: session.metadata.clerkUserId,
+      });
+      const course = await Course.findById(session.metadata.courseId);
+
+      if (!user || !course) {
+        throw new Error("User or course not found");
+      }
+
+      // Add course to user's enrolled courses if not already enrolled
+      if (!user.enrolledCourses.includes(course._id)) {
+        user.enrolledCourses.push(course._id);
+        await user.save({ session: dbSession });
+      }
+
+      // Add user to course's enrolled students if not already enrolled
+      if (!course.enrolledStudents.includes(user._id)) {
+        course.enrolledStudents.push(user._id);
+        await course.save({ session: dbSession });
+      }
+
+      // Commit the transaction
+      await dbSession.commitTransaction();
+      console.log("✅ Transaction committed successfully");
+    } catch (error) {
+      // If an error occurred, abort the transaction
+      await dbSession.abortTransaction();
+      throw error;
+    } finally {
+      dbSession.endSession();
+    }
+  } catch (error) {
+    console.error("❌ Error processing payment from webhook:", error);
+    throw error;
+  }
+}
 
 async function handleFailedPayment(paymentIntent) {
   const sessions = await stripeInstance.checkout.sessions.list({
