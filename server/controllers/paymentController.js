@@ -2,6 +2,8 @@ import Stripe from "stripe";
 import { Purchase } from "../models/Purchase.js";
 import { User } from "../models/User.js";
 import { Course } from "../models/Course.js";
+import mongoose from "mongoose";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16",
@@ -9,49 +11,58 @@ const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 export const createPaymentSession = async (req, res) => {
   try {
-    const { courseId } = req.body;
-    const origin = req.headers.origin || `${req.protocol}://${req.get("host")}`;
-    const userId = req.auth.userId;
+    const { courseId } = req.params;
+    const { userId } = req.user;
 
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required",
-      });
-    }
+    console.log("🔄 Creating payment session for:", {
+      courseId,
+      userId,
+    });
 
-    const [userData, courseData] = await Promise.all([
-      User.findById(userId),
-      Course.findById(courseId),
-    ]);
-
-    if (!userData || !courseData) {
+    // Get user data from Clerk
+    const userData = await clerkClient.users.getUser(userId);
+    if (!userData) {
+      console.error("❌ User not found in Clerk:", userId);
       return res.status(404).json({
         success: false,
-        message: "User or Course not found",
+        message: "User not found",
       });
     }
 
-    // Check if already enrolled
-    if (userData.enrolledCourses.includes(courseId)) {
-      return res.status(400).json({
+    // Get course data
+    const courseData = await Course.findById(courseId);
+    if (!courseData) {
+      console.error("❌ Course not found:", courseId);
+      return res.status(404).json({
         success: false,
-        message: "User already enrolled in this course",
+        message: "Course not found",
       });
     }
 
-    const amount = (
-      courseData.coursePrice -
-      (courseData.discount * courseData.coursePrice) / 100
-    ).toFixed(2);
+    // Calculate amount
+    const amount = courseData.price;
+    console.log("💰 Amount to charge:", amount);
 
+    // Create purchase record
     const newPurchase = await Purchase.create({
-      courseId: courseData._id,
-      userId,
-      amount,
+      course: courseId,
+      user: userId,
+      amount: amount,
       status: "pending",
     });
 
+    console.log("✅ Created purchase record:", {
+      purchaseId: newPurchase._id,
+      courseId,
+      userId,
+      amount,
+    });
+
+    // Get origin for success/cancel URLs
+    const origin = req.headers.origin || "http://localhost:3000";
+    console.log("🌐 Origin for URLs:", origin);
+
+    // Create Stripe checkout session
     const session = await stripeInstance.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -80,17 +91,21 @@ export const createPaymentSession = async (req, res) => {
       },
     });
 
+    console.log("✅ Created Stripe session:", {
+      sessionId: session.id,
+      metadata: session.metadata,
+    });
+
     res.json({
       success: true,
       sessionId: session.id,
-      sessionUrl: session.url,
     });
   } catch (error) {
-    console.error("Payment session error:", error);
+    console.error("❌ Error creating payment session:", error);
     res.status(500).json({
       success: false,
-      message: error.message,
-      error: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      message: "Failed to create payment session",
+      error: error.message,
     });
   }
 };
@@ -136,42 +151,132 @@ export const handleStripeWebhook = async (req, res) => {
   }
 };
 
-async function handleSuccessfulPayment(session) {
-  const { purchaseId } = session.metadata;
+export const handleSuccessfulPayment = async (req, res) => {
+  try {
+    const { session_id } = req.body;
+    const { userId } = req.user;
 
-  const purchase = await Purchase.findById(purchaseId);
-  if (!purchase) {
-    throw new Error(`Purchase not found: ${purchaseId}`);
+    console.log("🔄 Handling successful payment:", {
+      sessionId: session_id,
+      userId,
+    });
+
+    // Verify the session
+    const session = await stripeInstance.checkout.sessions.retrieve(session_id);
+    console.log("✅ Retrieved session:", {
+      sessionId: session.id,
+      metadata: session.metadata,
+    });
+
+    if (!session) {
+      console.error("❌ Session not found:", session_id);
+      return res.status(404).json({
+        success: false,
+        message: "Session not found",
+      });
+    }
+
+    // Get purchase record
+    const purchase = await Purchase.findById(session.metadata.purchaseId);
+    if (!purchase) {
+      console.error("❌ Purchase not found:", session.metadata.purchaseId);
+      return res.status(404).json({
+        success: false,
+        message: "Purchase not found",
+      });
+    }
+
+    if (purchase.status === "completed") {
+      console.log("ℹ️ Purchase already completed:", purchase._id);
+      return res.json({
+        success: true,
+        message: "Purchase already completed",
+      });
+    }
+
+    // Get user and course
+    const user = await User.findOne({ clerkId: session.metadata.clerkUserId });
+    const course = await Course.findById(session.metadata.courseId);
+
+    if (!user || !course) {
+      console.error("❌ User or course not found:", {
+        userId: session.metadata.clerkUserId,
+        courseId: session.metadata.courseId,
+        userFound: !!user,
+        courseFound: !!course,
+      });
+      return res.status(404).json({
+        success: false,
+        message: "User or course not found",
+      });
+    }
+
+    try {
+      const dbSession = await mongoose.startSession();
+      dbSession.startTransaction();
+      console.log("🔄 Started MongoDB transaction");
+
+      try {
+        // Add user to course's enrolled students if not already added
+        if (!course.enrolledStudents.includes(user.clerkId)) {
+          course.enrolledStudents.push(user.clerkId);
+          await course.save({ session: dbSession });
+          console.log("✅ Added user to course students:", {
+            userId: user._id,
+            clerkId: user.clerkId,
+            courseId: course._id,
+          });
+        }
+
+        // Add course to user's enrolled courses if not already added
+        if (!user.enrolledCourses.includes(course._id)) {
+          user.enrolledCourses.push(course._id);
+          await user.save({ session: dbSession });
+          console.log("✅ Added course to user enrollments:", {
+            userId: user._id,
+            clerkId: user.clerkId,
+            courseId: course._id,
+          });
+        }
+
+        // Update purchase status
+        purchase.status = "completed";
+        purchase.completedAt = new Date();
+        await purchase.save({ session: dbSession });
+        console.log("✅ Updated purchase status to completed");
+
+        await dbSession.commitTransaction();
+        console.log("✅ Successfully committed enrollment transaction");
+      } catch (error) {
+        console.error("❌ Error in transaction:", error);
+        await dbSession.abortTransaction();
+        throw error;
+      } finally {
+        dbSession.endSession();
+        console.log("🔄 Ended MongoDB session");
+      }
+
+      res.json({
+        success: true,
+        message: "Enrollment completed successfully",
+      });
+    } catch (error) {
+      console.error("❌ Error in enrollment transaction:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to process enrollment",
+        error: error.message,
+      });
+    }
+  } catch (error) {
+    console.error("❌ Error handling successful payment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to handle successful payment",
+      error: error.message,
+    });
   }
-
-  if (purchase.status === "completed") {
-    return; // Already processed
-  }
-
-  const [user, course] = await Promise.all([
-    User.findById(purchase.userId),
-    Course.findById(purchase.courseId),
-  ]);
-
-  if (!user || !course) {
-    throw new Error("User or Course not found");
-  }
-
-  // Add to enrolled courses if not already enrolled
-  if (!user.enrolledCourses.includes(purchase.courseId)) {
-    user.enrolledCourses.push(purchase.courseId);
-  }
-
-  // Add to enrolled students if not already added
-  if (!course.enrolledStudents.includes(purchase.userId)) {
-    course.enrolledStudents.push(purchase.userId);
-  }
-
-  purchase.status = "completed";
-  purchase.paidAt = new Date();
-
-  await Promise.all([user.save(), course.save(), purchase.save()]);
-}
+};
 
 async function handleFailedPayment(paymentIntent) {
   const sessions = await stripeInstance.checkout.sessions.list({

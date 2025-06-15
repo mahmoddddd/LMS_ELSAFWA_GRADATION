@@ -236,6 +236,9 @@ const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
 // ===== Stripe webhook handler =====
 export const stripeWebhooks = async (req, res) => {
   console.log("🔔 Stripe webhook received");
+  console.log("Headers:", JSON.stringify(req.headers, null, 2));
+  console.log("Raw body:", JSON.stringify(req.body, null, 2));
+
   const sig = req.headers["stripe-signature"];
 
   if (!sig) {
@@ -249,6 +252,10 @@ export const stripeWebhooks = async (req, res) => {
   let event;
   try {
     console.log("🔐 Verifying webhook signature");
+    console.log(
+      "Webhook secret:",
+      process.env.STRIPE_WEBHOOK_SECRET ? "Present" : "Missing"
+    );
     event = stripeInstance.webhooks.constructEvent(
       req.body,
       sig,
@@ -256,6 +263,7 @@ export const stripeWebhooks = async (req, res) => {
     );
     console.log("✅ Webhook signature verified");
     console.log("📦 Event type:", event.type);
+    console.log("📦 Event data:", JSON.stringify(event.data.object, null, 2));
   } catch (err) {
     console.error("❌ Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -265,13 +273,18 @@ export const stripeWebhooks = async (req, res) => {
     if (event.type === "checkout.session.completed") {
       console.log("🔄 Processing checkout.session.completed event");
       const session = event.data.object;
+      console.log("Session data:", JSON.stringify(session, null, 2));
       console.log("Session metadata:", session.metadata);
 
       const { purchaseId, clerkUserId, courseId } = session.metadata;
       console.log("Extracted metadata:", { purchaseId, clerkUserId, courseId });
 
       if (!purchaseId || !clerkUserId || !courseId) {
-        console.error("❌ Missing required metadata");
+        console.error("❌ Missing required metadata:", {
+          purchaseId: !!purchaseId,
+          clerkUserId: !!clerkUserId,
+          courseId: !!courseId,
+        });
         return res.status(400).json({
           success: false,
           message: "Missing required metadata",
@@ -299,7 +312,12 @@ export const stripeWebhooks = async (req, res) => {
       const course = await Course.findById(courseId);
 
       if (!user || !course) {
-        console.error("❌ User or course not found");
+        console.error("❌ User or course not found:", {
+          clerkUserId,
+          courseId,
+          userFound: !!user,
+          courseFound: !!course,
+        });
         return res.status(404).json({
           success: false,
           message: "User or course not found",
@@ -309,51 +327,67 @@ export const stripeWebhooks = async (req, res) => {
       try {
         const session = await mongoose.startSession();
         session.startTransaction();
+        console.log("🔄 Started MongoDB transaction");
 
         try {
-          // Add user to course's enrolled students
+          // Add user to course's enrolled students if not already added
           if (!course.enrolledStudents.includes(user.clerkId)) {
             course.enrolledStudents.push(user.clerkId);
             await course.save({ session });
+            console.log("✅ Added user to course students:", {
+              userId: user._id,
+              clerkId: user.clerkId,
+              courseId: course._id,
+            });
           }
 
-          // Add course to user's enrolled courses
+          // Add course to user's enrolled courses if not already added
           if (!user.enrolledCourses.includes(course._id)) {
             user.enrolledCourses.push(course._id);
             await user.save({ session });
+            console.log("✅ Added course to user enrollments:", {
+              userId: user._id,
+              clerkId: user.clerkId,
+              courseId: course._id,
+            });
           }
 
           // Update purchase status
           purchase.status = "completed";
           purchase.completedAt = new Date();
           await purchase.save({ session });
+          console.log("✅ Updated purchase status to completed");
 
           await session.commitTransaction();
-          console.log(
-            "✅ Successfully processed payment and updated enrollment"
-          );
+          console.log("✅ Successfully committed enrollment transaction");
         } catch (error) {
+          console.error("❌ Error in transaction:", error);
           await session.abortTransaction();
           throw error;
         } finally {
           session.endSession();
+          console.log("🔄 Ended MongoDB session");
         }
 
         res.json({
           success: true,
-          message: "Payment processed successfully",
+          message: "Enrollment completed successfully",
         });
       } catch (error) {
-        console.error("❌ Error processing payment:", error);
+        console.error("❌ Error in enrollment transaction:", error);
         res.status(500).json({
           success: false,
-          message: "Failed to process payment",
+          message: "Failed to process enrollment",
           error: error.message,
         });
       }
     } else if (event.type === "payment_intent.succeeded") {
       console.log("🔄 Processing payment_intent.succeeded event");
       const paymentIntent = event.data.object;
+      console.log(
+        "Payment intent data:",
+        JSON.stringify(paymentIntent, null, 2)
+      );
 
       // Get the session associated with this payment intent
       const sessions = await stripeInstance.checkout.sessions.list({
@@ -372,10 +406,17 @@ export const stripeWebhooks = async (req, res) => {
       }
 
       const session = sessions.data[0];
+      console.log("Found session:", JSON.stringify(session, null, 2));
+
       const { purchaseId, clerkUserId, courseId } = session.metadata;
+      console.log("Extracted metadata:", { purchaseId, clerkUserId, courseId });
 
       if (!purchaseId || !clerkUserId || !courseId) {
-        console.error("❌ Missing required metadata");
+        console.error("❌ Missing required metadata:", {
+          purchaseId: !!purchaseId,
+          clerkUserId: !!clerkUserId,
+          courseId: !!courseId,
+        });
         return res.status(400).json({
           success: false,
           message: "Missing required metadata",
@@ -403,7 +444,12 @@ export const stripeWebhooks = async (req, res) => {
       const course = await Course.findById(courseId);
 
       if (!user || !course) {
-        console.error("❌ User or course not found");
+        console.error("❌ User or course not found:", {
+          clerkUserId,
+          courseId,
+          userFound: !!user,
+          courseFound: !!course,
+        });
         return res.status(404).json({
           success: false,
           message: "User or course not found",
@@ -413,51 +459,67 @@ export const stripeWebhooks = async (req, res) => {
       try {
         const session = await mongoose.startSession();
         session.startTransaction();
+        console.log("🔄 Started MongoDB transaction");
 
         try {
-          // Add user to course's enrolled students
+          // Add user to course's enrolled students if not already added
           if (!course.enrolledStudents.includes(user.clerkId)) {
             course.enrolledStudents.push(user.clerkId);
             await course.save({ session });
+            console.log("✅ Added user to course students:", {
+              userId: user._id,
+              clerkId: user.clerkId,
+              courseId: course._id,
+            });
           }
 
-          // Add course to user's enrolled courses
+          // Add course to user's enrolled courses if not already added
           if (!user.enrolledCourses.includes(course._id)) {
             user.enrolledCourses.push(course._id);
             await user.save({ session });
+            console.log("✅ Added course to user enrollments:", {
+              userId: user._id,
+              clerkId: user.clerkId,
+              courseId: course._id,
+            });
           }
 
           // Update purchase status
           purchase.status = "completed";
           purchase.completedAt = new Date();
           await purchase.save({ session });
+          console.log("✅ Updated purchase status to completed");
 
           await session.commitTransaction();
-          console.log(
-            "✅ Successfully processed payment and updated enrollment"
-          );
+          console.log("✅ Successfully committed enrollment transaction");
         } catch (error) {
+          console.error("❌ Error in transaction:", error);
           await session.abortTransaction();
           throw error;
         } finally {
           session.endSession();
+          console.log("🔄 Ended MongoDB session");
         }
 
         res.json({
           success: true,
-          message: "Payment processed successfully",
+          message: "Enrollment completed successfully",
         });
       } catch (error) {
-        console.error("❌ Error processing payment:", error);
+        console.error("❌ Error in enrollment transaction:", error);
         res.status(500).json({
           success: false,
-          message: "Failed to process payment",
+          message: "Failed to process enrollment",
           error: error.message,
         });
       }
     } else if (event.type === "payment_intent.payment_failed") {
       console.log("🔄 Processing payment_intent.payment_failed event");
       const paymentIntent = event.data.object;
+      console.log(
+        "Payment intent data:",
+        JSON.stringify(paymentIntent, null, 2)
+      );
 
       const sessions = await stripeInstance.checkout.sessions.list({
         payment_intent: paymentIntent.id,
@@ -475,8 +537,9 @@ export const stripeWebhooks = async (req, res) => {
       }
 
       const session = sessions.data[0];
-      const { purchaseId } = session.metadata;
+      console.log("Found session:", JSON.stringify(session, null, 2));
 
+      const { purchaseId } = session.metadata;
       if (!purchaseId) {
         console.error("❌ Missing purchaseId in metadata");
         return res.status(400).json({
@@ -507,10 +570,10 @@ export const stripeWebhooks = async (req, res) => {
       res.json({ received: true });
     }
   } catch (error) {
-    console.error("❌ Webhook processing error:", error);
+    console.error("❌ Error processing webhook:", error);
     res.status(500).json({
       success: false,
-      message: "Webhook processing failed",
+      message: "Error processing webhook",
       error: error.message,
     });
   }
