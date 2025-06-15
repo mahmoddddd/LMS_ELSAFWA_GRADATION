@@ -1,20 +1,20 @@
 import express from "express";
-import { 
-  createPaymentSession, 
-  handleStripeWebhook 
+import {
+  createPaymentSession,
+  handleSuccessfulPayment,
 } from "../controllers/paymentController.js";
-import { requireAuth } from "../middlewares/authMiddleware.js";
+import { authenticateUser } from "../middlewares/authMiddleWare.js";
 
 const router = express.Router();
 
-// Payment session route
-router.post("/create-session", requireAuth, createPaymentSession);
+// Create payment session
+router.post("/create-session", authenticateUser, createPaymentSession);
 
-// Stripe webhook
+// Handle successful payment
 router.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  handleStripeWebhook
+  "/handle-payment-success",
+  authenticateUser,
+  handleSuccessfulPayment
 );
 
 export default router;
