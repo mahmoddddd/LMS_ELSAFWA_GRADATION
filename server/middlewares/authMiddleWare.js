@@ -17,7 +17,7 @@ export const authenticateUser = async (req, res, next) => {
     if (!session) {
       return res.status(401).json({ error: "Invalid session" });
     }
-
+    //
     // Get user data from Clerk
     const user = await clerkClient.users.getUser(session.userId);
     if (!user) {
