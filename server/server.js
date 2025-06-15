@@ -38,7 +38,11 @@ await connectDB();
 await connectCloudinary();
 
 // Stripe webhook (raw body)
-app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhooks);
+app.post(
+  "/api/webhooks/stripe",
+  express.raw({ type: "application/json" }),
+  stripeWebhooks
+);
 
 // Clerk webhook (raw body) - 👈 لازم يجي قبل express.json()
 app.post("/clerk", express.raw({ type: "application/json" }), clerkWebHooks);

@@ -55,7 +55,7 @@ export const createPaymentSession = async (req, res) => {
     const session = await stripeInstance.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
-      success_url: `${origin}/loading/my-enrollments`,
+      success_url: `${origin}/loading/my-enrollments?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/courses/${courseId}`,
       customer_email: userData.email,
       client_reference_id: userId,
@@ -76,6 +76,7 @@ export const createPaymentSession = async (req, res) => {
         purchaseId: newPurchase._id.toString(),
         courseId: courseId,
         userId: userId.toString(),
+        clerkUserId: userData.clerkId,
       },
     });
 
