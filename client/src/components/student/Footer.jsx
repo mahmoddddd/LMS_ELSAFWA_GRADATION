@@ -20,7 +20,7 @@ const Footer = () => {
     setLoading(true);
 
     try {
-      const backendUrl = "https://lms-backend-omega-two.vercel.app";
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       const res = await fetch(`${backendUrl}/api/subscribe`, {
         method: "POST",
         headers: {

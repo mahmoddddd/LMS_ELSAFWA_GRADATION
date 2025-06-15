@@ -41,7 +41,7 @@ const QuizDetail = () => {
     const fetchQuiz = async () => {
       try {
         const token = await getToken();
-        const backendUrl = "https://lms-backend-omega-two.vercel.app";
+        const backendUrl = import.meta.env.VITE_BACKEND_URL;
         const response = await axios.get(`${backendUrl}/api/quiz/${quizId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -125,7 +125,7 @@ const QuizDetail = () => {
 
     try {
       const token = await getToken();
-      const backendUrl = "https://lms-backend-omega-two.vercel.app";
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       const response = await axios.post(
         `${backendUrl}/api/quiz/${quizId}/submit`,
         {

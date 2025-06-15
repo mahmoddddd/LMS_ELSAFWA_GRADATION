@@ -48,6 +48,8 @@ const CreateQuiz = () => {
     ],
   });
 
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   const handleQuestionChange = (index, field, value) => {
     const newQuestions = [...quizData.questions];
     newQuestions[index] = { ...newQuestions[index], [field]: value };
@@ -88,7 +90,6 @@ const CreateQuiz = () => {
 
     try {
       const token = await getToken();
-      const backendUrl = "https://lms-backend-omega-two.vercel.app";
       const response = await axios.post(
         `${backendUrl}/api/quiz/course/${courseId}`,
         {

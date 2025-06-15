@@ -52,6 +52,8 @@ const StudentQuizAnalytics = () => {
   const [analytics, setAnalytics] = useState(null);
   const [instructorNames, setInstructorNames] = useState({});
 
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   // Function to fetch instructor names from Clerk
   const fetchInstructorNames = async (instructorIds) => {
     try {
@@ -95,7 +97,6 @@ const StudentQuizAnalytics = () => {
         console.log("👤 Fetching analytics for user:", userId);
         const token = await getToken();
         console.log("🔐 Token received:", token ? "Yes" : "No");
-        const backendUrl = "https://lms-backend-omega-two.vercel.app";
         const url = `${backendUrl}/api/quiz/student/${userId}/analytics`;
         console.log("🌐 API URL:", url);
 

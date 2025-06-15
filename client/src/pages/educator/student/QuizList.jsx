@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-const backendUrl = "https://lms-backend-omega-two.vercel.app";
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const QuizList = () => {
   const { courseId } = useParams();

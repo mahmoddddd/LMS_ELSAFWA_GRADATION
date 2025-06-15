@@ -32,7 +32,7 @@ const ContactUs = () => {
     }
 
     setLoading(true);
-    const backendUrl = "https://lms-backend-omega-two.vercel.app";
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
     try {
       const res = await fetch(`${backendUrl}/cont/contact`, {
         method: "POST",
