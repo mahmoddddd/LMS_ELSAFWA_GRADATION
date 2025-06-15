@@ -15,7 +15,7 @@ import subscribeRoutes from "./routes/subscribeRoutes.js";
 import contactUs from "./routes/subscribeRoutes.js";
 import quizRouter from "./routes/quiz.js";
 import paymentRouter from "./routes/paymentRoutes.js";
-import handleSuccessfulPayment from "./controllers/paymentController.js";
+import { handleSuccessfulPayment } from "./controllers/paymentController.js";
 // import assignmentRouter from "./routes/assignment.js";
 
 const app = express();
