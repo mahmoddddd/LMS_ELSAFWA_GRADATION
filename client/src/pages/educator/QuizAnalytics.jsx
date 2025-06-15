@@ -34,6 +34,8 @@ const QuizAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   useEffect(() => {
     fetchAnalytics();
   }, [quizId]);
@@ -41,7 +43,6 @@ const QuizAnalytics = () => {
   const fetchAnalytics = async () => {
     try {
       const token = await getToken();
-      const backendUrl = "https://lms-backend-omega-two.vercel.app";
       const response = await axios.get(
         `${backendUrl}/api/quiz/${quizId}/statistics`,
         {

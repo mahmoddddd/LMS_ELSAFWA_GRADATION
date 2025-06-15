@@ -35,6 +35,8 @@ const QuizManagement = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
 
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   useEffect(() => {
     if (user?.id) {
       console.log("User ID from Clerk:", user.id); // Debug log
@@ -54,7 +56,6 @@ const QuizManagement = () => {
 
       const token = await getToken();
       console.log("Token received:", token ? "Yes" : "No"); // Debug log
-      const backendUrl = "https://lms-backend-omega-two.vercel.app";
       const response = await axios.get(
         `${backendUrl}/api/quiz/instructor/${user.id}`,
         {
@@ -88,7 +89,6 @@ const QuizManagement = () => {
   const handleDeleteQuiz = async (quizId) => {
     try {
       const token = await getToken();
-      const backendUrl = "https://lms-backend-omega-two.vercel.app";
       await axios.delete(`${backendUrl}/api/quiz/${quizId}`, {
         headers: {
           Authorization: `Bearer ${token}`,

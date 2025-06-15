@@ -8,4 +8,3 @@ console.log(
 // in this commit < all file work till user creat acount and login with no error and
 // user can create its role to educator and log in again and see educator page and its redirect to dashboard
 // i willl solve prob of fetach user data inshallah
-// this commit code work in vercel correctly
