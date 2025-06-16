@@ -19,6 +19,7 @@ import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { backendUrl } from "../../../config";
 
 const CourseQuizzes = () => {
   const { courseId } = useParams();
@@ -38,7 +39,7 @@ const CourseQuizzes = () => {
     try {
       const token = await getToken();
       const response = await axios.get(
-        `http://localhost:4000/api/quiz/course/${courseId}`,
+      `${backendUrl}/quiz/course/${courseId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

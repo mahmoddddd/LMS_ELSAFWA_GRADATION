@@ -1,5 +1,5 @@
 // Backend API URL
-export const backendUrl = "http://localhost:4000/api";
+export const backendUrl = "https://lms-backend-omega-two.vercel.app/api";
 
 // Other configuration constants can be added here
 export const config = {

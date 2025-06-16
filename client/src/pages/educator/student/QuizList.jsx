@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-
+import { backendUrl } from "../../../config";
 const QuizList = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ const QuizList = () => {
       try {
         const token = await getToken();
         const response = await axios.get(
-          `http://localhost:4000/api/quiz/course/${courseId}`,
+`${backendUrl}/quiz/course/${courseId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

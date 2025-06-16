@@ -33,6 +33,8 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { backendUrl } from "../config";
+
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
@@ -96,7 +98,7 @@ const StudentQuizAnalytics = () => {
         const token = await getToken();
         console.log("🔐 Token received:", token ? "Yes" : "No");
 
-        const url = `http://localhost:4000/api/quiz/student/${userId}/analytics`;
+        const url = `${backendUrl}/quiz/student/${userId}/analytics`;
         console.log("🌐 API URL:", url);
 
         const response = await axios.get(url, {

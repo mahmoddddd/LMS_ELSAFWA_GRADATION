@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { assets } from "../../assets/assets";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { backendUrl } from "../../config";
 
 const Footer = () => {
   const [email, setEmail] = useState("");
@@ -19,15 +20,14 @@ const Footer = () => {
 
     setLoading(true);
 
-    try {
-      const res = await fetch("http://localhost:4000/api/subscribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
+try {
+  const res = await fetch(`${backendUrl}/subscribe`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  });
       const data = await res.json();
 
       if (res.ok) {

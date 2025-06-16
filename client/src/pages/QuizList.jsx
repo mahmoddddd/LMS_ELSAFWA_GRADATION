@@ -29,7 +29,7 @@ const QuizList = () => {
       try {
         const token = await getToken();
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/quiz/course/${courseId}`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/quiz/course/${courseId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

@@ -24,7 +24,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
-
+import{ backendUrl } from "../../../config";
 const CreateQuiz = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -89,8 +89,8 @@ const CreateQuiz = () => {
     try {
       const token = await getToken();
       const response = await axios.post(
-        `http://localhost:4000/api/quiz/course/${courseId}`,
-        {
+         `${backendUrl}/quiz/course/${courseId}`,    
+             {
           ...quizData,
           educatorId: userId,
         },

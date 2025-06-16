@@ -27,7 +27,7 @@ const StudentQuizProgress = () => {
         const token = await getToken();
         const response = await axios.get(
           `${
-            import.meta.env.VITE_API_URL
+            import.meta.env.VITE_BACKEND_URL
           }/api/quiz/course/${courseId}/progress`,
           {
             headers: {

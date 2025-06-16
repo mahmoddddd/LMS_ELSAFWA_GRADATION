@@ -31,6 +31,7 @@ import { useAuth, useUser } from "@clerk/clerk-react";
 import axios from "axios";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PrintIcon from "@mui/icons-material/Print";
+import { backendUrl } from "../../config";
 
 const QuizSubmissions = () => {
   const { quizId } = useParams();
@@ -88,7 +89,7 @@ const QuizSubmissions = () => {
       console.log("Fetching submissions for quiz:", quizId);
 
       const response = await axios.get(
-        `http://localhost:4000/api/quiz/${quizId}/statistics`,
+              `${backendUrl}/quiz/${quizId}/statistics`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -111,7 +112,7 @@ const QuizSubmissions = () => {
         for (const submission of submissionsData) {
           try {
             const studentResponse = await axios.get(
-              `http://localhost:4000/api/user/${submission.student}`,
+            `${backendUrl}/user/${submission.student}`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -154,8 +155,8 @@ const QuizSubmissions = () => {
       console.log("Student ID:", submission.student);
 
       const response = await axios.get(
-        `http://localhost:4000/api/quiz/${quizId}/submissions/${submission.student}`,
-        {
+               `${backendUrl}/quiz/${quizId}/submissions/${submission.student}`,    
+    {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -242,7 +243,7 @@ const QuizSubmissions = () => {
       const token = await getToken();
 
       const response = await axios.post(
-        `http://localhost:4000/api/quiz/${quizId}/submissions/${selectedSubmission.student}/grade`,
+           `${backendUrl}/quiz/${quizId}/submissions/${selectedSubmission.student}/grade`,
         {
           grade: grade,
           feedback: feedback,

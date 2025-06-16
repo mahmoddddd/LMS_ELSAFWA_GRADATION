@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import { backendUrl } from "../../config";
 const ContactUs = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -33,12 +33,12 @@ const ContactUs = () => {
 
     setLoading(true);
 
-    try {
-      const res = await fetch("http://localhost:4000/api/cont/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+   try {
+  const res = await fetch(`${backendUrl}/cont/contact`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(formData),
+  });
 
       const data = await res.json();
 

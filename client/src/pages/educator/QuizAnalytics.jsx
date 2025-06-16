@@ -24,6 +24,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { backendUrl } from "../../config";
 
 const COLORS = ["#4CAF50", "#8BC34A", "#FFC107", "#FF9800", "#F44336"];
 
@@ -42,7 +43,7 @@ const QuizAnalytics = () => {
     try {
       const token = await getToken();
       const response = await axios.get(
-        `http://localhost:4000/api/quiz/${quizId}/statistics`,
+    `${backendUrl}/quiz/${quizId}/statistics`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

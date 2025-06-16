@@ -19,7 +19,7 @@ const Chatbot = () => {
   const [loading, setLoading] = useState(false);
 
   // Backend API URL - you can change this to your server URL
-  const BACKEND_URL = "http://localhost:4000";
+  const BACKEND_URL = "https://lms-backend-omega-two.vercel.app";
 
   const handleChange = (e) => {
     setUserInput(e.target.value);

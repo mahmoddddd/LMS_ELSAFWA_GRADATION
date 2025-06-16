@@ -129,7 +129,7 @@ const CreateQuiz = () => {
 
     try {
       const token = await getToken();
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/quiz`, quizData, {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/quiz`, quizData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
