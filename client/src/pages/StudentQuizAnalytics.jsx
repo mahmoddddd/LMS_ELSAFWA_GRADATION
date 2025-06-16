@@ -95,8 +95,9 @@ const StudentQuizAnalytics = () => {
         console.log("👤 Fetching analytics for user:", userId);
         const token = await getToken();
         console.log("🔐 Token received:", token ? "Yes" : "No");
+        const BACKEND_URL = "https://lms-backend-omega-two.vercel.app";
 
-        const url = `http://localhost:4000/api/quiz/student/${userId}/analytics`;
+        const url = `${BACKEND_URL}/api/quiz/student/${userId}/analytics`;
         console.log("🌐 API URL:", url);
 
         const response = await axios.get(url, {

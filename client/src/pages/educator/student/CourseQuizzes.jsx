@@ -38,7 +38,7 @@ const CourseQuizzes = () => {
     try {
       const token = await getToken();
       const response = await axios.get(
-        `http://localhost:4000/api/quiz/course/${courseId}`,
+        `https://lms-backend-omega-two.vercel.app/api/quiz/course/${courseId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
