@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { backendUrl } from "../../../config";
 
 const QuizDetail = () => {
   const { courseId, quizId } = useParams();
@@ -41,8 +42,7 @@ const QuizDetail = () => {
     const fetchQuiz = async () => {
       try {
         const token = await getToken();
-        const backendUrl = import.meta.env.VITE_BACKEND_URL;
-        const response = await axios.get(`${backendUrl}/api/quiz/${quizId}`, {
+        const response = await axios.get(`${backendUrl}/quiz/${quizId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -102,16 +102,12 @@ const QuizDetail = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/quiz/upload`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const response = await axios.post(`${backendUrl}/quiz/upload`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       setAnswers({ ...answers, [questionId]: response.data.fileUrl });
     } catch (err) {
@@ -125,9 +121,8 @@ const QuizDetail = () => {
 
     try {
       const token = await getToken();
-      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       const response = await axios.post(
-        `${backendUrl}/api/quiz/${quizId}/submit`,
+        `${backendUrl}/quiz/${quizId}/submit`,
         {
           answers,
           userId,

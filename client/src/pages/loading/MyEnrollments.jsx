@@ -35,7 +35,7 @@ const LoadingMyEnrollments = () => {
 
         // Call the backend to handle successful payment
         const { data } = await axios.post(
-          `${backendUrl}/api/user/handle-payment-success`,
+          `${backendUrl}/user/handle-payment-success`,
           { session_id: sessionId },
           {
             headers: {
@@ -47,26 +47,26 @@ const LoadingMyEnrollments = () => {
 
         if (data.success) {
           console.log("✅ Payment processed successfully");
+          // Show success message and wait a bit before redirecting
           toast.success("Payment completed successfully!");
           setTimeout(() => {
             navigate("/my-enrollments?refresh=true");
-          }, 2000);
+          }, 1500);
         } else {
-          console.error("❌ Payment processing failed:", data.error);
-          toast.error(data.error || "Failed to process payment");
+          console.error("❌ Failed to process payment:", data.message);
+          toast.error(data.message || "Failed to process payment");
           setTimeout(() => {
             navigate("/my-enrollments");
-          }, 2000);
+          }, 1500);
         }
       } catch (error) {
         console.error("❌ Error processing payment:", error);
         toast.error(
-          error.response?.data?.error ||
-            "Failed to process payment. Please try again."
+          error.response?.data?.message || "Failed to process payment"
         );
         setTimeout(() => {
           navigate("/my-enrollments");
-        }, 2000);
+        }, 1500);
       } finally {
         setLoading(false);
       }
@@ -76,11 +76,14 @@ const LoadingMyEnrollments = () => {
   }, [searchParams, navigate, getToken]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-        <p className="mt-4 text-gray-600">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+        <h2 className="mt-4 text-xl font-semibold text-gray-700">
           {loading ? "Processing your payment..." : "Redirecting..."}
+        </h2>
+        <p className="mt-2 text-gray-500">
+          Please wait while we complete your enrollment
         </p>
       </div>
     </div>

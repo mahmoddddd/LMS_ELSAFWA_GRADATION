@@ -1,63 +1,59 @@
-import { clerkClient } from "@clerk/clerk-sdk-node";
+import { requireAuth, clerkClient } from "@clerk/express";
+import { extractClerkUserId } from "../utils/verifyClerkToken.js";
 
-export const authenticateUser = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "No token provided" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Invalid token format" });
-    }
-
-    // Verify the session token with Clerk
-    const session = await clerkClient.sessions.verifySession(token);
-    if (!session) {
-      return res.status(401).json({ error: "Invalid session" });
-    }
-    //
-    // Get user data from Clerk
-    const user = await clerkClient.users.getUser(session.userId);
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
-    }
-
-    // Attach user data to request
-    req.user = {
-      id: user.id,
-      email: user.emailAddresses[0]?.emailAddress,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      clerkId: user.id,
-    };
-
-    next();
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    return res.status(401).json({ error: "Authentication failed" });
-  }
-};
-
+// Middleware to protect educator routes
 export const protectEducator = async (req, res, next) => {
   try {
-    // First authenticate the user
-    await authenticateUser(req, res, async () => {
-      // Check if user is an educator
-      const user = await clerkClient.users.getUser(req.user.clerkId);
-      const isEducator = user.publicMetadata?.isEducator;
+    // First try to get userId from auth middleware
+    let userId = req.auth?.userId;
 
-      if (!isEducator) {
-        return res
-          .status(403)
-          .json({ error: "Access denied. Educators only." });
+    // If not found, try to extract from authorization header
+    if (!userId) {
+      userId = extractClerkUserId(req.headers.authorization);
+    }
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: No valid user ID found",
+      });
+    }
+
+    try {
+      const user = await clerkClient.users.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
       }
 
+      if (user.publicMetadata?.role !== "educator") {
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized: User is not an educator",
+        });
+      }
+
+      // Add the user ID to the request for use in controllers
+      req.userId = userId;
       next();
-    });
+    } catch (error) {
+      console.error("Error fetching user from Clerk:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error verifying user role",
+      });
+    }
   } catch (error) {
-    console.error("Educator middleware error:", error);
-    return res.status(401).json({ error: "Authentication failed" });
+    console.error("Error in protectEducator middleware:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
+
+// Export Clerk's built-in middleware
+export { requireAuth };

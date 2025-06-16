@@ -14,20 +14,12 @@ import chatbotRouter from "./routes/chatbotRoute.js";
 import subscribeRoutes from "./routes/subscribeRoutes.js";
 import contactUs from "./routes/subscribeRoutes.js";
 import quizRouter from "./routes/quiz.js";
-import paymentRouter from "./routes/paymentRoutes.js";
-import { handleSuccessfulPayment } from "./controllers/paymentController.js";
 // import assignmentRouter from "./routes/assignment.js";
 
 const app = express();
-// https://lms-backend-omega-two.vercel.app/
-// Enable CORS first
 
-// تفعيل CORS لأي دومين
-app.use(
-  cors({
-    origin: "*",
-  })
-);
+// Enable CORS first
+app.use(cors({ origin: "*" }));
 
 // تسجيل الطلبات للدباج
 app.use((req, res, next) => {
@@ -40,11 +32,7 @@ await connectDB();
 await connectCloudinary();
 
 // Stripe webhook (raw body)
-app.post(
-  "/api/webhooks/stripe",
-  express.raw({ type: "application/json" }),
-  stripeWebhooks
-);
+app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhooks);
 
 // Clerk webhook (raw body) - 👈 لازم يجي قبل express.json()
 app.post("/clerk", express.raw({ type: "application/json" }), clerkWebHooks);
@@ -74,22 +62,16 @@ app.use("/api/chatbot", chatbotRouter);
 app.use("/api/subscribe", subscribeRoutes);
 app.use("/api/cont", contactUs);
 app.use("/api/quiz", quizRouter);
-app.use("/api/payment", paymentRouter);
 
 // نقطة الدخول الرئيسية
 app.get("/", (req, res) => {
   res.send("Your API Is Working");
 });
 
-// Add payment success route
-app.post(
-  "/api/user/handle-payment-success",
-  express.json(),
-  handleSuccessfulPayment
-);
-
-console.log(process.env.MONGODB_URI);
-export default app;
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 
 // const port = 4000;
 // app.listen(port, () => {

@@ -32,9 +32,10 @@ const ContactUs = () => {
     }
 
     setLoading(true);
-    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    const BACKEND_URL = "https://lms-backend-omega-two.vercel.app";
+
     try {
-      const res = await fetch(`${backendUrl}/cont/contact`, {
+      const res = await fetch(`${BACKEND_URL}/api/cont/contact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

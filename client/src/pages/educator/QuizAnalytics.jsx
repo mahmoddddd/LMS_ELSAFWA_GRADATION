@@ -24,6 +24,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { backendUrl } from "../../config";
 
 const COLORS = ["#4CAF50", "#8BC34A", "#FFC107", "#FF9800", "#F44336"];
 
@@ -34,8 +35,6 @@ const QuizAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
   useEffect(() => {
     fetchAnalytics();
   }, [quizId]);
@@ -44,7 +43,7 @@ const QuizAnalytics = () => {
     try {
       const token = await getToken();
       const response = await axios.get(
-        `${backendUrl}/api/quiz/${quizId}/statistics`,
+        `${backendUrl}/quiz/${quizId}/statistics`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

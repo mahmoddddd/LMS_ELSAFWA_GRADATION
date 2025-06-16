@@ -236,8 +236,8 @@ const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
 // ===== Stripe webhook handler =====
 export const stripeWebhooks = async (req, res) => {
   console.log("🔔 Stripe webhook received");
-  console.log("Headers:", JSON.stringify(req.headers, null, 2));
-  console.log("Raw body:", JSON.stringify(req.body, null, 2));
+  console.log("Headers:", req.headers);
+  console.log("Raw body:", req.body);
 
   const sig = req.headers["stripe-signature"];
 
@@ -266,7 +266,10 @@ export const stripeWebhooks = async (req, res) => {
     console.log("📦 Event data:", JSON.stringify(event.data.object, null, 2));
   } catch (err) {
     console.error("❌ Webhook signature verification failed:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    return res.status(400).json({
+      success: false,
+      message: `Webhook Error: ${err.message}`,
+    });
   }
 
   try {
@@ -325,15 +328,15 @@ export const stripeWebhooks = async (req, res) => {
       }
 
       try {
-        const dbSession = await mongoose.startSession();
-        dbSession.startTransaction();
+        const session = await mongoose.startSession();
+        session.startTransaction();
         console.log("🔄 Started MongoDB transaction");
 
         try {
           // Add user to course's enrolled students if not already added
           if (!course.enrolledStudents.includes(user.clerkId)) {
             course.enrolledStudents.push(user.clerkId);
-            await course.save({ session: dbSession });
+            await course.save({ session });
             console.log("✅ Added user to course students:", {
               userId: user._id,
               clerkId: user.clerkId,
@@ -344,7 +347,7 @@ export const stripeWebhooks = async (req, res) => {
           // Add course to user's enrolled courses if not already added
           if (!user.enrolledCourses.includes(course._id)) {
             user.enrolledCourses.push(course._id);
-            await user.save({ session: dbSession });
+            await user.save({ session });
             console.log("✅ Added course to user enrollments:", {
               userId: user._id,
               clerkId: user.clerkId,
@@ -355,17 +358,17 @@ export const stripeWebhooks = async (req, res) => {
           // Update purchase status
           purchase.status = "completed";
           purchase.completedAt = new Date();
-          await purchase.save({ session: dbSession });
+          await purchase.save({ session });
           console.log("✅ Updated purchase status to completed");
 
-          await dbSession.commitTransaction();
+          await session.commitTransaction();
           console.log("✅ Successfully committed enrollment transaction");
         } catch (error) {
           console.error("❌ Error in transaction:", error);
-          await dbSession.abortTransaction();
+          await session.abortTransaction();
           throw error;
         } finally {
-          dbSession.endSession();
+          session.endSession();
           console.log("🔄 Ended MongoDB session");
         }
 
@@ -381,15 +384,200 @@ export const stripeWebhooks = async (req, res) => {
           error: error.message,
         });
       }
+    } else if (event.type === "payment_intent.succeeded") {
+      console.log("🔄 Processing payment_intent.succeeded event");
+      const paymentIntent = event.data.object;
+      console.log(
+        "Payment intent data:",
+        JSON.stringify(paymentIntent, null, 2)
+      );
+
+      // Get the session associated with this payment intent
+      const sessions = await stripeInstance.checkout.sessions.list({
+        payment_intent: paymentIntent.id,
+      });
+
+      if (!sessions.data.length) {
+        console.error(
+          "❌ No sessions found for payment intent:",
+          paymentIntent.id
+        );
+        return res.status(404).json({
+          success: false,
+          message: "No session found for payment intent",
+        });
+      }
+
+      const session = sessions.data[0];
+      console.log("Found session:", JSON.stringify(session, null, 2));
+
+      const { purchaseId, clerkUserId, courseId } = session.metadata;
+      console.log("Extracted metadata:", { purchaseId, clerkUserId, courseId });
+
+      if (!purchaseId || !clerkUserId || !courseId) {
+        console.error("❌ Missing required metadata:", {
+          purchaseId: !!purchaseId,
+          clerkUserId: !!clerkUserId,
+          courseId: !!courseId,
+        });
+        return res.status(400).json({
+          success: false,
+          message: "Missing required metadata",
+        });
+      }
+
+      const purchase = await Purchase.findById(purchaseId);
+      if (!purchase) {
+        console.error("❌ Purchase not found:", purchaseId);
+        return res.status(404).json({
+          success: false,
+          message: "Purchase not found",
+        });
+      }
+
+      if (purchase.status === "completed") {
+        console.log("ℹ️ Purchase already completed:", purchaseId);
+        return res.json({
+          success: true,
+          message: "Purchase already completed",
+        });
+      }
+
+      const user = await User.findOne({ clerkId: clerkUserId });
+      const course = await Course.findById(courseId);
+
+      if (!user || !course) {
+        console.error("❌ User or course not found:", {
+          clerkUserId,
+          courseId,
+          userFound: !!user,
+          courseFound: !!course,
+        });
+        return res.status(404).json({
+          success: false,
+          message: "User or course not found",
+        });
+      }
+
+      try {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        console.log("🔄 Started MongoDB transaction");
+
+        try {
+          // Add user to course's enrolled students if not already added
+          if (!course.enrolledStudents.includes(user.clerkId)) {
+            course.enrolledStudents.push(user.clerkId);
+            await course.save({ session });
+            console.log("✅ Added user to course students:", {
+              userId: user._id,
+              clerkId: user.clerkId,
+              courseId: course._id,
+            });
+          }
+
+          // Add course to user's enrolled courses if not already added
+          if (!user.enrolledCourses.includes(course._id)) {
+            user.enrolledCourses.push(course._id);
+            await user.save({ session });
+            console.log("✅ Added course to user enrollments:", {
+              userId: user._id,
+              clerkId: user.clerkId,
+              courseId: course._id,
+            });
+          }
+
+          // Update purchase status
+          purchase.status = "completed";
+          purchase.completedAt = new Date();
+          await purchase.save({ session });
+          console.log("✅ Updated purchase status to completed");
+
+          await session.commitTransaction();
+          console.log("✅ Successfully committed enrollment transaction");
+        } catch (error) {
+          console.error("❌ Error in transaction:", error);
+          await session.abortTransaction();
+          throw error;
+        } finally {
+          session.endSession();
+          console.log("🔄 Ended MongoDB session");
+        }
+
+        res.json({
+          success: true,
+          message: "Enrollment completed successfully",
+        });
+      } catch (error) {
+        console.error("❌ Error in enrollment transaction:", error);
+        res.status(500).json({
+          success: false,
+          message: "Failed to process enrollment",
+          error: error.message,
+        });
+      }
+    } else if (event.type === "payment_intent.payment_failed") {
+      console.log("🔄 Processing payment_intent.payment_failed event");
+      const paymentIntent = event.data.object;
+      console.log(
+        "Payment intent data:",
+        JSON.stringify(paymentIntent, null, 2)
+      );
+
+      // Get the session associated with this payment intent
+      const sessions = await stripeInstance.checkout.sessions.list({
+        payment_intent: paymentIntent.id,
+      });
+
+      if (!sessions.data.length) {
+        console.error(
+          "❌ No sessions found for payment intent:",
+          paymentIntent.id
+        );
+        return res.status(404).json({
+          success: false,
+          message: "No session found for payment intent",
+        });
+      }
+
+      const session = sessions.data[0];
+      console.log("Found session:", JSON.stringify(session, null, 2));
+
+      const { purchaseId } = session.metadata;
+      if (!purchaseId) {
+        console.error("❌ Missing purchaseId in metadata");
+        return res.status(400).json({
+          success: false,
+          message: "Missing purchaseId in metadata",
+        });
+      }
+
+      const purchase = await Purchase.findById(purchaseId);
+      if (!purchase) {
+        console.error("❌ Purchase not found:", purchaseId);
+        return res.status(404).json({
+          success: false,
+          message: "Purchase not found",
+        });
+      }
+
+      purchase.status = "failed";
+      await purchase.save();
+      console.log("✅ Updated purchase status to failed");
+
+      res.json({
+        success: true,
+        message: "Purchase marked as failed",
+      });
     } else {
-      console.log(`ℹ️ Unhandled event type: ${event.type}`);
+      console.log("ℹ️ Unhandled event type:", event.type);
       res.json({ received: true });
     }
   } catch (error) {
     console.error("❌ Error processing webhook:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to process webhook",
+      message: "Error processing webhook",
       error: error.message,
     });
   }

@@ -31,6 +31,7 @@ import { useAuth, useUser } from "@clerk/clerk-react";
 import axios from "axios";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PrintIcon from "@mui/icons-material/Print";
+import { backendUrl } from "../../config";
 
 const QuizSubmissions = () => {
   const { quizId } = useParams();
@@ -71,8 +72,6 @@ const QuizSubmissions = () => {
   const [quiz, setQuiz] = useState(null);
   const [studentNames, setStudentNames] = useState({});
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
   useEffect(() => {
     if (!quizId) {
       setError("معرف الاختبار غير صالح");
@@ -88,8 +87,9 @@ const QuizSubmissions = () => {
       setError(null);
       const token = await getToken();
       console.log("Fetching submissions for quiz:", quizId);
+
       const response = await axios.get(
-        `${backendUrl}/api/quiz/${quizId}/statistics`,
+        `${backendUrl}/quiz/${quizId}/statistics`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -111,8 +111,8 @@ const QuizSubmissions = () => {
         const names = {};
         for (const submission of submissionsData) {
           try {
-            const response = await axios.get(
-              `${backendUrl}/api/user/${submission.student}`,
+            const studentResponse = await axios.get(
+              `${backendUrl}/user/${submission.student}`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -120,8 +120,8 @@ const QuizSubmissions = () => {
                 },
               }
             );
-            if (response.data.success) {
-              names[submission.student] = response.data.user.name;
+            if (studentResponse.data.success) {
+              names[submission.student] = studentResponse.data.user.name;
             } else {
               names[submission.student] = "طالب غير معروف";
             }
@@ -153,8 +153,9 @@ const QuizSubmissions = () => {
       console.log("Submission object:", submission);
       console.log("Quiz ID:", quizId);
       console.log("Student ID:", submission.student);
+
       const response = await axios.get(
-        `${backendUrl}/api/quiz/${quizId}/submissions/${submission.student}`,
+        `${backendUrl}/quiz/${quizId}/submissions/${submission.student}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -240,8 +241,9 @@ const QuizSubmissions = () => {
       setGradingLoading(true);
       setError(null);
       const token = await getToken();
+
       const response = await axios.post(
-        `${backendUrl}/api/quiz/${quizId}/submissions/${selectedSubmission.student}/grade`,
+        `${backendUrl}/quiz/${quizId}/submissions/${selectedSubmission.student}/grade`,
         {
           grade: grade,
           feedback: feedback,

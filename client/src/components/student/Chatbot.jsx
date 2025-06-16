@@ -7,6 +7,7 @@ import {
 } from "@mui/icons-material";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import axios from "axios";
+import { backendUrl } from "../../config";
 
 // Define theme for the chatbot UI
 const theme = createTheme({
@@ -23,7 +24,7 @@ const Chatbot = () => {
   const [loading, setLoading] = useState(false);
 
   // Backend API URL - you can change this to your server URL
-  const BACKEND_URL = "https://lms-backend-omega-two.vercel.app";
+  const BACKEND_URL = backendUrl;
 
   const handleChange = (e) => {
     setUserInput(e.target.value);

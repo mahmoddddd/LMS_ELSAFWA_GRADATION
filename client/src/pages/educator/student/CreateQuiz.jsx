@@ -48,8 +48,6 @@ const CreateQuiz = () => {
     ],
   });
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
   const handleQuestionChange = (index, field, value) => {
     const newQuestions = [...quizData.questions];
     newQuestions[index] = { ...newQuestions[index], [field]: value };
@@ -91,7 +89,7 @@ const CreateQuiz = () => {
     try {
       const token = await getToken();
       const response = await axios.post(
-        `${backendUrl}/api/quiz/course/${courseId}`,
+        `http://localhost:4000/api/quiz/course/${courseId}`,
         {
           ...quizData,
           educatorId: userId,

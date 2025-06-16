@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { assets } from "../../assets/assets";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { backendUrl } from "../../config";
 
 const Footer = () => {
   const [email, setEmail] = useState("");
@@ -20,8 +21,7 @@ const Footer = () => {
     setLoading(true);
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL;
-      const res = await fetch(`${backendUrl}/api/subscribe`, {
+      const res = await fetch(`${backendUrl}/subscribe`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

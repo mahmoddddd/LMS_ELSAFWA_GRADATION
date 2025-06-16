@@ -24,6 +24,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import { backendUrl } from "../../config";
 
 const QuizManagement = () => {
   const navigate = useNavigate();
@@ -34,8 +35,6 @@ const QuizManagement = () => {
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
-
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
     if (user?.id) {
@@ -56,8 +55,9 @@ const QuizManagement = () => {
 
       const token = await getToken();
       console.log("Token received:", token ? "Yes" : "No"); // Debug log
+
       const response = await axios.get(
-        `${backendUrl}/api/quiz/instructor/${user.id}`,
+        `${backendUrl}/quiz/instructor/${user.id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -89,7 +89,7 @@ const QuizManagement = () => {
   const handleDeleteQuiz = async (quizId) => {
     try {
       const token = await getToken();
-      await axios.delete(`${backendUrl}/api/quiz/${quizId}`, {
+      await axios.delete(`${backendUrl}/quiz/${quizId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

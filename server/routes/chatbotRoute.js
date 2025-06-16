@@ -52,7 +52,7 @@ const getOpenRouterResponse = async (userMessage) => {
         headers: {
           Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://lms-backend-omega-two.vercel.app",
+          "HTTP-Referer": "https://localhost:4000",
           "X-Title": "LMS AI Assistant",
         },
         timeout: 30000, // 30 second timeout
@@ -72,7 +72,7 @@ const getOpenRouterResponse = async (userMessage) => {
     throw error;
   }
 };
-//
+
 // Fallback responses for when OpenRouter is not available
 const FALLBACK_RESPONSES = {
   course: [

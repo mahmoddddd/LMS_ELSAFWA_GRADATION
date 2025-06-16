@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+import { backendUrl } from "../../../config";
 
 const QuizList = () => {
   const { courseId } = useParams();
@@ -24,13 +24,14 @@ const QuizList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [quizzes, setQuizzes] = useState([]);
- 
+
   useEffect(() => {
     const fetchQuizzes = async () => {
       try {
         const token = await getToken();
         const response = await axios.get(
-          `${backendUrl}/api/quiz/course/${courseId}`,
+          `${backendUrl}/quiz/course/${courseId}`,
+          {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",

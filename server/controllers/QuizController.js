@@ -18,11 +18,36 @@ const isEducator = async (userId) => {
 
 // Helper function to get clerk ID from request
 const getClerkId = (req) => {
-  const clerkId = req.auth?.userId;
-  if (!clerkId) {
+  try {
+    // First try to get from auth object
+    if (req.auth?.userId) {
+      return req.auth.userId;
+    }
+
+    // If not in auth object, try to extract from authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      throw new Error("Unauthorized");
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      throw new Error("Unauthorized");
+    }
+
+    // Decode the JWT token to get the sub claim (Clerk user ID)
+    const decoded = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString()
+    );
+    if (!decoded.sub) {
+      throw new Error("Unauthorized");
+    }
+
+    return decoded.sub;
+  } catch (error) {
+    console.error("Error extracting Clerk ID:", error);
     throw new Error("Unauthorized");
   }
-  return clerkId;
 };
 
 // ============= EDUCATOR CONTROLLERS =============

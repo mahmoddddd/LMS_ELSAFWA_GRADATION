@@ -30,8 +30,6 @@ const CourseQuizzes = () => {
   const [selectedQuiz, setSelectedQuiz] = useState(null);
   const [startQuizDialogOpen, setStartQuizDialogOpen] = useState(false);
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
   useEffect(() => {
     fetchQuizzes();
   }, [courseId]);
@@ -40,7 +38,7 @@ const CourseQuizzes = () => {
     try {
       const token = await getToken();
       const response = await axios.get(
-        `${backendUrl}/api/quiz/course/${courseId}`,
+        `https://lms-backend-omega-two.vercel.app/api/quiz/course/${courseId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
