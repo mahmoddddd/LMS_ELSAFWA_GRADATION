@@ -142,6 +142,11 @@ const AddQuiz = () => {
 
     try {
       const token = await getToken();
+      if (!token) {
+        setError("Authentication failed. Please login again.");
+        return;
+      }
+
       const url = quizId
         ? `${backendUrl}/api/quiz/${quizId}`
         : `${backendUrl}/api/quiz`;
@@ -189,6 +194,7 @@ const AddQuiz = () => {
           {
             headers: {
               Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
             },
           }
         );
@@ -198,6 +204,7 @@ const AddQuiz = () => {
         }
       }
     } catch (error) {
+      console.error("Error submitting quiz:", error);
       setError(error.response?.data?.message || "حدث خطأ أثناء حفظ الكويز");
     } finally {
       setLoading(false);

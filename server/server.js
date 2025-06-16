@@ -68,7 +68,10 @@ app.get("/", (req, res) => {
   res.send("Your API Is Working");
 });
 
-export default app;
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 
 // const port = 4000;
 // app.listen(port, () => {
