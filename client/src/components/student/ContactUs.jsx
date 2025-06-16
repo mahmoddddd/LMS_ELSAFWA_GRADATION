@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import { backendUrl } from "../../config";
 const ContactUs = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -32,14 +32,13 @@ const ContactUs = () => {
     }
 
     setLoading(true);
-    const BACKEND_URL = "https://lms-backend-omega-two.vercel.app";
 
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/cont/contact`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+   try {
+  const res = await fetch(`${backendUrl}/cont/contact`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(formData),
+  });
 
       const data = await res.json();
 
@@ -70,12 +69,9 @@ const ContactUs = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-6 md:px-20">
-      <h1 className="text-3xl font-bold text-gray-800 text-center">
-        Contact Us
-      </h1>
+      <h1 className="text-3xl font-bold text-gray-800 text-center">Contact Us</h1>
       <p className="mt-4 text-gray-600 text-center max-w-2xl mx-auto">
-        Have any questions or need support? Get in touch with us using the form
-        below.
+        Have any questions or need support? Get in touch with us using the form below.
       </p>
       <div className="max-w-2xl mx-auto bg-white shadow-lg p-6 rounded-lg mt-6">
         <form onSubmit={handleSubmit}>

@@ -86,22 +86,23 @@ const QuizManagement = () => {
     }
   };
 
-  const handleDeleteQuiz = async (quizId) => {
-    try {
-      const token = await getToken();
-      await axios.delete(`${backendUrl}/quiz/${quizId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      setQuizzes(quizzes.filter((quiz) => quiz._id !== quizId));
-      setDeleteDialogOpen(false);
-    } catch (err) {
-      setError("حدث خطأ في حذف الاختبار");
-      console.error(err);
-    }
-  };
+ const handleDeleteQuiz = async (quizId) => {
+  try {
+    const token = await getToken();
+    await axios.delete(`${backendUrl}/quiz/${quizId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    setQuizzes(quizzes.filter((quiz) => quiz._id !== quizId));
+    setDeleteDialogOpen(false);
+  } catch (err) {
+    setError("حدث خطأ في حذف الاختبار");
+    console.error(err);
+  }
+};
+
 
   const handleViewSubmissions = (quizId) => {
     if (!quizId) {

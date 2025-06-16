@@ -170,7 +170,7 @@ import humanizeDuration from "humanize-duration";
 
 export const AppContext = createContext();
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://lms-backend-omega-two.vercel.app";
 
 export const AppContextProvider = ({ children }) => {
   const currency = import.meta.env.VITE_CURRENCY;

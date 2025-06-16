@@ -43,7 +43,7 @@ const QuizAnalytics = () => {
     try {
       const token = await getToken();
       const response = await axios.get(
-        `${backendUrl}/quiz/${quizId}/statistics`,
+    `${backendUrl}/quiz/${quizId}/statistics`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

@@ -42,7 +42,7 @@ const QuizDetail = () => {
       try {
         const token = await getToken();
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/quiz/${quizId}`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/quiz/${quizId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -126,7 +126,7 @@ const QuizDetail = () => {
       });
 
       await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/quiz/${quizId}/submit`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz/${quizId}/submit`,
         formData,
         {
           headers: {

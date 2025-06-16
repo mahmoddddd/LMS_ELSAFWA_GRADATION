@@ -89,7 +89,7 @@ const QuizSubmissions = () => {
       console.log("Fetching submissions for quiz:", quizId);
 
       const response = await axios.get(
-        `${backendUrl}/quiz/${quizId}/statistics`,
+              `${backendUrl}/quiz/${quizId}/statistics`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -112,7 +112,7 @@ const QuizSubmissions = () => {
         for (const submission of submissionsData) {
           try {
             const studentResponse = await axios.get(
-              `${backendUrl}/user/${submission.student}`,
+            `${backendUrl}/user/${submission.student}`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -155,8 +155,8 @@ const QuizSubmissions = () => {
       console.log("Student ID:", submission.student);
 
       const response = await axios.get(
-        `${backendUrl}/quiz/${quizId}/submissions/${submission.student}`,
-        {
+               `${backendUrl}/quiz/${quizId}/submissions/${submission.student}`,    
+    {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -243,7 +243,7 @@ const QuizSubmissions = () => {
       const token = await getToken();
 
       const response = await axios.post(
-        `${backendUrl}/quiz/${quizId}/submissions/${selectedSubmission.student}/grade`,
+           `${backendUrl}/quiz/${quizId}/submissions/${selectedSubmission.student}/grade`,
         {
           grade: grade,
           feedback: feedback,

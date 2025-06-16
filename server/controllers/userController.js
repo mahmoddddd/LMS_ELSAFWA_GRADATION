@@ -366,7 +366,7 @@ export const handleSuccessfulPayment = async (req, res) => {
       res.json({
         success: true,
         message: "Enrollment completed successfully",
-        redirectUrl: "http://localhost:5173/my-enrollments?refresh=true",
+  redirectUrl: "https://lms-elsafwa-gradation.vercel.app/my-enrollments?refresh=true",
       });
     } catch (error) {
       console.error("❌ Error in enrollment transaction:", error);
@@ -527,7 +527,7 @@ export const completePurchase = async (req, res) => {
       return res.json({
         success: true,
         message: "Purchase already completed",
-        redirectUrl: "http://localhost:5173/my-enrollments?refresh=true",
+    redirectUrl: "https://lms-elsafwa-gradation.vercel.app/my-enrollments?refresh=true",
       });
     }
 
@@ -635,7 +635,7 @@ export const completePurchase = async (req, res) => {
       res.json({
         success: true,
         message: "Purchase completed successfully",
-        redirectUrl: "http://localhost:5173/my-enrollments?refresh=true",
+redirectUrl: "https://lms-elsafwa-gradation.vercel.app/my-enrollments?refresh=true",
       });
     } catch (error) {
       console.error("❌ Error in enrollment transaction:", error);

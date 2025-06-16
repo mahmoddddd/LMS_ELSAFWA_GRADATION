@@ -42,9 +42,7 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 const StudentQuizAnalytics = () => {
   const { getToken, userId } = useAuth();
   const navigate = useNavigate();
-  const { backendUrl, enrolledCourses, fetchUserEnrolledCourses } = useContext(
-    AppContext
-  );
+  const { backendUrl, enrolledCourses, fetchUserEnrolledCourses } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
@@ -62,9 +60,9 @@ const StudentQuizAnalytics = () => {
       setLoading(true);
       console.log("🔍 Starting to fetch quiz data...");
       console.log("📚 Enrolled courses:", enrolledCourses);
-
+      
       const token = await getToken();
-
+      
       // Fetch completed quiz analytics
       console.log("📊 Fetching analytics...");
       const analyticsResponse = await axios.get(
@@ -79,18 +77,12 @@ const StudentQuizAnalytics = () => {
       setAnalytics(analyticsResponse.data);
 
       // Fetch available quizzes from enrolled courses
-      console.log(
-        "🎯 Fetching available quizzes from",
-        enrolledCourses.length,
-        "courses..."
-      );
+      console.log("🎯 Fetching available quizzes from", enrolledCourses.length, "courses...");
       const availableQuizzesData = [];
-
+      
       for (const course of enrolledCourses) {
         try {
-          console.log(
-            `🔍 Fetching quizzes for course: ${course.courseTitle} (${course._id})`
-          );
+          console.log(`🔍 Fetching quizzes for course: ${course.courseTitle} (${course._id})`);
           const quizResponse = await axios.get(
             `${backendUrl}/api/quiz/course/${course._id}`,
             {
@@ -100,20 +92,12 @@ const StudentQuizAnalytics = () => {
             }
           );
 
-          console.log(
-            `📝 Quiz response for ${course.courseTitle}:`,
-            quizResponse.data
-          );
+          console.log(`📝 Quiz response for ${course.courseTitle}:`, quizResponse.data);
 
-          if (
-            quizResponse.data.success &&
-            quizResponse.data.quizzes.length > 0
-          ) {
+          if (quizResponse.data.success && quizResponse.data.quizzes.length > 0) {
             // Check which quizzes the student hasn't completed yet
-            const courseQuizzes = quizResponse.data.quizzes.map((quiz) => {
-              const submission = quiz.submissions?.find(
-                (sub) => sub.student === userId
-              );
+            const courseQuizzes = quizResponse.data.quizzes.map(quiz => {
+              const submission = quiz.submissions?.find(sub => sub.student === userId);
               const quizData = {
                 ...quiz,
                 courseTitle: course.courseTitle,
@@ -127,15 +111,10 @@ const StudentQuizAnalytics = () => {
 
             availableQuizzesData.push(...courseQuizzes);
           } else {
-            console.log(
-              `❌ No quizzes found for course: ${course.courseTitle}`
-            );
+            console.log(`❌ No quizzes found for course: ${course.courseTitle}`);
           }
         } catch (error) {
-          console.error(
-            `❌ Error fetching quizzes for course ${course._id}:`,
-            error
-          );
+          console.error(`❌ Error fetching quizzes for course ${course._id}:`, error);
         }
       }
 
@@ -198,8 +177,7 @@ const StudentQuizAnalytics = () => {
     );
   }
 
-  const hasCompletedQuizzes =
-    analytics?.completedQuizzes && analytics.completedQuizzes.length > 0;
+  const hasCompletedQuizzes = analytics?.completedQuizzes && analytics.completedQuizzes.length > 0;
   const hasAvailableQuizzes = availableQuizzes.length > 0;
 
   console.log("🎨 Rendering with data:", {
@@ -208,7 +186,7 @@ const StudentQuizAnalytics = () => {
     availableQuizzesCount: availableQuizzes.length,
     completedQuizzesCount: analytics?.completedQuizzes?.length || 0,
     dataFetched,
-    loading,
+    loading
   });
 
   return (
@@ -256,9 +234,7 @@ const StudentQuizAnalytics = () => {
                             </TableCell>
                             <TableCell>
                               <Chip
-                                label={
-                                  quiz.isCompleted ? "Completed" : "Available"
-                                }
+                                label={quiz.isCompleted ? "Completed" : "Available"}
                                 color={quiz.isCompleted ? "success" : "primary"}
                                 size="small"
                               />
@@ -298,20 +274,10 @@ const StudentQuizAnalytics = () => {
                     <Typography variant="h6" color="textSecondary" gutterBottom>
                       No quizzes available
                     </Typography>
-                    <Typography
-                      variant="body1"
-                      color="textSecondary"
-                      textAlign="center"
-                    >
-                      You don't have any quizzes available from your enrolled
-                      courses yet.
+                    <Typography variant="body1" color="textSecondary" textAlign="center">
+                      You don't have any quizzes available from your enrolled courses yet.
                     </Typography>
-                    <Typography
-                      variant="body2"
-                      color="textSecondary"
-                      textAlign="center"
-                      sx={{ mt: 2 }}
-                    >
+                    <Typography variant="body2" color="textSecondary" textAlign="center" sx={{ mt: 2 }}>
                       Debug Info: {enrolledCourses.length} enrolled courses
                     </Typography>
                   </Box>
@@ -346,43 +312,37 @@ const StudentQuizAnalytics = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {(analytics?.completedQuizzes || []).map(
-                          (quiz, index) => (
-                            <TableRow key={index}>
-                              <TableCell>{quiz.title}</TableCell>
-                              <TableCell>
-                                {quiz.course?.title || "Unknown"}
-                              </TableCell>
-                              <TableCell>
-                                {quiz.instructor
-                                  ? `${quiz.instructor.firstName} ${quiz.instructor.lastName}`
-                                  : "Unknown"}
-                              </TableCell>
-                              <TableCell>
-                                {quiz.score} of {quiz.totalMarks}
-                              </TableCell>
-                              <TableCell>
-                                {quiz.percentage.toFixed(1)}%
-                              </TableCell>
-                              <TableCell>
-                                {new Date(
-                                  quiz.submittedAt
-                                ).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell>
-                                <Typography
-                                  color={
-                                    quiz.percentage >= 60
-                                      ? "success.main"
-                                      : "error.main"
-                                  }
-                                >
-                                  {quiz.percentage >= 60 ? "Passed" : "Failed"}
-                                </Typography>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        )}
+                        {(analytics?.completedQuizzes || []).map((quiz, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{quiz.title}</TableCell>
+                            <TableCell>
+                              {quiz.course?.title || "Unknown"}
+                            </TableCell>
+                            <TableCell>
+                              {quiz.instructor
+                                ? `${quiz.instructor.firstName} ${quiz.instructor.lastName}`
+                                : "Unknown"}
+                            </TableCell>
+                            <TableCell>
+                              {quiz.score} of {quiz.totalMarks}
+                            </TableCell>
+                            <TableCell>{quiz.percentage.toFixed(1)}%</TableCell>
+                            <TableCell>
+                              {new Date(quiz.submittedAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <Typography
+                                color={
+                                  quiz.percentage >= 60
+                                    ? "success.main"
+                                    : "error.main"
+                                }
+                              >
+                                {quiz.percentage >= 60 ? "Passed" : "Failed"}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                   </TableContainer>
@@ -397,13 +357,8 @@ const StudentQuizAnalytics = () => {
                     <Typography variant="h6" color="textSecondary" gutterBottom>
                       No completed quizzes yet
                     </Typography>
-                    <Typography
-                      variant="body1"
-                      color="textSecondary"
-                      textAlign="center"
-                    >
-                      When you complete quizzes in your enrolled courses, they
-                      will appear here.
+                    <Typography variant="body1" color="textSecondary" textAlign="center">
+                      When you complete quizzes in your enrolled courses, they will appear here.
                     </Typography>
                   </Box>
                 )}
@@ -552,13 +507,8 @@ const StudentQuizAnalytics = () => {
                   <Typography variant="h6" color="textSecondary" gutterBottom>
                     No analytics available
                   </Typography>
-                  <Typography
-                    variant="body1"
-                    color="textSecondary"
-                    textAlign="center"
-                  >
-                    Complete some quizzes to see your analytics and progress
-                    charts.
+                  <Typography variant="body1" color="textSecondary" textAlign="center">
+                    Complete some quizzes to see your analytics and progress charts.
                   </Typography>
                 </Box>
               </CardContent>

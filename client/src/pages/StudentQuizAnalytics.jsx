@@ -33,6 +33,8 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { backendUrl } from "../config";
+
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
@@ -95,9 +97,8 @@ const StudentQuizAnalytics = () => {
         console.log("👤 Fetching analytics for user:", userId);
         const token = await getToken();
         console.log("🔐 Token received:", token ? "Yes" : "No");
-        const BACKEND_URL = "https://lms-backend-omega-two.vercel.app";
 
-        const url = `${BACKEND_URL}/api/quiz/student/${userId}/analytics`;
+        const url = `${backendUrl}/quiz/student/${userId}/analytics`;
         console.log("🌐 API URL:", url);
 
         const response = await axios.get(url, {

@@ -23,7 +23,6 @@ import {
   CircularProgress,
   Radio,
   Divider,
-  Chip,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -48,6 +47,8 @@ const AddQuiz = () => {
     courseId: "",
     dueDate: new Date(),
     totalMarks: 100,
+    isFileQuiz: false,
+    quizFile: null,
     questions: [
       {
         questionText: "",
@@ -100,6 +101,8 @@ const AddQuiz = () => {
           courseId: quizData.course._id,
           dueDate: new Date(quizData.dueDate),
           totalMarks: quizData.totalMarks,
+          isFileQuiz: quizData.isFileQuiz,
+          quizFile: quizData.quizFile,
           questions: quizData.questions.map((q) => ({
             questionText: q.questionText,
             questionType: q.questionType,
@@ -150,32 +153,55 @@ const AddQuiz = () => {
 
       const method = quizId ? "put" : "post";
 
-      const response = await axios[method](
-        url,
-        {
-          title: quiz.title,
-          description: quiz.description,
-          courseId: quiz.courseId,
-          dueDate: quiz.dueDate,
-          totalMarks: quiz.totalMarks,
-          questions: quiz.questions.map((q) => ({
-            questionText: q.questionText,
-            questionType: q.questionType,
-            marks: q.marks,
-            correctAnswer: q.correctAnswer,
-            options: q.options,
-          })),
-        },
-        {
+      if (quiz.isFileQuiz && quiz.quizFile) {
+        const formData = new FormData();
+        formData.append("title", quiz.title);
+        formData.append("description", quiz.description);
+        formData.append("courseId", quiz.courseId);
+        formData.append("dueDate", quiz.dueDate);
+        formData.append("totalMarks", quiz.totalMarks);
+        formData.append("isFileQuiz", true);
+        formData.append("quizFile", quiz.quizFile);
+
+        const response = await axios[method](url, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            "Content-Type": "multipart/form-data",
           },
-        }
-      );
+        });
 
-      if (response.data.success) {
-        navigate("/educator/quizzes");
+        if (response.data.success) {
+          navigate("/educator/quizzes");
+        }
+      } else {
+        const response = await axios[method](
+          url,
+          {
+            title: quiz.title,
+            description: quiz.description,
+            courseId: quiz.courseId,
+            dueDate: quiz.dueDate,
+            totalMarks: quiz.totalMarks,
+            isFileQuiz: false,
+            questions: quiz.questions.map((q) => ({
+              questionText: q.questionText,
+              questionType: q.questionType,
+              marks: q.marks,
+              correctAnswer: q.correctAnswer,
+              options: q.options,
+            })),
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.data.success) {
+          navigate("/educator/quizzes");
+        }
       }
     } catch (error) {
       console.error("Error submitting quiz:", error);
@@ -253,6 +279,17 @@ const AddQuiz = () => {
     setQuiz({ ...quiz, questions: newQuestions });
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setQuiz((prev) => ({
+        ...prev,
+        quizFile: file,
+        isFileQuiz: true,
+      }));
+    }
+  };
+
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
@@ -288,6 +325,7 @@ const AddQuiz = () => {
                 onChange={(e) =>
                   setQuiz({ ...quiz, description: e.target.value })
                 }
+                required
               />
             </Grid>
 
@@ -320,26 +358,12 @@ const AddQuiz = () => {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="الدرجة الكلية"
-                value={quiz.totalMarks}
-                onChange={(e) =>
-                  setQuiz({ ...quiz, totalMarks: Number(e.target.value) })
-                }
-                required
-                inputProps={{ min: 1 }}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
               <LocalizationProvider
                 dateAdapter={AdapterDateFns}
                 adapterLocale={ar}
               >
                 <DateTimePicker
-                  label="تاريخ الاستحقاق"
+                  label="تاريخ التسليم"
                   value={quiz.dueDate}
                   onChange={(newValue) =>
                     setQuiz({ ...quiz, dueDate: newValue })
@@ -350,159 +374,251 @@ const AddQuiz = () => {
             </Grid>
 
             <Grid item xs={12}>
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}
-              >
-                <Typography variant="subtitle1">نوع الكويز:</Typography>
-                <Chip label="كويز عادي" color="primary" />
-                <Chip label="كويز ملف (قريباً)" color="default" disabled />
-              </Box>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={quiz.isFileQuiz}
+                    onChange={(e) =>
+                      setQuiz({ ...quiz, isFileQuiz: e.target.checked })
+                    }
+                  />
+                }
+                label="رفع الكويز كملف"
+              />
             </Grid>
 
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                الأسئلة
-              </Typography>
-              {quiz.questions.map((question, index) => (
-                <Card key={index} sx={{ mb: 2, p: 2 }}>
-                  <CardContent>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label={`السؤال ${index + 1}`}
-                          value={question.questionText}
-                          onChange={(e) =>
-                            handleQuestionChange(
-                              index,
-                              "questionText",
-                              e.target.value
-                            )
-                          }
-                          required
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} md={6}>
-                        <FormControl fullWidth>
-                          <InputLabel>نوع السؤال</InputLabel>
-                          <Select
-                            value={question.questionType}
-                            onChange={(e) =>
-                              handleQuestionTypeChange(index, e.target.value)
-                            }
-                            label="نوع السؤال"
-                          >
-                            <MenuItem value="multiple_choice">
-                              اختيار من متعدد
-                            </MenuItem>
-                            <MenuItem value="text">إجابة نصية</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
-
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          type="number"
-                          label="الدرجة"
-                          value={question.marks}
-                          onChange={(e) =>
-                            handleQuestionChange(
-                              index,
-                              "marks",
-                              Number(e.target.value)
-                            )
-                          }
-                          required
-                        />
-                      </Grid>
-
-                      {question.questionType === "multiple_choice" && (
-                        <>
-                          {question.options.map((option, optionIndex) => (
-                            <Grid item xs={12} key={optionIndex}>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1,
-                                }}
-                              >
-                                <Radio
-                                  checked={option.isCorrect}
-                                  onChange={() =>
-                                    handleCorrectAnswerChange(
-                                      index,
-                                      optionIndex
-                                    )
-                                  }
-                                />
-                                <TextField
-                                  fullWidth
-                                  label={`الخيار ${optionIndex + 1}`}
-                                  value={option.text}
-                                  onChange={(e) =>
-                                    handleOptionChange(
-                                      index,
-                                      optionIndex,
-                                      e.target.value
-                                    )
-                                  }
-                                  required
-                                />
-                              </Box>
-                            </Grid>
-                          ))}
-                        </>
-                      )}
-                    </Grid>
-                    <Box
-                      sx={{
-                        mt: 2,
-                        display: "flex",
-                        justifyContent: "flex-end",
-                      }}
-                    >
-                      <IconButton
-                        color="error"
-                        onClick={() => handleRemoveQuestion(index)}
-                        disabled={quiz.questions.length === 1}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
-
-              <Button
-                startIcon={<AddIcon />}
-                onClick={handleAddQuestion}
-                variant="outlined"
-                sx={{ mt: 2 }}
-              >
-                إضافة سؤال
-              </Button>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+            {quiz.isFileQuiz ? (
+              <Grid item xs={12}>
                 <Button
                   variant="outlined"
-                  onClick={() => navigate("/educator/quizzes")}
+                  component="label"
+                  startIcon={<CloudUploadIcon />}
+                  fullWidth
                 >
-                  إلغاء
+                  رفع ملف الكويز
+                  <input
+                    type="file"
+                    hidden
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                  />
                 </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading}
-                  startIcon={loading ? <CircularProgress size={20} /> : null}
-                >
-                  {quizId ? "تحديث الكويز" : "إنشاء الكويز"}
-                </Button>
-              </Box>
+                {quiz.quizFile && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 2,
+                      border: "1px solid #ddd",
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography variant="subtitle1" gutterBottom>
+                      معلومات الملف:
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      اسم الملف: {quiz.quizFile.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      نوع الملف: {quiz.quizFile.type || "غير معروف"}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      حجم الملف:{" "}
+                      {(quiz.quizFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </Typography>
+                    {quiz.quizFile.fileUrl && (
+                      <Button
+                        variant="text"
+                        color="primary"
+                        href={quiz.quizFile.fileUrl}
+                        target="_blank"
+                        sx={{ mt: 1 }}
+                      >
+                        عرض الملف
+                      </Button>
+                    )}
+                  </Box>
+                )}
+              </Grid>
+            ) : (
+              <>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="الدرجة الكلية"
+                    value={quiz.totalMarks}
+                    onChange={(e) =>
+                      setQuiz({ ...quiz, totalMarks: e.target.value })
+                    }
+                    required
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    الأسئلة
+                  </Typography>
+                  {quiz.questions.map((question, index) => (
+                    <Card key={index} sx={{ mb: 2 }}>
+                      <CardContent>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12}>
+                            <TextField
+                              fullWidth
+                              label={`السؤال ${index + 1}`}
+                              value={question.questionText}
+                              onChange={(e) =>
+                                handleQuestionChange(
+                                  index,
+                                  "questionText",
+                                  e.target.value
+                                )
+                              }
+                              required
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} md={6}>
+                            <FormControl fullWidth>
+                              <InputLabel>نوع السؤال</InputLabel>
+                              <Select
+                                value={question.questionType}
+                                onChange={(e) =>
+                                  handleQuestionTypeChange(
+                                    index,
+                                    e.target.value
+                                  )
+                                }
+                                label="نوع السؤال"
+                              >
+                                <MenuItem value="multiple_choice">
+                                  اختيار من متعدد
+                                </MenuItem>
+                                <MenuItem value="text">إجابة نصية</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </Grid>
+
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              type="number"
+                              label="الدرجة"
+                              value={question.marks}
+                              onChange={(e) =>
+                                handleQuestionChange(
+                                  index,
+                                  "marks",
+                                  e.target.value
+                                )
+                              }
+                              required
+                            />
+                          </Grid>
+
+                          {question.questionType === "multiple_choice" && (
+                            <Grid item xs={12}>
+                              <Typography variant="subtitle1" gutterBottom>
+                                الخيارات
+                              </Typography>
+                              {question.options.map((option, optionIndex) => (
+                                <Box
+                                  key={optionIndex}
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    mb: 1,
+                                  }}
+                                >
+                                  <Radio
+                                    checked={option.isCorrect}
+                                    onChange={() =>
+                                      handleCorrectAnswerChange(
+                                        index,
+                                        optionIndex
+                                      )
+                                    }
+                                  />
+                                  <TextField
+                                    fullWidth
+                                    label={`الخيار ${optionIndex + 1}`}
+                                    value={option.text}
+                                    onChange={(e) =>
+                                      handleOptionChange(
+                                        index,
+                                        optionIndex,
+                                        e.target.value
+                                      )
+                                    }
+                                    required
+                                  />
+                                </Box>
+                              ))}
+                            </Grid>
+                          )}
+
+                          {question.questionType === "text" && (
+                            <Grid item xs={12}>
+                              <TextField
+                                fullWidth
+                                label="الإجابة الصحيحة"
+                                value={question.correctAnswer}
+                                onChange={(e) =>
+                                  handleQuestionChange(
+                                    index,
+                                    "correctAnswer",
+                                    e.target.value
+                                  )
+                                }
+                                required
+                              />
+                            </Grid>
+                          )}
+
+                          <Grid item xs={12}>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              startIcon={<DeleteIcon />}
+                              onClick={() => handleRemoveQuestion(index)}
+                            >
+                              حذف السؤال
+                            </Button>
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={handleAddQuestion}
+                    sx={{ mt: 2 }}
+                  >
+                    إضافة سؤال
+                  </Button>
+                </Grid>
+              </>
+            )}
+
+            <Grid item xs={12}>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                fullWidth
+                disabled={loading}
+              >
+                {loading ? (
+                  <CircularProgress size={24} />
+                ) : quizId ? (
+                  "تحديث الكويز"
+                ) : (
+                  "إنشاء الكويز"
+                )}
+              </Button>
             </Grid>
           </Grid>
         </form>
