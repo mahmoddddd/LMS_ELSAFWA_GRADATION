@@ -17,6 +17,8 @@ import {
   TableHead,
   TableRow,
   Chip,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   LineChart,
@@ -34,7 +36,7 @@ import {
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { backendUrl } from "../config";
-
+import NavigationButtons from "../components/NavigationButtons";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
@@ -53,6 +55,9 @@ const StudentQuizAnalytics = () => {
   const [error, setError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [instructorNames, setInstructorNames] = useState({});
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // Function to fetch instructor names from Clerk
   const fetchInstructorNames = async (instructorIds) => {
@@ -195,87 +200,93 @@ const StudentQuizAnalytics = () => {
   });
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Box p={isMobile ? 1 : 3}>
+      <NavigationButtons />
+      <Typography variant={isMobile ? "h5" : "h4"} component="h1" gutterBottom>
         تحليلات الاختبارات
       </Typography>
-
-      <Grid container spacing={3}>
+      <Grid container spacing={isMobile ? 1 : 3}>
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom>
                 الكويزات التي تم إجراؤها
               </Typography>
-              <TableContainer>
-                <Table>
+              <TableContainer
+                sx={{
+                  maxWidth: "100%",
+                  overflowX: isMobile ? "auto" : "unset",
+                }}
+              >
+                <Table size={isMobile ? "small" : "medium"}>
                   <TableHead>
                     <TableRow>
                       <TableCell>عنوان الكويز</TableCell>
                       <TableCell>المقرر</TableCell>
-                      <TableCell>المدرس</TableCell>
+                      {isMobile ? null : <TableCell>المدرس</TableCell>}
                       <TableCell>الدرجة</TableCell>
-                      <TableCell>النسبة المئوية</TableCell>
+                      {isMobile ? null : <TableCell>النسبة المئوية</TableCell>}
                       <TableCell>تاريخ الإجراء</TableCell>
                       <TableCell>الحالة</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {(analytics?.completedQuizzes || []).map((quiz, index) => {
-                      console.log("📝 Rendering quiz:", quiz);
-                      return (
-                        <TableRow key={`${quiz.title}-${index}`}>
-                          <TableCell>{quiz.title}</TableCell>
-                          <TableCell>
-                            {quiz.course?.title || "غير محدد"}
-                          </TableCell>
+                    {(analytics?.completedQuizzes || []).map((quiz, index) => (
+                      <TableRow key={`${quiz.title}-${index}`}>
+                        <TableCell>{quiz.title}</TableCell>
+                        <TableCell>
+                          {quiz.course?.title || "غير محدد"}
+                        </TableCell>
+                        {isMobile ? null : (
                           <TableCell>
                             {quiz.instructor?.firstName
                               ? `${quiz.instructor.firstName} ${quiz.instructor
                                   .lastName || ""}`
                               : "غير محدد"}
                           </TableCell>
-                          <TableCell>
-                            {quiz.score} من {quiz.totalMarks}
-                          </TableCell>
+                        )}
+                        <TableCell>
+                          {quiz.score} من {quiz.totalMarks}
+                        </TableCell>
+                        {isMobile ? null : (
                           <TableCell>{quiz.percentage.toFixed(1)}%</TableCell>
-                          <TableCell>{formatDate(quiz.submittedAt)}</TableCell>
-                          <TableCell>
-                            <Typography
-                              sx={{
-                                color:
-                                  quiz.percentage >= 60 ? "#1B5E20" : "#B71C1C",
-                                fontWeight: "bold",
-                                textAlign: "center",
-                                backgroundColor:
-                                  quiz.percentage >= 60 ? "#C8E6C9" : "#FFCDD2",
-                                padding: "4px 8px",
-                                borderRadius: "4px",
-                                display: "inline-block",
-                                minWidth: "80px",
-                              }}
-                            >
-                              {quiz.percentage >= 60 ? "ناجح" : "راسب"}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                        )}
+                        <TableCell>{formatDate(quiz.submittedAt)}</TableCell>
+                        <TableCell>
+                          <Typography
+                            sx={{
+                              color:
+                                quiz.percentage >= 60 ? "#1B5E20" : "#B71C1C",
+                              fontWeight: "bold",
+                              textAlign: "center",
+                              backgroundColor:
+                                quiz.percentage >= 60 ? "#C8E6C9" : "#FFCDD2",
+                              padding: "4px 8px",
+                              borderRadius: "4px",
+                              display: "inline-block",
+                              minWidth: "60px",
+                              fontSize: isMobile ? "0.8rem" : "1rem",
+                            }}
+                          >
+                            {quiz.percentage >= 60 ? "ناجح" : "راسب"}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </TableContainer>
             </CardContent>
           </Card>
         </Grid>
-
         {/* تقدم الدرجات */}
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom>
                 تقدم الدرجات
               </Typography>
-              <Box height={400}>
+              <Box height={isMobile ? 250 : 400}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={
@@ -302,15 +313,14 @@ const StudentQuizAnalytics = () => {
             </CardContent>
           </Card>
         </Grid>
-
         {/* توزيع الدرجات */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom>
                 توزيع الدرجات
               </Typography>
-              <Box height={300}>
+              <Box height={isMobile ? 200 : 300}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -319,7 +329,7 @@ const StudentQuizAnalytics = () => {
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={100}
+                      outerRadius={isMobile ? 60 : 100}
                       label
                     >
                       {(analytics?.scoreDistribution || []).map(
@@ -339,31 +349,42 @@ const StudentQuizAnalytics = () => {
             </CardContent>
           </Card>
         </Grid>
-
         {/* إحصائيات عامة */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant={isMobile ? "subtitle1" : "h6"} gutterBottom>
                 إحصائيات عامة
               </Typography>
-              <Grid container spacing={2}>
+              <Grid container spacing={isMobile ? 1 : 2}>
                 <Grid item xs={12} md={4}>
-                  <Paper sx={{ p: 2, textAlign: "center" }}>
-                    <Typography variant="h6" gutterBottom>
+                  <Paper sx={{ p: isMobile ? 1 : 2, textAlign: "center" }}>
+                    <Typography
+                      variant={isMobile ? "body2" : "h6"}
+                      gutterBottom
+                    >
                       متوسط الدرجات
                     </Typography>
-                    <Typography variant="h4" color="primary">
+                    <Typography
+                      variant={isMobile ? "h6" : "h4"}
+                      color="primary"
+                    >
                       {analytics.averageScore.toFixed(1)}%
                     </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <Paper sx={{ p: 2, textAlign: "center" }}>
-                    <Typography variant="h6" gutterBottom>
+                  <Paper sx={{ p: isMobile ? 1 : 2, textAlign: "center" }}>
+                    <Typography
+                      variant={isMobile ? "body2" : "h6"}
+                      gutterBottom
+                    >
                       نسبة النجاح
                     </Typography>
-                    <Typography variant="h4" color="primary">
+                    <Typography
+                      variant={isMobile ? "h6" : "h4"}
+                      color="primary"
+                    >
                       {(
                         (analytics.completedQuizzes.filter(
                           (quiz) => quiz.percentage >= 60
@@ -376,11 +397,17 @@ const StudentQuizAnalytics = () => {
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <Paper sx={{ p: 2, textAlign: "center" }}>
-                    <Typography variant="h6" gutterBottom>
+                  <Paper sx={{ p: isMobile ? 1 : 2, textAlign: "center" }}>
+                    <Typography
+                      variant={isMobile ? "body2" : "h6"}
+                      gutterBottom
+                    >
                       عدد المحاولات
                     </Typography>
-                    <Typography variant="h4" color="primary">
+                    <Typography
+                      variant={isMobile ? "h6" : "h4"}
+                      color="primary"
+                    >
                       {analytics.completedQuizzes.length}
                     </Typography>
                   </Paper>

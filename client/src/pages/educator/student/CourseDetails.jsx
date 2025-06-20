@@ -8,6 +8,7 @@ import Footer from "../../../components/student/Footer";
 import YouTube from "react-youtube";
 import { toast } from "react-toastify";
 import axios from "axios";
+import NavigationButtons from "../../../components/NavigationButtons";
 
 const CourseDetails = () => {
   const { id } = useParams();
@@ -376,6 +377,7 @@ const CourseDetails = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <NavigationButtons />
       {courseData ? (
         <>
           {/* Top Navigation Bar */}

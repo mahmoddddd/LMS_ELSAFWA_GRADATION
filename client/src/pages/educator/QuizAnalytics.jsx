@@ -43,6 +43,7 @@ import { AppContext } from "../../context/AppContext";
 import DownloadIcon from "@mui/icons-material/Download";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import NavigationButtons from "../../components/NavigationButtons";
 
 const QuizAnalytics = () => {
   const { backendUrl } = useContext(AppContext);
@@ -255,6 +256,7 @@ const QuizAnalytics = () => {
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4 }}>
+      <NavigationButtons />
       <Box
         display="flex"
         justifyContent="space-between"

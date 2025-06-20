@@ -24,7 +24,9 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { backendUrl } from "../../../config"
+import { backendUrl } from "../../../config";
+import NavigationButtons from "../../../components/NavigationButtons";
+
 const QuizDetail = () => {
   const { courseId, quizId } = useParams();
   const navigate = useNavigate();
@@ -41,17 +43,14 @@ const QuizDetail = () => {
     const fetchQuiz = async () => {
       try {
         const token = await getToken();
-        const response = await axios.get( 
-          `${backendUrl}/quiz/${quizId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              Accept: "application/json",
-              "X-User-ID": userId,
-            },
-          }
-        );
+        const response = await axios.get(`${backendUrl}/quiz/${quizId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            "X-User-ID": userId,
+          },
+        });
 
         if (response.data.success) {
           setQuiz(response.data.quiz);
@@ -104,16 +103,12 @@ const QuizDetail = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await axios.post(
-  `${backendUrl}/quiz/upload`,
-  formData,
-  {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "multipart/form-data",
-    },
-  }
-);
+      const response = await axios.post(`${backendUrl}/quiz/upload`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       setAnswers({ ...answers, [questionId]: response.data.fileUrl });
     } catch (err) {
@@ -128,8 +123,8 @@ const QuizDetail = () => {
     try {
       const token = await getToken();
       const response = await axios.post(
-        `${backendUrl}/quiz/${quizId}/submit`, 
-               {
+        `${backendUrl}/quiz/${quizId}/submit`,
+        {
           answers,
           userId,
         },
@@ -188,6 +183,7 @@ const QuizDetail = () => {
 
   return (
     <Box p={3}>
+      <NavigationButtons />
       <Box
         display="flex"
         justifyContent="space-between"

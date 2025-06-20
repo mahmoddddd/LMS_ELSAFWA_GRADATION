@@ -3,6 +3,7 @@ import { AppContext } from "../../context/AppContext";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import NavigationButtons from "../../components/NavigationButtons";
 
 const MyCourses = () => {
   const {
@@ -74,6 +75,7 @@ const MyCourses = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <NavigationButtons />
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">My Courses</h1>
         <button

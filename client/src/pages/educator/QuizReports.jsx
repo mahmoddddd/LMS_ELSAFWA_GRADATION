@@ -39,6 +39,7 @@ import {
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import { AppContext } from "../../context/AppContext";
+import NavigationButtons from "../../components/NavigationButtons";
 
 const QuizReports = () => {
   const { backendUrl } = useContext(AppContext);
@@ -209,6 +210,7 @@ const QuizReports = () => {
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4 }}>
+      <NavigationButtons />
       <Box
         display="flex"
         justifyContent="space-between"

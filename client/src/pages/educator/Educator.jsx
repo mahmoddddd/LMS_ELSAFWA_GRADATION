@@ -6,6 +6,7 @@ import SideBar from "../../components/educator/SideBar";
 import Footer from "../../components/educator/Footer";
 import { AppContext } from "../../context/AppContext";
 import Loading from "../../components/student/Loading";
+import NavigationButtons from "../../components/NavigationButtons";
 
 const Educator = () => {
   const { user } = useUser();
@@ -34,6 +35,7 @@ const Educator = () => {
   return (
     <div className="text-default min-h-screen bg-white">
       <NavBar />
+      <NavigationButtons />
       <div className="flex">
         <SideBar />
         <div className="flex-1 p-4">

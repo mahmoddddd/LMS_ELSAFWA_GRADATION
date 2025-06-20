@@ -13,6 +13,7 @@ import {
   Card,
   CardContent,
 } from "@mui/material";
+import NavigationButtons from "../components/NavigationButtons";
 
 const StudentQuizProgress = () => {
   const { courseId } = useParams();
@@ -69,6 +70,7 @@ const StudentQuizProgress = () => {
 
   return (
     <Box p={3}>
+      <NavigationButtons />
       <Typography variant="h4" component="h1" gutterBottom>
         تقدمي في الاختبارات
       </Typography>

@@ -20,6 +20,7 @@ import axios from "axios";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { backendUrl } from "../../../config";
+import NavigationButtons from "../../../components/NavigationButtons";
 
 const CourseQuizzes = () => {
   const { courseId } = useParams();
@@ -39,7 +40,7 @@ const CourseQuizzes = () => {
     try {
       const token = await getToken();
       const response = await axios.get(
-      `${backendUrl}/quiz/course/${courseId}`,
+        `${backendUrl}/quiz/course/${courseId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -95,6 +96,7 @@ const CourseQuizzes = () => {
 
   return (
     <Box p={3}>
+      <NavigationButtons />
       <Typography variant="h4" component="h1" gutterBottom>
         اختبارات المقرر
       </Typography>

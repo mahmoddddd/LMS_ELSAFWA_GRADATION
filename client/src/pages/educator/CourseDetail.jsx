@@ -128,6 +128,8 @@ const CourseDetail = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <NavigationButtons />
+
       {/* Top Navigation Buttons */}
       <NavigationButtons
         backPath="/educator/courses"

@@ -6,6 +6,7 @@ import { AppContext } from "../../context/AppContext";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { useUser, useAuth } from "@clerk/clerk-react";
+import NavigationButtons from "../../components/NavigationButtons";
 
 const AddCourse = () => {
   const quillRef = useRef(null);
@@ -249,6 +250,7 @@ const AddCourse = () => {
 
   return (
     <div className="flex md:flex-row flex-col-reverse gap-10 relative items-start justify-between md:px-36 px-8 md:pt-20 pt-10">
+      <NavigationButtons />
       {/* Form Section */}
       <div className="max-w-xl w-full text-gray-700 border border-gray-300 p-6 rounded-lg shadow-md bg-white">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">

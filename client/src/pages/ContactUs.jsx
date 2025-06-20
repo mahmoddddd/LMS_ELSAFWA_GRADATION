@@ -1,4 +1,5 @@
 import { backendUrl } from "../config";
+import NavigationButtons from "../components/NavigationButtons";
 
 // ... existing code ...
 const response = await axios.post(`${backendUrl}/contact`, formData, {
@@ -7,3 +8,5 @@ const response = await axios.post(`${backendUrl}/contact`, formData, {
   },
 });
 // ... existing code ...
+
+<NavigationButtons />;

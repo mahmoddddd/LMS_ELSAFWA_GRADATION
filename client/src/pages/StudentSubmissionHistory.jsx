@@ -26,6 +26,7 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import NavigationButtons from "../components/NavigationButtons";
 
 const StudentSubmissionHistory = () => {
   const { quizId } = useParams();
@@ -110,6 +111,7 @@ const StudentSubmissionHistory = () => {
 
   return (
     <Box p={3}>
+      <NavigationButtons />
       <Typography variant="h4" component="h1" gutterBottom>
         {quizTitle} - سجل التقديمات
       </Typography>

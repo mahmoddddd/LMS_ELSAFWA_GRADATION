@@ -23,6 +23,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { ar } from "date-fns/locale";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
+import NavigationButtons from "../components/NavigationButtons";
 
 const CreateQuiz = () => {
   const { courseId } = useParams();
@@ -129,11 +130,15 @@ const CreateQuiz = () => {
 
     try {
       const token = await getToken();
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/quiz`, quizData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz`,
+        quizData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       navigate(`/courses/${courseId}/quizzes`);
     } catch (err) {
       setError(err.response?.data?.message || "حدث خطأ في إنشاء الاختبار");
@@ -144,6 +149,7 @@ const CreateQuiz = () => {
 
   return (
     <Box p={3}>
+      <NavigationButtons />
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           إنشاء اختبار جديد

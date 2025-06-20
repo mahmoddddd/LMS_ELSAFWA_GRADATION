@@ -44,6 +44,7 @@ import {
   People as PeopleIcon,
 } from "@mui/icons-material";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import NavigationButtons from "../../components/NavigationButtons";
 
 const StudentEnrolled = () => {
   const { backendUrl, getToken, isEducator } = useContext(AppContext);
@@ -1142,6 +1143,7 @@ const StudentEnrolled = () => {
 
   return enrolledStudents ? (
     <div className="min-h-screen bg-white">
+      <NavigationButtons />
       <Box
         sx={{
           borderBottom: 1,

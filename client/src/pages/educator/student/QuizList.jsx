@@ -16,6 +16,8 @@ import {
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { backendUrl } from "../../../config";
+import NavigationButtons from "../../../components/NavigationButtons";
+
 const QuizList = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -29,7 +31,7 @@ const QuizList = () => {
       try {
         const token = await getToken();
         const response = await axios.get(
-`${backendUrl}/quiz/course/${courseId}`,
+          `${backendUrl}/quiz/course/${courseId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -79,6 +81,7 @@ const QuizList = () => {
 
   return (
     <Box p={3}>
+      <NavigationButtons />
       <Box
         display="flex"
         justifyContent="space-between"

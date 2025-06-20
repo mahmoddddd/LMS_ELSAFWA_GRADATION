@@ -4,6 +4,7 @@ import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import { backendUrl } from "../../config";
 import { toast } from "react-hot-toast";
+import NavigationButtons from "../../components/NavigationButtons";
 
 const LoadingMyEnrollments = () => {
   const [searchParams] = useSearchParams();
@@ -77,6 +78,7 @@ const LoadingMyEnrollments = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <NavigationButtons />
       <div className="text-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
         <h2 className="mt-4 text-xl font-semibold text-gray-700">

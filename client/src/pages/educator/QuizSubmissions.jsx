@@ -34,6 +34,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import PrintIcon from "@mui/icons-material/Print";
 import { backendUrl } from "../../config";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import NavigationButtons from "../../components/NavigationButtons";
 
 const QuizSubmissions = () => {
   const { quizId } = useParams();
@@ -423,6 +424,7 @@ const QuizSubmissions = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <NavigationButtons />
       <Typography variant="h4" component="h1" gutterBottom>
         {quiz?.title} - تقديمات الاختبار
       </Typography>

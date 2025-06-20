@@ -40,6 +40,7 @@ import * as XLSX from "xlsx";
 import { AppContext } from "../../context/AppContext";
 import DownloadIcon from "@mui/icons-material/Download";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import NavigationButtons from "../../components/NavigationButtons";
 
 // This is a new component to force a change
 const NewQuizAnalytics = () => {
@@ -160,6 +161,7 @@ const NewQuizAnalytics = () => {
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4 }}>
+      <NavigationButtons />
       <Box
         display="flex"
         justifyContent="space-between"

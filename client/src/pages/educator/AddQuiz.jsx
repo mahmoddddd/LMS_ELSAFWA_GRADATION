@@ -32,6 +32,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { ar } from "date-fns/locale";
+import NavigationButtons from "../../components/NavigationButtons";
 
 const AddQuiz = () => {
   const { backendUrl } = useContext(AppContext);
@@ -292,6 +293,7 @@ const AddQuiz = () => {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
+      <NavigationButtons />
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom>
           {quizId ? "تعديل الكويز" : "إضافة كويز جديد"}

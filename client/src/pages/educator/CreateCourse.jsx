@@ -18,12 +18,7 @@ import NavigationButtons from "../../components/NavigationButtons";
 
 return (
   <Container maxWidth="md" sx={{ mt: 4 }}>
-    <NavigationButtons
-      backPath="/educator/courses"
-      forwardPath={null}
-      backText="العودة للكورسات"
-      showHome={true}
-    />
+    <NavigationButtons />
 
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
       {/* ... existing form fields ... */}

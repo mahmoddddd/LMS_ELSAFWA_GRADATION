@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import NavigationButtons from "../components/NavigationButtons";
 
 const QuizList = () => {
   const { courseId } = useParams();
@@ -71,6 +72,7 @@ const QuizList = () => {
 
   return (
     <Box p={3}>
+      <NavigationButtons />
       <Box
         display="flex"
         justifyContent="space-between"

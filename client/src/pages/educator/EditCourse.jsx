@@ -8,6 +8,7 @@ import axios from "axios";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { useParams, useNavigate } from "react-router-dom";
 import Loading from "../../components/student/Loading";
+import NavigationButtons from "../../components/NavigationButtons";
 
 const EditCourse = () => {
   const quillRef = useRef(null);
@@ -48,9 +49,12 @@ const EditCourse = () => {
   const fetchCourseData = async () => {
     try {
       const token = await getToken();
-      const { data } = await axios.get(`${backendUrl}/api/educator/course/${courseId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const { data } = await axios.get(
+        `${backendUrl}/api/educator/course/${courseId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (data.success) {
         const courseData = data.course;
@@ -58,25 +62,29 @@ const EditCourse = () => {
         setCourseTitle(courseData.courseTitle);
         setCoursePrice(courseData.coursePrice);
         setDiscount(courseData.discount);
-        
+
         // Set chapters with collapsed state
-        const chaptersWithCollapsed = courseData.courseContent.map(chapter => ({
-          ...chapter,
-          collapsed: false
-        }));
+        const chaptersWithCollapsed = courseData.courseContent.map(
+          (chapter) => ({
+            ...chapter,
+            collapsed: false,
+          })
+        );
         setChapters(chaptersWithCollapsed);
-        
+
         // Set description in Quill editor if it's already initialized
         if (quillRef.current) {
           quillRef.current.root.innerHTML = courseData.courseDescription;
         }
       } else {
         toast.error(data.message);
-        navigate('/educator/my-courses');
+        navigate("/educator/my-courses");
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to fetch course data");
-      navigate('/educator/my-courses');
+      toast.error(
+        error.response?.data?.message || "Failed to fetch course data"
+      );
+      navigate("/educator/my-courses");
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +97,7 @@ const EditCourse = () => {
 
     if (!user) {
       toast.error("Please sign in to edit a course");
-      navigate('/educator/my-courses');
+      navigate("/educator/my-courses");
       return;
     }
   }, [isUserLoaded, isAuthLoaded, user, navigate]);
@@ -100,7 +108,7 @@ const EditCourse = () => {
       quillRef.current = new Quill(editorRef.current, {
         theme: "snow",
       });
-      
+
       // Set the content if course data is already loaded
       if (course && course.courseDescription) {
         quillRef.current.root.innerHTML = course.courseDescription;
@@ -239,7 +247,9 @@ const EditCourse = () => {
     }
 
     if (!quillRef.current) {
-      toast.error("Editor not initialized. Please refresh the page and try again.");
+      toast.error(
+        "Editor not initialized. Please refresh the page and try again."
+      );
       return;
     }
 
@@ -284,13 +294,16 @@ const EditCourse = () => {
 
       if (data.success) {
         toast.success(data.message);
-        navigate('/educator/my-courses');
+        navigate("/educator/my-courses");
       } else {
         throw new Error(data.message || "Failed to update course");
       }
     } catch (error) {
       console.error("Error updating course:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to update course. Please try again.";
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to update course. Please try again.";
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -303,12 +316,13 @@ const EditCourse = () => {
 
   return (
     <div className="flex md:flex-row flex-col-reverse gap-10 relative items-start justify-between md:px-36 px-8 md:pt-20 pt-10">
+      <NavigationButtons />
       {/* Form Section */}
       <div className="max-w-xl w-full text-gray-700 border border-gray-300 p-6 rounded-lg shadow-md bg-white">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold">Edit Course</h2>
           <button
-            onClick={() => navigate('/educator/my-courses')}
+            onClick={() => navigate("/educator/my-courses")}
             className="text-gray-500 hover:text-gray-700"
           >
             ← Back to My Courses
@@ -603,4 +617,4 @@ const EditCourse = () => {
   );
 };
 
-export default EditCourse; 
+export default EditCourse;

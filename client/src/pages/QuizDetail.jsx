@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import NavigationButtons from "../components/NavigationButtons";
 
 const QuizDetail = () => {
   const { courseId, quizId } = useParams();
@@ -181,6 +182,7 @@ const QuizDetail = () => {
 
   return (
     <Box p={3}>
+      <NavigationButtons />
       <Paper elevation={3} sx={{ p: 3 }}>
         <Box
           display="flex"
