@@ -25,6 +25,7 @@ import {
   Grid,
   Container,
   Chip,
+  Card,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/clerk-react";
@@ -32,6 +33,7 @@ import axios from "axios";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PrintIcon from "@mui/icons-material/Print";
 import { backendUrl } from "../../config";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 const QuizSubmissions = () => {
   const { quizId } = useParams();
@@ -71,6 +73,7 @@ const QuizSubmissions = () => {
   const [submissionDetails, setSubmissionDetails] = useState(null);
   const [quiz, setQuiz] = useState(null);
   const [studentNames, setStudentNames] = useState({});
+  const isMobile = useMediaQuery("(max-width:600px)");
 
   useEffect(() => {
     if (!quizId) {
@@ -423,23 +426,64 @@ const QuizSubmissions = () => {
       <Typography variant="h4" component="h1" gutterBottom>
         {quiz?.title} - تقديمات الاختبار
       </Typography>
-
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>الطالب</TableCell>
-              <TableCell>الدرجة</TableCell>
-              <TableCell>النسبة المئوية</TableCell>
-              <TableCell>التقدير</TableCell>
-              <TableCell>الحالة</TableCell>
-              <TableCell>الإجراءات</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {submissions.map((submission, index) => {
-              console.log("Rendering submission row:", submission); // Debug log
-              return (
+      {isMobile ? (
+        <Grid container spacing={2}>
+          {submissions.map((submission, index) => (
+            <Grid item xs={12} key={index}>
+              <Card sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  {studentNames[submission.student] || "طالب غير معروف"}
+                </Typography>
+                <Typography variant="body2">
+                  الدرجة: {submission.score} من {submission.totalMarks}
+                </Typography>
+                <Typography variant="body2">
+                  النسبة المئوية: {submission.percentage}%
+                </Typography>
+                <Typography variant="body2">
+                  التقدير:{" "}
+                  <Chip
+                    label={submission.gradeText || "غير محدد"}
+                    color={getGradeColor(submission.gradeText)}
+                    size="small"
+                  />
+                </Typography>
+                <Typography variant="body2">
+                  الحالة:{" "}
+                  <Chip
+                    label={submission.status || "غير محدد"}
+                    color={submission.status === "ناجح" ? "success" : "error"}
+                    size="small"
+                  />
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleViewSubmission(submission)}
+                  startIcon={<VisibilityIcon />}
+                  sx={{ mt: 1 }}
+                >
+                  عرض التفاصيل
+                </Button>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>الطالب</TableCell>
+                <TableCell>الدرجة</TableCell>
+                <TableCell>النسبة المئوية</TableCell>
+                <TableCell>التقدير</TableCell>
+                <TableCell>الحالة</TableCell>
+                <TableCell>الإجراءات</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {submissions.map((submission, index) => (
                 <TableRow
                   key={`${submission.student}-${submission.submittedAt}-${index}`}
                 >
@@ -475,11 +519,11 @@ const QuizSubmissions = () => {
                     </Button>
                   </TableCell>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       <Dialog
         open={viewDialogOpen}
