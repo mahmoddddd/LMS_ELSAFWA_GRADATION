@@ -16,6 +16,8 @@ import {
   TableRow,
   Paper,
   CircularProgress,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/clerk-react";
@@ -36,6 +38,8 @@ const QuizManagement = () => {
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
     if (user?.id) {
@@ -160,26 +164,27 @@ const QuizManagement = () => {
   }
 
   return (
-    <Box p={3}>
+    <Box p={isMobile ? 1 : 3}>
       <NavigationButtons />
       <Box
         display="flex"
         justifyContent="space-between"
         alignItems="center"
-        mb={3}
+        mb={isMobile ? 2 : 3}
       >
-        <Typography variant="h4" component="h1">
+        <Typography variant={isMobile ? "h6" : "h4"} component="h1">
           إدارة الاختبارات
         </Typography>
         <Button
           variant="contained"
           color="primary"
           onClick={() => navigate("/educator/add-quiz")}
+          fullWidth={isMobile}
+          sx={{ mt: isMobile ? 1 : 0 }}
         >
           إضافة اختبار جديد
         </Button>
       </Box>
-
       {quizzes.length === 0 ? (
         <Box textAlign="center" mt={4}>
           <Typography variant="h6" color="textSecondary">
@@ -194,28 +199,108 @@ const QuizManagement = () => {
             إضافة اختبار جديد
           </Button>
         </Box>
+      ) : isMobile ? (
+        <Box display="flex" flexDirection="column" gap={1}>
+          {quizzes.map((quiz) => (
+            <Box
+              key={quiz._id}
+              sx={{
+                boxShadow: 1,
+                borderRadius: 2,
+                p: 1,
+                mb: 0.5,
+                bgcolor: "background.paper",
+              }}
+            >
+              <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                {quiz.title}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {quiz.description}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                تاريخ الاستحقاق: {new Date(quiz.dueDate).toLocaleDateString()}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                الدرجة الكلية: {quiz.totalMarks}
+              </Typography>
+              <Box display="flex" justifyContent="flex-end" gap={1} mt={1}>
+                <IconButton
+                  onClick={() => navigate(`/educator/edit-quiz/${quiz._id}`)}
+                  color="primary"
+                  size="small"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  onClick={() => {
+                    setSelectedQuiz(quiz);
+                    setDeleteDialogOpen(true);
+                  }}
+                  color="error"
+                  size="small"
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  onClick={() => handleViewSubmissions(quiz._id)}
+                  color="info"
+                  size="small"
+                >
+                  <VisibilityIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  onClick={() => handleViewAnalytics(quiz._id)}
+                  color="success"
+                  size="small"
+                >
+                  <AssessmentIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            </Box>
+          ))}
+        </Box>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
+        <TableContainer
+          component={Paper}
+          sx={{ boxShadow: "none", m: 0, p: 0 }}
+        >
+          <Table size="small">
             <TableHead>
-              <TableRow>
-                <TableCell>عنوان الاختبار</TableCell>
-                <TableCell>الوصف</TableCell>
-                <TableCell>تاريخ الاستحقاق</TableCell>
-                <TableCell>الدرجة الكلية</TableCell>
-                <TableCell>الإجراءات</TableCell>
+              <TableRow sx={{ height: 24 }}>
+                <TableCell sx={{ p: 0.2, fontSize: "0.85rem" }}>
+                  عنوان الاختبار
+                </TableCell>
+                <TableCell sx={{ p: 0.2, fontSize: "0.85rem" }}>
+                  الوصف
+                </TableCell>
+                <TableCell sx={{ p: 0.2, fontSize: "0.85rem" }}>
+                  تاريخ الاستحقاق
+                </TableCell>
+                <TableCell sx={{ p: 0.2, fontSize: "0.85rem" }}>
+                  الدرجة الكلية
+                </TableCell>
+                <TableCell sx={{ p: 0.2, fontSize: "0.85rem" }}>
+                  الإجراءات
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {quizzes.map((quiz) => (
-                <TableRow key={quiz._id}>
-                  <TableCell>{quiz.title}</TableCell>
-                  <TableCell>{quiz.description}</TableCell>
-                  <TableCell>
+                <TableRow key={quiz._id} sx={{ height: 24 }}>
+                  <TableCell sx={{ p: 0.2, fontSize: "0.95rem" }}>
+                    {quiz.title}
+                  </TableCell>
+                  <TableCell sx={{ p: 0.2, fontSize: "0.95rem" }}>
+                    {quiz.description}
+                  </TableCell>
+                  <TableCell sx={{ p: 0.2, fontSize: "0.95rem" }}>
                     {new Date(quiz.dueDate).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>{quiz.totalMarks}</TableCell>
-                  <TableCell>
+                  <TableCell sx={{ p: 0.2, fontSize: "0.95rem" }}>
+                    {quiz.totalMarks}
+                  </TableCell>
+                  <TableCell sx={{ p: 0.2, fontSize: "0.95rem" }}>
                     <IconButton
                       onClick={() =>
                         navigate(`/educator/edit-quiz/${quiz._id}`)

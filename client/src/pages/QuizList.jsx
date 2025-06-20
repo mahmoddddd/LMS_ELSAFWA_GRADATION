@@ -12,6 +12,8 @@ import {
   Box,
   CircularProgress,
   Alert,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -24,6 +26,8 @@ const QuizList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -71,15 +75,17 @@ const QuizList = () => {
   }
 
   return (
-    <Box p={3}>
+    <Box p={isMobile ? 1 : 3}>
       <NavigationButtons />
       <Box
         display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
+        flexDirection={isMobile ? "column" : "row"}
+        justifyContent={isMobile ? "flex-start" : "space-between"}
+        alignItems={isMobile ? "stretch" : "center"}
+        mb={isMobile ? 2 : 3}
+        gap={isMobile ? 2 : 0}
       >
-        <Typography variant="h4" component="h1">
+        <Typography variant={isMobile ? "h5" : "h4"} component="h1">
           الاختبارات
         </Typography>
         {userRole === "educator" && (
@@ -88,28 +94,38 @@ const QuizList = () => {
             to={`/courses/${courseId}/quizzes/create`}
             variant="contained"
             color="primary"
+            fullWidth={isMobile}
+            sx={{ mt: isMobile ? 1 : 0 }}
           >
             إنشاء اختبار جديد
           </Button>
         )}
       </Box>
-
-      <Grid container spacing={3}>
+      <Grid container spacing={isMobile ? 1 : 3}>
         {quizzes.map((quiz) => (
-          <Grid item xs={12} md={6} lg={4} key={quiz._id}>
-            <Card>
+          <Grid item xs={12} sm={12} md={6} lg={4} key={quiz._id}>
+            <Card sx={{ mb: isMobile ? 1 : 0 }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
+                <Typography
+                  variant={isMobile ? "subtitle1" : "h6"}
+                  gutterBottom
+                >
                   {quiz.title}
                 </Typography>
-                <Typography color="textSecondary" paragraph>
+                <Typography
+                  color="textSecondary"
+                  paragraph
+                  sx={{ fontSize: isMobile ? "0.95rem" : "1rem" }}
+                >
                   {quiz.description}
                 </Typography>
                 <Box
                   display="flex"
+                  flexDirection={isMobile ? "column" : "row"}
                   justifyContent="space-between"
-                  alignItems="center"
+                  alignItems={isMobile ? "flex-start" : "center"}
                   mb={2}
+                  gap={isMobile ? 1 : 0}
                 >
                   <Typography variant="body2">
                     الدرجة الكلية: {quiz.totalMarks}
@@ -130,6 +146,7 @@ const QuizList = () => {
                     to={`/courses/${courseId}/quizzes/${quiz._id}`}
                     variant="outlined"
                     fullWidth
+                    size={isMobile ? "small" : "medium"}
                   >
                     {userRole === "educator" ? "عرض التفاصيل" : "بدء الاختبار"}
                   </Button>

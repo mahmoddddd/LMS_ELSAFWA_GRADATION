@@ -46,7 +46,7 @@ const Quizzes = () => {
           {error}
         </Alert>
       ) : isMobile ? (
-        <Grid container spacing={1}>
+        <Grid container spacing={0}>
           {quizzes.map((quiz) => {
             // Determine status
             const now = new Date();
@@ -73,14 +73,20 @@ const Quizzes = () => {
               <Grid item xs={12} key={quiz._id}>
                 <Card
                   sx={{
-                    p: 1,
+                    p: 0.5,
                     display: "flex",
                     flexDirection: "column",
-                    gap: 1,
+                    gap: 0.25,
+                    boxShadow: 1,
                   }}
                 >
-                  <Box display="flex" alignItems="center" gap={1} mb={1}>
-                    <Typography variant="h6" fontWeight={600} flex={1}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight={600}
+                      flex={1}
+                      sx={{ fontSize: "0.95rem" }}
+                    >
                       {quiz.title}
                     </Typography>
                     <Chip
@@ -130,7 +136,12 @@ const Quizzes = () => {
                   <Button
                     variant="contained"
                     size="small"
-                    sx={{ mt: 1, alignSelf: "flex-end" }}
+                    sx={{
+                      mt: 0.5,
+                      alignSelf: "flex-end",
+                      minHeight: 32,
+                      fontSize: "0.85rem",
+                    }}
                     onClick={() => navigate(`/educator/quizzes/${quiz._id}`)}
                   >
                     عرض التفاصيل
@@ -141,7 +152,7 @@ const Quizzes = () => {
           })}
         </Grid>
       ) : (
-        <Grid container spacing={4}>
+        <Grid container spacing={1}>
           {quizzes.map((quiz) => {
             // Determine status
             const now = new Date();
@@ -168,14 +179,20 @@ const Quizzes = () => {
               <Grid item xs={12} sm={6} md={4} key={quiz._id}>
                 <Card
                   sx={{
-                    p: 2,
+                    p: 0.5,
                     display: "flex",
                     flexDirection: "column",
-                    gap: 1,
+                    gap: 0.25,
+                    boxShadow: 1,
                   }}
                 >
-                  <Box display="flex" alignItems="center" gap={1} mb={1}>
-                    <Typography variant="h6" fontWeight={600} flex={1}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight={600}
+                      flex={1}
+                      sx={{ fontSize: "0.95rem" }}
+                    >
                       {quiz.title}
                     </Typography>
                     <Chip
@@ -225,7 +242,12 @@ const Quizzes = () => {
                   <Button
                     variant="contained"
                     size="small"
-                    sx={{ mt: 1, alignSelf: "flex-end" }}
+                    sx={{
+                      mt: 0.5,
+                      alignSelf: "flex-end",
+                      minHeight: 32,
+                      fontSize: "0.85rem",
+                    }}
                     onClick={() => navigate(`/educator/quizzes/${quiz._id}`)}
                   >
                     عرض التفاصيل
