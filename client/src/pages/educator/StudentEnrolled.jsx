@@ -605,7 +605,7 @@ const StudentEnrolled = () => {
               </Box>
             </Box>
 
-            {/* Report Summary */}
+            {/* Stack summary cards vertically on mobile */}
             <Grid container spacing={3} mb={4}>
               <Grid item xs={12} sm={6} md={3}>
                 <Card variant="outlined">
@@ -657,35 +657,28 @@ const StudentEnrolled = () => {
               </Grid>
             </Grid>
 
-            {/* Student Performance Table */}
+            {/* Student Performance Table or Card List */}
             {reportOptions.includeStudentDetails && reportData.students && (
               <Box mb={4}>
                 <Typography variant="h6" gutterBottom>
                   Student Performance
                 </Typography>
-                <TableContainer component={Paper}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Student</TableCell>
-                        <TableCell align="right">Score</TableCell>
-                        <TableCell align="right">Percentage</TableCell>
-                        <TableCell align="center">Status</TableCell>
-                        <TableCell align="center">Grade</TableCell>
-                        <TableCell align="center">Submitted</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {reportData.students.map((student, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{student.name}</TableCell>
-                          <TableCell align="right">
-                            {student.score}/{student.totalMarks}
-                          </TableCell>
-                          <TableCell align="right">
-                            {student.percentage.toFixed(1)}%
-                          </TableCell>
-                          <TableCell align="center">
+                {isMobile ? (
+                  <Grid container spacing={2}>
+                    {reportData.students.map((student, index) => (
+                      <Grid item xs={12} key={index}>
+                        <Card sx={{ p: 2 }}>
+                          <Typography variant="subtitle1" fontWeight={600}>
+                            {student.name}
+                          </Typography>
+                          <Typography variant="body2">
+                            Score: {student.score}/{student.totalMarks}
+                          </Typography>
+                          <Typography variant="body2">
+                            Percentage: {student.percentage.toFixed(1)}%
+                          </Typography>
+                          <Typography variant="body2">
+                            Status:{" "}
                             <Chip
                               label={student.status}
                               color={
@@ -693,8 +686,9 @@ const StudentEnrolled = () => {
                               }
                               size="small"
                             />
-                          </TableCell>
-                          <TableCell align="center">
+                          </Typography>
+                          <Typography variant="body2">
+                            Grade:{" "}
                             <Chip
                               label={student.grade}
                               color={
@@ -710,17 +704,146 @@ const StudentEnrolled = () => {
                               }
                               size="small"
                             />
-                          </TableCell>
-                          <TableCell align="center">
+                          </Typography>
+                          <Typography variant="body2">
+                            Submitted:{" "}
                             {new Date(student.submittedAt).toLocaleDateString()}
-                          </TableCell>
+                          </Typography>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                ) : (
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Student</TableCell>
+                          <TableCell align="right">Score</TableCell>
+                          <TableCell align="right">Percentage</TableCell>
+                          <TableCell align="center">Status</TableCell>
+                          <TableCell align="center">Grade</TableCell>
+                          <TableCell align="center">Submitted</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </TableHead>
+                      <TableBody>
+                        {reportData.students.map((student, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{student.name}</TableCell>
+                            <TableCell align="right">
+                              {student.score}/{student.totalMarks}
+                            </TableCell>
+                            <TableCell align="right">
+                              {student.percentage.toFixed(1)}%
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={student.status}
+                                color={
+                                  student.status === "ناجح"
+                                    ? "success"
+                                    : "error"
+                                }
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={student.grade}
+                                color={
+                                  student.grade === "ممتاز"
+                                    ? "success"
+                                    : student.grade === "جيد جداً"
+                                    ? "primary"
+                                    : student.grade === "جيد"
+                                    ? "warning"
+                                    : student.grade === "مقبول"
+                                    ? "info"
+                                    : "error"
+                                }
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell align="center">
+                              {new Date(
+                                student.submittedAt
+                              ).toLocaleDateString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
               </Box>
             )}
+
+            {/* Question Analysis Table or Card List */}
+            {reportOptions.includeQuestionAnalysis &&
+              reportData.questionAnalysis && (
+                <Box mb={4}>
+                  <Typography variant="h6" gutterBottom>
+                    Question Analysis
+                  </Typography>
+                  {isMobile ? (
+                    <Grid container spacing={2}>
+                      {reportData.questionAnalysis.map((question, index) => (
+                        <Grid item xs={12} key={index}>
+                          <Card sx={{ p: 2 }}>
+                            <Typography variant="subtitle1" fontWeight={600}>
+                              {question.questionText}
+                            </Typography>
+                            <Typography variant="body2">
+                              Correct: {question.correctAnswers}
+                            </Typography>
+                            <Typography variant="body2">
+                              Incorrect: {question.incorrectAnswers}
+                            </Typography>
+                            <Typography variant="body2">
+                              Success Rate: {question.successRate.toFixed(1)}%
+                            </Typography>
+                          </Card>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ) : (
+                    <TableContainer component={Paper}>
+                      <Table>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Question</TableCell>
+                            <TableCell align="center">
+                              Correct Answers
+                            </TableCell>
+                            <TableCell align="center">
+                              Incorrect Answers
+                            </TableCell>
+                            <TableCell align="center">Success Rate</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {reportData.questionAnalysis.map(
+                            (question, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{question.questionText}</TableCell>
+                                <TableCell align="center">
+                                  {question.correctAnswers}
+                                </TableCell>
+                                <TableCell align="center">
+                                  {question.incorrectAnswers}
+                                </TableCell>
+                                <TableCell align="center">
+                                  {question.successRate.toFixed(1)}%
+                                </TableCell>
+                              </TableRow>
+                            )
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
+                </Box>
+              )}
 
             {/* Grade Distribution */}
             {reportOptions.includeGradeDistribution &&
@@ -751,46 +874,6 @@ const StudentEnrolled = () => {
                       )
                     )}
                   </Grid>
-                </Box>
-              )}
-
-            {/* Question Analysis */}
-            {reportOptions.includeQuestionAnalysis &&
-              reportData.questionAnalysis && (
-                <Box mb={4}>
-                  <Typography variant="h6" gutterBottom>
-                    Question Analysis
-                  </Typography>
-                  <TableContainer component={Paper}>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Question</TableCell>
-                          <TableCell align="center">Correct Answers</TableCell>
-                          <TableCell align="center">
-                            Incorrect Answers
-                          </TableCell>
-                          <TableCell align="center">Success Rate</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {reportData.questionAnalysis.map((question, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{question.questionText}</TableCell>
-                            <TableCell align="center">
-                              {question.correctAnswers}
-                            </TableCell>
-                            <TableCell align="center">
-                              {question.incorrectAnswers}
-                            </TableCell>
-                            <TableCell align="center">
-                              {question.successRate.toFixed(1)}%
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
                 </Box>
               )}
 
