@@ -42,6 +42,7 @@ import {
 import { AppContext } from "../../context/AppContext";
 import DownloadIcon from "@mui/icons-material/Download";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 const QuizAnalytics = () => {
   const { backendUrl } = useContext(AppContext);
@@ -51,6 +52,7 @@ const QuizAnalytics = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState("all");
   const [courses, setCourses] = useState([]);
+  const isMobile = useMediaQuery("(max-width:600px)");
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
@@ -353,7 +355,7 @@ const QuizAnalytics = () => {
               <Typography variant="h6" gutterBottom>
                 Grade Distribution
               </Typography>
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={isMobile ? 220 : 400}>
                 <PieChart>
                   <Pie
                     data={gradeDistributionData}
@@ -481,7 +483,7 @@ const QuizAnalytics = () => {
               <Typography variant="h6" gutterBottom>
                 Course Performance
               </Typography>
-              <ResponsiveContainer width="100%" height={500}>
+              <ResponsiveContainer width="100%" height={isMobile ? 220 : 500}>
                 <BarChart
                   data={coursePerformanceData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
@@ -528,36 +530,59 @@ const QuizAnalytics = () => {
         </Grid>
       </Grid>
 
-      {/* Top Performing Quizzes Table */}
+      {/* Top Performing Quizzes Table or Card List */}
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Top Performing Quizzes
           </Typography>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Quiz Title</TableCell>
-                  <TableCell>Course</TableCell>
-                  <TableCell align="right">Average Score</TableCell>
-                  <TableCell align="right">Submissions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {analyticsData.topPerformingQuizzes.map((quiz, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{quiz.title}</TableCell>
-                    <TableCell>{quiz.courseTitle}</TableCell>
-                    <TableCell align="right">
-                      {quiz.averageScore.toFixed(1)}%
-                    </TableCell>
-                    <TableCell align="right">{quiz.submissions}</TableCell>
+          {isMobile ? (
+            <Grid container spacing={2}>
+              {analyticsData.topPerformingQuizzes.map((quiz, index) => (
+                <Grid item xs={12} key={index}>
+                  <Card sx={{ p: 2 }}>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      {quiz.title}
+                    </Typography>
+                    <Typography variant="body2">
+                      Course: {quiz.courseTitle}
+                    </Typography>
+                    <Typography variant="body2">
+                      Avg Score: {quiz.averageScore.toFixed(1)}%
+                    </Typography>
+                    <Typography variant="body2">
+                      Submissions: {quiz.submissions}
+                    </Typography>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Quiz Title</TableCell>
+                    <TableCell>Course</TableCell>
+                    <TableCell align="right">Average Score</TableCell>
+                    <TableCell align="right">Submissions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {analyticsData.topPerformingQuizzes.map((quiz, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{quiz.title}</TableCell>
+                      <TableCell>{quiz.courseTitle}</TableCell>
+                      <TableCell align="right">
+                        {quiz.averageScore.toFixed(1)}%
+                      </TableCell>
+                      <TableCell align="right">{quiz.submissions}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </CardContent>
       </Card>
 
