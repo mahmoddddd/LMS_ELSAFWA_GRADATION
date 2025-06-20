@@ -239,12 +239,12 @@ router.get("/student/:studentId/analytics", async (req, res) => {
               (q) => q._id.toString() === answer.questionId.toString()
             );
             return {
-              questionText: question.questionText,
-              questionType: question.questionType,
+              questionText: question ? question.questionText : "غير متوفر",
+              questionType: question ? question.questionType : "غير متوفر",
               answer: answer.answer,
               isCorrect: answer.isCorrect,
               score: answer.score,
-              maxScore: question.marks,
+              maxScore: question ? question.marks : 0,
               feedback: answer.feedback,
             };
           }),
