@@ -89,7 +89,7 @@ const QuizSubmissions = () => {
       console.log("Fetching submissions for quiz:", quizId);
 
       const response = await axios.get(
-              `${backendUrl}/quiz/${quizId}/statistics`,
+        `${backendUrl}/quiz/${quizId}/statistics`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -104,15 +104,23 @@ const QuizSubmissions = () => {
         const submissionsData = response.data.statistics.submissions || [];
         console.log("Submissions Data:", submissionsData);
 
-        setSubmissions(submissionsData);
+        // Filter out sample students
+        const realSubmissions = submissionsData.filter(
+          (submission) =>
+            !submission.student.startsWith("sample_") &&
+            !submission.student.startsWith("student_")
+        );
+
+        setSubmissions(realSubmissions);
         setQuiz(response.data.statistics.quiz);
 
         // Fetch student names for each submission
         const names = {};
-        for (const submission of submissionsData) {
+        for (const submission of realSubmissions) {
+          // Only fetch real student names from API
           try {
             const studentResponse = await axios.get(
-            `${backendUrl}/user/${submission.student}`,
+              `${backendUrl}/user/${submission.student}`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -155,8 +163,8 @@ const QuizSubmissions = () => {
       console.log("Student ID:", submission.student);
 
       const response = await axios.get(
-               `${backendUrl}/quiz/${quizId}/submissions/${submission.student}`,    
-    {
+        `${backendUrl}/quiz/${quizId}/submissions/${submission.student}`,
+        {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -243,7 +251,7 @@ const QuizSubmissions = () => {
       const token = await getToken();
 
       const response = await axios.post(
-           `${backendUrl}/quiz/${quizId}/submissions/${selectedSubmission.student}/grade`,
+        `${backendUrl}/quiz/${quizId}/submissions/${selectedSubmission.student}/grade`,
         {
           grade: grade,
           feedback: feedback,
@@ -429,10 +437,12 @@ const QuizSubmissions = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {submissions.map((submission) => {
+            {submissions.map((submission, index) => {
               console.log("Rendering submission row:", submission); // Debug log
               return (
-                <TableRow key={submission.student}>
+                <TableRow
+                  key={`${submission.student}-${submission.submittedAt}-${index}`}
+                >
                   <TableCell>
                     {studentNames[submission.student] || "طالب غير معروف"}
                   </TableCell>

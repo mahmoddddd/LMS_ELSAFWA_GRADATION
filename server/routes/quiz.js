@@ -18,6 +18,10 @@ import {
   gradeFileSubmission,
   gradeSubmission,
   getSubmissionDetails,
+  getEducatorAnalytics,
+  generateQuizReport,
+  exportReportPDF,
+  exportReportExcel,
 } from "../controllers/QuizController.js";
 import { protectEducator } from "../middlewares/authMiddleWare.js";
 import multer from "multer";
@@ -154,6 +158,10 @@ router.get(
   protectEducator,
   getSubmissionDetails
 );
+router.get("/educator/analytics", protectEducator, getEducatorAnalytics);
+router.post("/report", protectEducator, generateQuizReport);
+router.post("/report/pdf", protectEducator, exportReportPDF);
+router.post("/report/excel", protectEducator, exportReportExcel);
 
 // Student routes
 router.get("/course/:courseId", getCourseQuizzes);

@@ -1419,3 +1419,533 @@ const getQuizSubmissions = async (req, res) => {
     });
   }
 };
+
+// Get aggregated analytics for all educator quizzes
+export const getEducatorAnalytics = async (req, res) => {
+  try {
+    const clerkId = getClerkId(req);
+
+    // Get all quizzes for the educator
+    const quizzes = await Quiz.find({ instructor: clerkId })
+      .populate("course", "courseTitle")
+      .sort({ createdAt: -1 });
+
+    if (!quizzes || quizzes.length === 0) {
+      return res.json({
+        success: true,
+        analytics: {
+          totalQuizzes: 0,
+          totalSubmissions: 0,
+          totalStudents: 0,
+          averageScore: 0,
+          passRate: 0,
+          courseStats: {},
+          gradeDistribution: {
+            excellent: 0,
+            veryGood: 0,
+            good: 0,
+            acceptable: 0,
+            failed: 0,
+          },
+          monthlyStats: {},
+          topPerformingQuizzes: [],
+        },
+      });
+    }
+
+    // Calculate analytics
+    const analytics = {
+      totalQuizzes: quizzes.length,
+      totalSubmissions: 0,
+      totalStudents: new Set(),
+      averageScore: 0,
+      passRate: 0,
+      courseStats: {},
+      gradeDistribution: {
+        excellent: 0,
+        veryGood: 0,
+        good: 0,
+        acceptable: 0,
+        failed: 0,
+      },
+      monthlyStats: {},
+      topPerformingQuizzes: [],
+    };
+
+    let totalScore = 0;
+    let totalMarks = 0;
+    let totalPassed = 0;
+
+    quizzes.forEach((quiz) => {
+      const courseId = quiz.course._id;
+      if (!analytics.courseStats[courseId]) {
+        analytics.courseStats[courseId] = {
+          courseTitle: quiz.course.courseTitle,
+          totalQuizzes: 0,
+          totalSubmissions: 0,
+          totalScore: 0,
+          totalMarks: 0,
+          passRate: 0,
+        };
+      }
+
+      analytics.courseStats[courseId].totalQuizzes++;
+      analytics.totalSubmissions += quiz.submissions.length;
+
+      quiz.submissions.forEach((submission) => {
+        analytics.totalStudents.add(submission.student);
+
+        // Calculate percentage for this submission
+        const submissionPercentage = (submission.score / quiz.totalMarks) * 100;
+        totalScore += submission.score;
+        totalMarks += quiz.totalMarks;
+
+        // Add to course stats
+        analytics.courseStats[courseId].totalSubmissions++;
+        analytics.courseStats[courseId].totalScore += submission.score;
+        analytics.courseStats[courseId].totalMarks += quiz.totalMarks;
+
+        if (submission.status === "ناجح" || submissionPercentage >= 60) {
+          totalPassed++;
+          analytics.courseStats[courseId].passRate++;
+        }
+
+        // Grade distribution based on percentage
+        if (submissionPercentage >= 90) analytics.gradeDistribution.excellent++;
+        else if (submissionPercentage >= 80)
+          analytics.gradeDistribution.veryGood++;
+        else if (submissionPercentage >= 70) analytics.gradeDistribution.good++;
+        else if (submissionPercentage >= 60)
+          analytics.gradeDistribution.acceptable++;
+        else analytics.gradeDistribution.failed++;
+
+        // Monthly stats
+        const month = new Date(submission.submittedAt).toLocaleDateString(
+          "en-US",
+          { year: "numeric", month: "short" }
+        );
+        if (!analytics.monthlyStats[month]) {
+          analytics.monthlyStats[month] = {
+            submissions: 0,
+            totalScore: 0,
+            totalMarks: 0,
+          };
+        }
+        analytics.monthlyStats[month].submissions++;
+        analytics.monthlyStats[month].totalScore += submission.score;
+        analytics.monthlyStats[month].totalMarks += quiz.totalMarks;
+      });
+    });
+
+    // Calculate overall averages
+    analytics.averageScore =
+      totalMarks > 0 ? (totalScore / totalMarks) * 100 : 0;
+    analytics.passRate =
+      analytics.totalSubmissions > 0
+        ? (totalPassed / analytics.totalSubmissions) * 100
+        : 0;
+
+    // Calculate course averages
+    Object.keys(analytics.courseStats).forEach((courseId) => {
+      const course = analytics.courseStats[courseId];
+      course.averageScore =
+        course.totalMarks > 0
+          ? (course.totalScore / course.totalMarks) * 100
+          : 0;
+      course.passRate =
+        course.totalSubmissions > 0
+          ? (course.passRate / course.totalSubmissions) * 100
+          : 0;
+
+      // Clean up temporary fields
+      delete course.totalScore;
+      delete course.totalMarks;
+    });
+
+    // Top performing quizzes
+    analytics.topPerformingQuizzes = quizzes
+      .map((quiz) => {
+        if (quiz.submissions.length === 0) {
+          return {
+            title: quiz.title,
+            courseTitle: quiz.course.courseTitle,
+            averageScore: 0,
+            submissions: 0,
+          };
+        }
+
+        const quizTotalScore = quiz.submissions.reduce(
+          (sum, sub) => sum + sub.score,
+          0
+        );
+        const quizTotalMarks = quiz.submissions.length * quiz.totalMarks;
+        const averageScore =
+          quizTotalMarks > 0 ? (quizTotalScore / quizTotalMarks) * 100 : 0;
+
+        return {
+          title: quiz.title,
+          courseTitle: quiz.course.courseTitle,
+          averageScore: averageScore,
+          submissions: quiz.submissions.length,
+        };
+      })
+      .sort((a, b) => b.averageScore - a.averageScore)
+      .slice(0, 5);
+
+    // Convert Set to number for totalStudents
+    analytics.totalStudents = analytics.totalStudents.size;
+
+    // Calculate monthly averages
+    Object.keys(analytics.monthlyStats).forEach((month) => {
+      const stats = analytics.monthlyStats[month];
+      stats.averageScore =
+        stats.totalMarks > 0 ? (stats.totalScore / stats.totalMarks) * 100 : 0;
+      delete stats.totalScore;
+      delete stats.totalMarks;
+    });
+
+    res.json({
+      success: true,
+      analytics,
+    });
+  } catch (error) {
+    console.error("Error fetching educator analytics:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching analytics data",
+    });
+  }
+};
+
+// Generate detailed quiz report
+export const generateQuizReport = async (req, res) => {
+  try {
+    const clerkId = getClerkId(req);
+    const { quizId, options, dateRange, scoreRange } = req.body;
+
+    console.log("🔍 Generating quiz report for quizId:", quizId);
+    console.log("🔍 Clerk ID:", clerkId);
+    console.log("🔍 Options:", options);
+    console.log("🔍 Date range:", dateRange);
+    console.log("🔍 Score range:", scoreRange);
+
+    if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid quiz ID is required",
+      });
+    }
+
+    // Get the quiz with submissions
+    const quiz = await Quiz.findById(quizId)
+      .populate("course", "courseTitle")
+      .populate("submissions.student", "name email");
+
+    console.log("🔍 Found quiz:", quiz ? quiz.title : "Not found");
+    console.log(
+      "🔍 Quiz submissions count:",
+      quiz ? quiz.submissions.length : 0
+    );
+    console.log("🔍 Quiz instructor:", quiz ? quiz.instructor : "N/A");
+    console.log("🔍 Current clerk ID:", clerkId);
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+    }
+
+    // Check if user is the instructor
+    if (quiz.instructor !== clerkId) {
+      console.log("❌ Authorization failed - instructor mismatch");
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to view this quiz report",
+      });
+    }
+
+    // Filter submissions based on criteria
+    let filteredSubmissions = quiz.submissions;
+    console.log("🔍 Original submissions count:", filteredSubmissions.length);
+
+    // Date range filter
+    if (dateRange && (dateRange.startDate || dateRange.endDate)) {
+      filteredSubmissions = filteredSubmissions.filter((submission) => {
+        const submissionDate = new Date(submission.submittedAt);
+        const startDate = dateRange.startDate
+          ? new Date(dateRange.startDate)
+          : null;
+        const endDate = dateRange.endDate ? new Date(dateRange.endDate) : null;
+
+        if (startDate && submissionDate < startDate) return false;
+        if (endDate && submissionDate > endDate) return false;
+        return true;
+      });
+      console.log("🔍 After date filter:", filteredSubmissions.length);
+    }
+
+    // Score range filter
+    if (scoreRange && (scoreRange.min !== null || scoreRange.max !== null)) {
+      filteredSubmissions = filteredSubmissions.filter((submission) => {
+        const percentage = (submission.score / quiz.totalMarks) * 100;
+        if (scoreRange.min !== null && percentage < scoreRange.min)
+          return false;
+        if (scoreRange.max !== null && percentage > scoreRange.max)
+          return false;
+        return true;
+      });
+      console.log("🔍 After score filter:", filteredSubmissions.length);
+    }
+
+    // Pass/Fail only filter
+    if (options.showPassFailOnly) {
+      filteredSubmissions = filteredSubmissions.filter((submission) => {
+        const percentage = (submission.score / quiz.totalMarks) * 100;
+        return percentage >= 60 || percentage < 60; // Show both pass and fail
+      });
+      console.log("🔍 After pass/fail filter:", filteredSubmissions.length);
+    }
+
+    console.log(
+      "🔍 Final filtered submissions count:",
+      filteredSubmissions.length
+    );
+
+    // Calculate summary statistics
+    const totalSubmissions = filteredSubmissions.length;
+    const totalScore = filteredSubmissions.reduce(
+      (sum, sub) => sum + sub.score,
+      0
+    );
+    const totalMarks = totalSubmissions * quiz.totalMarks;
+    const averageScore = totalMarks > 0 ? (totalScore / totalMarks) * 100 : 0;
+    const passedStudents = filteredSubmissions.filter((sub) => {
+      const percentage = (sub.score / quiz.totalMarks) * 100;
+      return percentage >= 60;
+    }).length;
+    const passRate =
+      totalSubmissions > 0 ? (passedStudents / totalSubmissions) * 100 : 0;
+
+    // Prepare report data
+    const report = {
+      quiz: {
+        title: quiz.title,
+        courseTitle: quiz.course.courseTitle,
+        totalMarks: quiz.totalMarks,
+        questions: quiz.questions.length,
+      },
+      summary: {
+        totalSubmissions,
+        passedStudents,
+        failedStudents: totalSubmissions - passedStudents,
+        averageScore,
+        passRate,
+        totalMarks,
+        totalScore,
+      },
+      filters: {
+        dateRange,
+        scoreRange,
+        options,
+      },
+    };
+
+    // Add student details if requested
+    if (options.includeStudentDetails) {
+      // Gather all unique student IDs from filteredSubmissions
+      const uniqueStudentIds = [
+        ...new Set(filteredSubmissions.map((sub) => sub.student)),
+      ].filter(
+        (id) =>
+          id !== undefined &&
+          id !== null &&
+          !id.startsWith("sample_") &&
+          !id.startsWith("student_")
+      );
+
+      // Fetch all real users in one query
+      const users = await User.find({ clerkId: { $in: uniqueStudentIds } });
+      const userMap = {};
+      users.forEach((u) => {
+        userMap[u.clerkId] = u.name;
+      });
+
+      report.students = filteredSubmissions
+        .filter(
+          (submission) =>
+            !submission.student.startsWith("sample_") &&
+            !submission.student.startsWith("student_")
+        )
+        .map((submission, index) => {
+          const percentage =
+            submission.percentage || (submission.score / quiz.totalMarks) * 100;
+
+          // Get real student name
+          const studentName = userMap[submission.student] || "طالب غير معروف";
+
+          return {
+            name: studentName,
+            email: `${submission.student}@example.com`,
+            score: submission.score,
+            totalMarks: quiz.totalMarks,
+            percentage,
+            status: submission.status || (percentage >= 60 ? "ناجح" : "راسب"),
+            grade:
+              submission.gradeText ||
+              (percentage >= 90
+                ? "ممتاز"
+                : percentage >= 80
+                ? "جيد جداً"
+                : percentage >= 70
+                ? "جيد"
+                : percentage >= 60
+                ? "مقبول"
+                : "راسب"),
+            submittedAt: submission.submittedAt,
+            answers: submission.answers,
+          };
+        });
+    }
+
+    // Add grade distribution if requested
+    if (options.includeGradeDistribution) {
+      const gradeDistribution = {
+        ممتاز: 0,
+        "جيد جداً": 0,
+        جيد: 0,
+        مقبول: 0,
+        راسب: 0,
+      };
+
+      filteredSubmissions.forEach((submission) => {
+        const grade =
+          submission.gradeText ||
+          (() => {
+            const percentage =
+              submission.percentage ||
+              (submission.score / quiz.totalMarks) * 100;
+            if (percentage >= 90) return "ممتاز";
+            else if (percentage >= 80) return "جيد جداً";
+            else if (percentage >= 70) return "جيد";
+            else if (percentage >= 60) return "مقبول";
+            else return "راسب";
+          })();
+
+        gradeDistribution[grade]++;
+      });
+
+      report.gradeDistribution = gradeDistribution;
+    }
+
+    // Add question analysis if requested
+    if (options.includeQuestionAnalysis) {
+      const questionAnalysis = quiz.questions.map((question, index) => {
+        let correctAnswers = 0;
+        let incorrectAnswers = 0;
+
+        filteredSubmissions.forEach((submission) => {
+          const answer = submission.answers.find(
+            (a) => a.questionId.toString() === question._id.toString()
+          );
+          if (answer) {
+            if (answer.isCorrect) correctAnswers++;
+            else incorrectAnswers++;
+          }
+        });
+
+        const totalAnswers = correctAnswers + incorrectAnswers;
+        const successRate =
+          totalAnswers > 0 ? (correctAnswers / totalAnswers) * 100 : 0;
+
+        return {
+          questionNumber: index + 1,
+          questionText: question.questionText,
+          questionType: question.questionType,
+          correctAnswers,
+          incorrectAnswers,
+          totalAnswers,
+          successRate,
+        };
+      });
+
+      report.questionAnalysis = questionAnalysis;
+    }
+
+    // Add time analysis if requested
+    if (options.includeTimeAnalysis) {
+      const timeAnalysis = {
+        averageSubmissionTime: 0,
+        fastestSubmission: null,
+        slowestSubmission: null,
+        submissionTimes: [],
+      };
+
+      if (filteredSubmissions.length > 0) {
+        const submissionTimes = filteredSubmissions.map((submission) => {
+          const submittedAt = new Date(submission.submittedAt);
+          const createdAt = new Date(quiz.createdAt);
+          return Math.abs(submittedAt - createdAt) / (1000 * 60 * 60); // Hours
+        });
+
+        timeAnalysis.submissionTimes = submissionTimes;
+        timeAnalysis.averageSubmissionTime =
+          submissionTimes.reduce((sum, time) => sum + time, 0) /
+          submissionTimes.length;
+        timeAnalysis.fastestSubmission = Math.min(...submissionTimes);
+        timeAnalysis.slowestSubmission = Math.max(...submissionTimes);
+      }
+
+      report.timeAnalysis = timeAnalysis;
+    }
+
+    res.json({
+      success: true,
+      report,
+    });
+  } catch (error) {
+    console.error("Error generating quiz report:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error generating report",
+    });
+  }
+};
+
+// Export report as PDF
+export const exportReportPDF = async (req, res) => {
+  try {
+    // This would require a PDF generation library like puppeteer or jsPDF
+    // For now, we'll return a JSON response indicating PDF generation
+    res.json({
+      success: true,
+      message:
+        "PDF export functionality will be implemented with a PDF library",
+    });
+  } catch (error) {
+    console.error("Error exporting PDF:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error exporting PDF",
+    });
+  }
+};
+
+// Export report as Excel
+export const exportReportExcel = async (req, res) => {
+  try {
+    // This would require an Excel generation library like exceljs
+    // For now, we'll return a JSON response indicating Excel generation
+    res.json({
+      success: true,
+      message:
+        "Excel export functionality will be implemented with an Excel library",
+    });
+  } catch (error) {
+    console.error("Error exporting Excel:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error exporting Excel",
+    });
+  }
+};

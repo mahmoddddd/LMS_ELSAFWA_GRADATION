@@ -70,6 +70,7 @@ const App = () => {
             element={<QuizSubmissions />}
           />
           <Route path="quizzes/:quizId/analytics" element={<QuizAnalytics />} />
+          <Route path="quiz-analytics" element={<QuizAnalytics />} />
         </Route>
         <Route path="/about" element={<AboutUs />} />
         <Route path="/contact" element={<ContactUs />} />

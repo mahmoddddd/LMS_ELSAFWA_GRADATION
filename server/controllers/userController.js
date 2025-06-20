@@ -366,7 +366,8 @@ export const handleSuccessfulPayment = async (req, res) => {
       res.json({
         success: true,
         message: "Enrollment completed successfully",
-  redirectUrl: "https://lms-elsafwa-gradation.vercel.app/my-enrollments?refresh=true",
+        redirectUrl:
+          "https://lms-elsafwa-gradation.vercel.app/my-enrollments?refresh=true",
       });
     } catch (error) {
       console.error("❌ Error in enrollment transaction:", error);
@@ -527,7 +528,8 @@ export const completePurchase = async (req, res) => {
       return res.json({
         success: true,
         message: "Purchase already completed",
-    redirectUrl: "https://lms-elsafwa-gradation.vercel.app/my-enrollments?refresh=true",
+        redirectUrl:
+          "https://lms-elsafwa-gradation.vercel.app/my-enrollments?refresh=true",
       });
     }
 
@@ -635,7 +637,8 @@ export const completePurchase = async (req, res) => {
       res.json({
         success: true,
         message: "Purchase completed successfully",
-redirectUrl: "https://lms-elsafwa-gradation.vercel.app/my-enrollments?refresh=true",
+        redirectUrl:
+          "https://lms-elsafwa-gradation.vercel.app/my-enrollments?refresh=true",
       });
     } catch (error) {
       console.error("❌ Error in enrollment transaction:", error);
@@ -712,5 +715,96 @@ export const getUserByClerkId = async (req, res) => {
   } catch (error) {
     console.error("❌ Error getting user by Clerk ID:", error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const handleInstaPayPayment = async (req, res) => {
+  try {
+    const { courseId, userId, paymentId, status } = req.body;
+
+    if (!courseId || !userId || !paymentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required payment information",
+      });
+    }
+
+    console.log("🔄 Processing InstaPay payment:", {
+      courseId,
+      userId,
+      paymentId,
+      status,
+    });
+
+    // Find the purchase record
+    const purchase = await Purchase.findOne({
+      courseId,
+      userId,
+      status: "pending",
+    });
+
+    if (!purchase) {
+      return res.status(404).json({
+        success: false,
+        message: "Purchase record not found",
+      });
+    }
+
+    if (status === "success" || status === "completed") {
+      // Update purchase status
+      purchase.status = "completed";
+      purchase.completedAt = new Date();
+      purchase.paymentMethod = "instapay";
+      purchase.paymentId = paymentId;
+
+      // Find user and course
+      const [user, course] = await Promise.all([
+        User.findById(userId),
+        Course.findById(courseId),
+      ]);
+
+      if (!user || !course) {
+        return res.status(404).json({
+          success: false,
+          message: "User or course not found",
+        });
+      }
+
+      // Add to enrolled courses if not already enrolled
+      if (!user.enrolledCourses.includes(courseId)) {
+        user.enrolledCourses.push(courseId);
+      }
+
+      // Add to enrolled students if not already added
+      if (!course.enrolledStudents.includes(userId)) {
+        course.enrolledStudents.push(userId);
+      }
+
+      // Save all changes
+      await Promise.all([user.save(), course.save(), purchase.save()]);
+
+      console.log("✅ InstaPay payment processed successfully");
+
+      res.json({
+        success: true,
+        message: "Payment processed and enrollment completed",
+      });
+    } else {
+      // Payment failed
+      purchase.status = "failed";
+      await purchase.save();
+
+      res.json({
+        success: false,
+        message: "Payment failed",
+      });
+    }
+  } catch (error) {
+    console.error("❌ Error processing InstaPay payment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to process payment",
+      error: error.message,
+    });
   }
 };

@@ -13,6 +13,7 @@ import {
   completePurchase,
   updatePurchaseClerkId,
   getUserByClerkId,
+  handleInstaPayPayment,
 } from "../controllers/userController.js";
 // import { requireAuth } from "../middlewares/authMiddleWare.js"
 
@@ -35,5 +36,6 @@ userRouter.post("/purchase", purchaseCourse);
 userRouter.post("/complete-purchase", completePurchase);
 userRouter.post("/update-purchase-clerk-id", updatePurchaseClerkId);
 userRouter.post("/handle-payment-success", handleSuccessfulPayment);
+userRouter.post("/handle-insta-pay-payment", handleInstaPayPayment);
 
 export default userRouter;

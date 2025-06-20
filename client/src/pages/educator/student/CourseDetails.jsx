@@ -95,9 +95,13 @@ const CourseDetails = () => {
     // Check if coming back from payment
     const urlParams = new URLSearchParams(window.location.search);
     const paymentSuccess = urlParams.get("payment_success");
+    const paymentMethod = localStorage.getItem("pendingPaymentMethod");
 
-    if (paymentSuccess === "true") {
+    if (paymentSuccess === "true" || paymentMethod === "instapay") {
       console.log("💰 Payment successful, checking enrollment status");
+      // Clear stored payment method
+      localStorage.removeItem("pendingPaymentMethod");
+
       // Wait a bit for webhook to process, then check enrollment
       setTimeout(() => {
         checkEnrollmentStatus();
@@ -204,6 +208,74 @@ const CourseDetails = () => {
       } else {
         toast.error(
           error.response?.data?.message || "Failed to enroll. Please try again."
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInstaPayPayment = async () => {
+    try {
+      setIsLoading(true);
+
+      // Check if user is logged in
+      if (!userData) {
+        toast.warn("Please login to enroll in this course");
+        return;
+      }
+
+      // Check if already enrolled
+      if (isAlreadyEnrolled) {
+        toast.warn("You are already enrolled in this course");
+        return;
+      }
+
+      // Get authentication token
+      const token = await getToken();
+      if (!token) {
+        toast.warn("Authentication failed. Please login again.");
+        return;
+      }
+
+      console.log("🔄 Initiating InstaPay payment for:", courseData._id);
+
+      // Create purchase record first
+      const { data } = await axios.post(
+        `${backendUrl}/api/user/purchase`,
+        { courseId: courseData._id },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (data.success) {
+        // Store course ID for verification after payment
+        localStorage.setItem("pendingEnrollmentCourseId", courseData._id);
+        localStorage.setItem("pendingPaymentMethod", "instapay");
+
+        // Redirect to InstaPay payment page
+        window.location.href =
+          "https://ipn.eg/S/mahmodelsherif/instapay/8M08cv";
+      } else {
+        toast.error(data.message || "Failed to initiate InstaPay payment");
+      }
+    } catch (error) {
+      console.error("❌ InstaPay payment error:", error);
+      if (error.response?.status === 401) {
+        toast.error("Authentication failed. Please login again.");
+      } else if (error.response?.status === 400) {
+        toast.error(
+          error.response.data.message ||
+            "You are already enrolled in this course"
+        );
+      } else {
+        toast.error(
+          error.response?.data?.message ||
+            "Failed to process InstaPay payment. Please try again."
         );
       }
     } finally {
@@ -516,13 +588,7 @@ const CourseDetails = () => {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                           </svg>
                           Continue Learning
@@ -532,7 +598,7 @@ const CourseDetails = () => {
                             onClick={() =>
                               navigate(`/course/${courseData._id}/quizzes`)
                             }
-                            className="w-full bg-white text-gray-900 border border-gray-300 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 font-medium"
+                            className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 font-medium"
                           >
                             <svg
                               className="w-5 h-5"
@@ -544,7 +610,7 @@ const CourseDetails = () => {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                               />
                             </svg>
                             Take Quizzes ({quizCount})
@@ -552,11 +618,11 @@ const CourseDetails = () => {
                         )}
                       </div>
                     ) : (
-                      <div>
+                      <div className="space-y-3">
                         <button
                           onClick={enrollCourse}
                           disabled={isLoading}
-                          className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 font-medium mb-3"
+                          className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
                         >
                           {isLoading ? (
                             <>
@@ -602,11 +668,10 @@ const CourseDetails = () => {
                           )}
                         </button>
 
-                        <a
-                          href="https://ipn.eg/S/mahmodelsherif/instapay/8M08cv"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 font-medium"
+                        <button
+                          onClick={handleInstaPayPayment}
+                          disabled={isLoading}
+                          className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
                         >
                           <svg
                             className="w-5 h-5"
@@ -618,11 +683,11 @@ const CourseDetails = () => {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
                             />
                           </svg>
                           Pay with InstaPay
-                        </a>
+                        </button>
                       </div>
                     )}
 
