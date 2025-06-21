@@ -9,7 +9,8 @@ const Footer = () => {
         <div className="hidden md:block h-7 w-px bg-gray-500/60"></div>
         <div>
           <p className="py-4 text-center text-xs md:text-sm text-gray-500">
-            created BY Mahmoud Elsherif & Mohamed Elsherbiny & Yasser ELnakeb
+            created BY Mahmoud Elsherif & Mohamed Elsherbiny & Yasser ELnakeb &
+            Hosam Hani
           </p>
         </div>
       </div>
