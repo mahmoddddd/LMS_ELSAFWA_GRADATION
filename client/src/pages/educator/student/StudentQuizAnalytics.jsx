@@ -272,7 +272,7 @@ const StudentQuizAnalytics = () => {
                                   size="small"
                                   onClick={() => handleViewQuiz(quiz)}
                                 >
-                                  View Results
+                                  Get Course Quizes
                                 </Button>
                               ) : (
                                 <Button
