@@ -13,7 +13,10 @@ const Hero = () => {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="md:text-home-heading-large text-home-heading-small relative font-bold text-gray-800 max-w-3xl mx-auto"
       >
-        EduTeach Empower your future with the courses designed to{" "}
+        <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent font-extrabold text-4xl md:text-6xl drop-shadow-lg">
+          EduTeach
+        </span>{" "}
+        Empower your future with the courses designed to{" "}
         <span className="text-blue-600 relative">
           fit your choice.
           <img
