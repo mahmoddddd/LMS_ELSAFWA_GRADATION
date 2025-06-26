@@ -38,35 +38,35 @@ const Hero = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, ease: "easeOut", delay: 0.8 }}
-            className="text-blue-600 relative"
+            className="text-blue-600 relative flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3"
           >
-            Master Your Future with{" "}
+            <span className="whitespace-nowrap">Master Your Future with</span>
             <motion.a
               href="https://mahmoddddd.github.io/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-2xl md:text-4xl px-4 py-2 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300 border-2 border-emerald-400 hover:shadow-xl cursor-pointer"
+              className="inline-block bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-lg md:text-2xl px-3 md:px-4 py-1 md:py-2 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300 border-2 border-emerald-400 hover:shadow-xl cursor-pointer"
               whileHover={{ scale: 1.05, rotate: 1 }}
               whileTap={{ scale: 0.95 }}
             >
               Mahmod Elsherif
-            </motion.a>{" "}
+            </motion.a>
             <motion.a
               href="https://wa.me/201002084496"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block bg-green-500 text-white font-bold text-lg md:text-2xl px-3 py-1 rounded-full shadow-lg transform hover:scale-110 transition-transform duration-300 hover:bg-green-600 cursor-pointer"
+              className="inline-block bg-green-500 text-white font-bold text-base md:text-lg px-2 md:px-3 py-1 rounded-full shadow-lg transform hover:scale-110 transition-transform duration-300 hover:bg-green-600 cursor-pointer"
               title="تواصل معي على الواتساب"
               whileHover={{ scale: 1.1, rotate: 5 }}
               whileTap={{ scale: 0.9 }}
             >
               💬
-            </motion.a>{" "}
+            </motion.a>
             <motion.a
               href="https://github.com/mahmoddddd"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center bg-gray-800 text-white font-bold text-lg md:text-2xl px-3 py-1 rounded-full shadow-lg transform hover:scale-110 transition-transform duration-300 hover:bg-gray-700 cursor-pointer"
+              className="inline-flex items-center justify-center bg-gray-800 text-white font-bold text-base md:text-lg px-2 md:px-3 py-1 rounded-full shadow-lg transform hover:scale-110 transition-transform duration-300 hover:bg-gray-700 cursor-pointer"
               title="شاهد مشاريعي على GitHub"
               whileHover={{ scale: 1.1, rotate: -5 }}
               whileTap={{ scale: 0.9 }}
